@@ -165,10 +165,20 @@ function VirtualKeyboard({ onSelect, selectedCode, t, shiftToggle }) {
               </div>
             </div>
           </div>
-          <div className="grid grid-cols-4 gap-1.5">
+          {/* 数字区: 显式网格坐标定位 (4 列 × 5 行), 行高与主键盘一致 (h-8 = 2rem),
+              跨行键用 height:100% 自动填满「行 + 间距」 */}
+          <div
+            className="grid gap-1.5 content-start self-start"
+            style={{ gridTemplateColumns: 'repeat(4, 3rem)', gridAutoRows: '2rem' }}
+          >
             {numpadKeys.map((key, idx) => (
               <button key={idx} className={selectedCode === key.value ? keyActive : keyNormal}
-                style={{ gridRow: key.rowspan ? `span ${key.rowspan}` : 'auto', gridColumn: key.colspan ? `span ${key.colspan}` : 'auto', height: key.rowspan ? '4.25rem' : undefined }}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  gridColumn: `${key.col + 1} / span ${key.colspan || 1}`,
+                  gridRow: `${key.row + 1} / span ${key.rowspan || 1}`,
+                }}
                 onClick={() => handleKeyClick(key.label, key.value)}>
                 <span>{key.label}</span>
               </button>

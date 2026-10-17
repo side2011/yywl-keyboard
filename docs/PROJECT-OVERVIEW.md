@@ -175,6 +175,8 @@
 > 连接页 `/` 顶部有一段「请先用 USB 线连接键盘」的循环动画（`CableHint.jsx` + `index.css` 里的 `yy-*` 关键帧）：线缆从**正上方**垂直下移插入键盘顶部插口 → 插入 → 双环脉冲 → 绿色对勾（实物就是顶部插线）。纯 CSS 实现、无依赖，并遵循 `prefers-reduced-motion`。分镜见 ![插线动画分镜](img/cable-hint-storyboard.png)。
 状态：[DeviceContext.jsx](src/context/DeviceContext.jsx)（设备与 protocolVersion 1/2/3、拔出自动清理）、[LanguageContext.jsx](src/context/LanguageContext.jsx)。
 
+> **说明页按设备类型聚焦**：`public/tutorial.html` 支持 `?type=old|new|bt|mic`。不带参数时显示四张设备选择卡；带参数时隐藏无关章节，只保留「通用 + 对应协议 + 型号表/示例」，并插入该类型的「快速上手 4 步」，目录也会自动过滤。三个配置页顶栏的「📖 说明」会自动带 type（`NewProtoConfigurator → new`、`KeyboardConfigurator → old`、`BtConfigurator → bt`），所以客户连上设备后点说明，看到的直接是自己那一代的操作步骤。英文版 `tutorial-en.html` 结构完全一致。
+
 ### 5.3 设备接入层
 
 **浏览器路径**

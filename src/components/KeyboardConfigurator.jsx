@@ -341,9 +341,13 @@ const KeyboardConfigurator = () => {
           {modelId && <span className="text-xs text-gray-400 font-mono">PID: 0x{device.productId.toString(16).toUpperCase()}</span>}
         </div>
         <div className="flex items-center gap-3">
-          <a href="https://key.itytsoft.com/ws/yywlKey-V3.7.9-green.zip"
+          <a href={`${import.meta.env.BASE_URL}tutorial.html?type=old`} target="_blank" rel="noopener noreferrer"
+            className="px-3 py-1 text-sm font-semibold border-2 border-gray-300 rounded-lg text-gray-600 hover:border-indigo-400 hover:text-indigo-600 transition-colors cursor-pointer bg-white">
+            {lang === 'en' ? '📖 Guide' : '📖 说明'}
+          </a>
+          <a href={`${import.meta.env.BASE_URL}download.html`}
             className="px-3 py-1 text-sm font-semibold border-2 border-indigo-200 rounded-lg text-indigo-600 hover:border-indigo-400 hover:text-indigo-700 hover:bg-indigo-50 transition-colors cursor-pointer bg-white">
-            {lang === 'en' ? '⬇ Download App' : '⬇ 下载软件'}
+            {lang === 'en' ? '⬇ Download App' : '⬇ 软件下载'}
           </a>
           <button onClick={() => navigate('/keytest')}
             className="px-3 py-1 text-sm font-semibold border-2 border-emerald-200 rounded-lg text-emerald-600 hover:border-emerald-400 hover:text-emerald-700 hover:bg-emerald-50 transition-colors cursor-pointer bg-white">

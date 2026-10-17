@@ -159,11 +159,25 @@ export function VirtualKeyboard({ onSelect, selectedCode, t }) {
               </div>
             </div>
           </div>
-          <div className="grid grid-cols-4 gap-1.5 -mt-[100px]">
-            {numpadKeys.map((key, idx) => (
-              <button key={idx} className={selectedCode === key.value ? keyActive : keyNormal}
-                style={{ gridRow: key.rowspan ? `span ${key.rowspan}` : 'auto', gridColumn: key.colspan ? `span ${key.colspan}` : 'auto', height: key.rowspan ? '5.75rem' : undefined }}
-                onClick={() => handleKeyClick(key.label, key.value)}>
+          {/* 数字区: 显式网格坐标定位 (4 列 × 5 行)
+              行高与主键盘一致 (h-11 = 2.75rem), 跨行键用 height:100% 自动填满
+              「行 + 间距」, 不再写死高度 (原来的 5.75rem 比两行实际高度短 2px) */}
+          <div
+            className="grid gap-1.5 content-start self-start"
+            style={{ gridTemplateColumns: 'repeat(4, 3.5rem)', gridAutoRows: '2.75rem' }}
+          >
+            {numpadKeys.map((key) => (
+              <button
+                key={`numpad-${key.value}`}
+                className={selectedCode === key.value ? keyActive : keyNormal}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  gridColumn: `${key.col + 1} / span ${key.colspan || 1}`,
+                  gridRow: `${key.row + 1} / span ${key.rowspan || 1}`,
+                }}
+                onClick={() => handleKeyClick(key.label, key.value)}
+              >
                 <span>{key.label}</span>
               </button>
             ))}
@@ -756,9 +770,13 @@ export default function NewProtoConfigurator() {
           )}
         </div>
         <div className="flex items-center gap-3">
-          <a href="https://key.itytsoft.com/ws/yywlKey-V3.7.9-green.zip"
+          <a href={`${import.meta.env.BASE_URL}tutorial.html?type=new`} target="_blank" rel="noopener noreferrer"
+            className="px-3 py-1 text-sm font-semibold border-2 border-gray-300 rounded-lg text-gray-600 hover:border-indigo-400 hover:text-indigo-600 transition-colors cursor-pointer bg-white">
+            {lang === 'en' ? '📖 Guide' : '📖 说明'}
+          </a>
+          <a href={`${import.meta.env.BASE_URL}download.html`}
             className="px-3 py-1 text-sm font-semibold border-2 border-indigo-200 rounded-lg text-indigo-600 hover:border-indigo-400 hover:text-indigo-700 hover:bg-indigo-50 transition-colors cursor-pointer bg-white">
-            {lang === 'en' ? '⬇ Download App' : '⬇ 下载软件'}
+            {lang === 'en' ? '⬇ Download App' : '⬇ 软件下载'}
           </a>
           <button onClick={() => navigate('/keytest')}
             className="px-3 py-1 text-sm font-semibold border-2 border-emerald-200 rounded-lg text-emerald-600 hover:border-emerald-400 hover:text-emerald-700 hover:bg-emerald-50 transition-colors cursor-pointer bg-white">

@@ -68,6 +68,33 @@
   .btn { display: inline-flex; align-items: center; gap: 7px; padding: 10px 20px; border-radius: 10px; font-size: 0.92rem; font-weight: 700; text-decoration: none; color: #fff; background: linear-gradient(135deg,#4f46e5,#7c3aed); margin-top: 10px; box-shadow: 0 4px 12px rgba(79,70,229,0.28); }
   .btn.amber { background: linear-gradient(135deg,#f59e0b,#d97706); box-shadow: 0 4px 12px rgba(245,158,11,0.3); }
   .btn.ghost { background: #fff; color: #4338ca; border: 1px solid #c7d2fe; box-shadow: none; }
+
+  /* ---- Device picker ---- */
+  .pick-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 14px; }
+  @media (max-width: 640px) { .pick-grid { grid-template-columns: 1fr; } }
+  .pick { display: flex; flex-direction: column; gap: 4px; padding: 16px; border-radius: 14px; border: 2px solid #e2e8f0; background: #fbfdff; text-decoration: none; transition: all .15s; }
+  .pick:hover { border-color: #818cf8; box-shadow: 0 6px 18px rgba(79,70,229,.12); transform: translateY(-1px); }
+  .pick.old { border-color: #c7d2fe; background: #f5f7ff; }
+  .pick.new { border-color: #a7f3d0; background: #f0fdfa; }
+  .pick.bt  { border-color: #fcd34d; background: #fffbeb; }
+  .pick.mic { border-color: #fbcfe8; background: #fdf2f8; }
+  .pick-tag { font-size: .8rem; font-weight: 800; color: #4338ca; }
+  .pick.bt .pick-tag { color: #b45309; }
+  .pick.new .pick-tag { color: #0f766e; }
+  .pick.mic .pick-tag { color: #9d174d; }
+  .pick-title { font-size: .95rem; font-weight: 700; color: #1e293b; line-height: 1.45; }
+  .pick-desc { font-size: .82rem; color: #64748b; }
+
+  /* ---- Current type banner + quick start ---- */
+  .typing-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; background: #eef2ff; border: 1px solid #c7d2fe; border-radius: 12px; padding: 10px 14px; }
+  #typingLabel { font-size: .92rem; font-weight: 700; color: #3730a3; }
+  .typing-switch { font-size: .82rem; font-weight: 700; color: #4338ca; text-decoration: none; border: 1px solid #c7d2fe; background: #fff; border-radius: 999px; padding: 4px 12px; white-space: nowrap; }
+  .typing-switch:hover { background: #e0e7ff; }
+  .quick { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 12px; }
+  @media (max-width: 760px) { .quick { grid-template-columns: 1fr 1fr; } }
+  .qstep { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 12px; }
+  .qstep b { display: block; font-size: .76rem; color: #6366f1; margin-bottom: 3px; }
+  .qstep span { font-size: .85rem; color: #475569; line-height: 1.5; }
 </style>
 </head>
 <body>
@@ -85,8 +112,55 @@
 
 <div class="container">
 
+  <!-- Device picker (hidden automatically when ?type= is present) -->
+  <div class="card" id="picker">
+    <h2><span class="emoji">🎯</span>Pick your device first, then read its guide</h2>
+    <p style="color:#475569;font-size:.94rem">
+      Keypads from different generations have completely different configuration screens. Pick a type and the page shows only <strong>the guide for that device type</strong>, so you don't have to search through four separate workflows.
+    </p>
+    <div class="pick-grid">
+      <a class="pick old" href="?type=old">
+        <span class="pick-tag">① Legacy Protocol</span>
+        <span class="pick-title">1–12-key standard / Knob / Arrow keys / Foot pedal / Plus</span>
+        <span class="pick-desc">Blue config page · Single layer · Four function modes</span>
+      </a>
+      <a class="pick new" href="?type=new">
+        <span class="pick-tag">② Version 2.0 (New Protocol)</span>
+        <span class="pick-title">Models that show "Version 2.0" after connecting</span>
+        <span class="pick-desc">Purple config page · Multiple layers · Macros · One-key password</span>
+      </a>
+      <a class="pick bt" href="?type=bt">
+        <span class="pick-tag">③ Bluetooth Wireless</span>
+        <span class="pick-title">Models with a battery, supporting Bluetooth or a 2.4G receiver</span>
+        <span class="pick-desc">Bluetooth config page · Up to 3 layers · Knob available on some models</span>
+      </a>
+      <a class="pick mic" href="?type=mic">
+        <span class="pick-tag">④ Microphone Models</span>
+        <span class="pick-title">Composite models with a built-in microphone</span>
+        <span class="pick-desc">The microphone part requires dedicated software</span>
+      </a>
+    </div>
+    <div class="tip">
+      💡 <strong>Not sure which model you have?</strong> Don't guess — plug the keyboard in with a USB cable, open the config tool and click "Connect Keyboard";
+      the tool identifies the model automatically and shows the entry point to the matching guide.
+    </div>
+    <p style="margin-top:12px;font-size:.88rem;color:#64748b">
+      Or read the full guide: <a href="#generation">How to tell which generation your keyboard is →</a>
+    </p>
+  </div>
+
+  <!-- Current type banner + quick start (shown when ?type= is present) -->
+  <div class="card" id="typing" style="display:none">
+    <div class="typing-bar">
+      <span id="typingLabel">Viewing</span>
+      <a href="tutorial-en.html" class="typing-switch">Switch device type</a>
+    </div>
+    <h2 style="margin-top:14px"><span class="emoji">⚡</span>Quick start (4 steps)</h2>
+    <div class="quick" id="quickSteps"></div>
+  </div>
+
   <!-- Contents -->
-  <div class="card">
+  <div class="card" id="toc">
     <h2><span class="emoji">🧭</span>Contents</h2>
     <div class="toc">
       <a href="#choose">0. Web or Desktop?</a>
@@ -521,7 +595,7 @@
   </div>
 
   <!-- Recommended configurations -->
-  <div class="card">
+  <div class="card" id="presets">
     <h2><span class="emoji">🎯</span>Recommended Configurations</h2>
     <div class="shortcut-box">
       <h4>💼 Office Productivity (4–6-key)</h4>
@@ -550,6 +624,101 @@
   <p style="margin-top:6px">Tech Support QQ: <span class="qq">1291285148</span></p>
   <p style="margin-top:6px"><a href="/ws/">Back to Config Tool</a> · <a href="/ws/download.html">Download Desktop App</a> · <a href="/ws/tutorial.html">中文</a></p>
 </div>
+
+<script>
+/**
+ * Device type focus mode
+ * Visiting tutorial-en.html?type=old|new|bt|mic shows only that device type's guide,
+ * and provides a 4-step quick start. The config tool redirects here with the matching type after connecting a device.
+ */
+(function () {
+  var params = new URLSearchParams(location.search);
+  var type = (params.get('type') || '').toLowerCase();
+
+  var TYPES = {
+    old: {
+      label: 'Legacy Protocol (1–12-key / Knob / Arrow keys / Foot pedal / Plus series)',
+      show: ['old', 'models', 'presets'],
+      steps: [
+        ['① Plug in', 'Connect the keyboard to your computer with a USB cable, and close other programs that use the keyboard'],
+        ['② Connect', 'Click "Connect Keyboard" → select the YYWL device in the dialog → Connect'],
+        ['③ Remap', 'Click a key on the left → choose a mode on the right (Keyboard / Mouse / Multimedia / Multi-key Combo) → set the parameters'],
+        ['④ Save', 'Click "Save to Keyboard"; after it succeeds, unplug and reconnect the cable so the configuration takes effect']
+      ]
+    },
+    new: {
+      label: 'Version 2.0 (New Protocol models: Multiple layers / Macros / One-key password)',
+      show: ['new', 'models', 'presets'],
+      steps: [
+        ['① Plug in', 'Connect the keyboard with a USB cable; make sure the key count and layer count shown at the top of the page are correct'],
+        ['② Connect', 'Click "Connect Keyboard" → select the device → the configuration page opens automatically once connected'],
+        ['③ Remap', 'First select a layer with "Layer 1 / 2 / 3" at the top, then remap keys; macros and one-key password are on the "Macro" tab'],
+        ['④ Save', 'Click "Save to Keyboard" — the program writes layer by layer; do not unplug the cable during the process']
+      ]
+    },
+    bt: {
+      label: 'Bluetooth Wireless (Battery-powered / Bluetooth or 2.4G receiver)',
+      show: ['bt', 'models'],
+      steps: [
+        ['① Plug in', 'Configuration requires a USB cable; the configuration channel is not available over Bluetooth'],
+        ['② Connect', 'Click "Connect Keyboard" → select the device → the Bluetooth configuration page opens automatically'],
+        ['③ Remap', 'Remap by slot (a knob occupies the left / middle / right 3 slots); V10 firmware supports 3 layers'],
+        ['④ Save', 'Click "Save to Keyboard"; wait 2–3 seconds for the configuration to be written to flash before unplugging']
+      ]
+    },
+    mic: {
+      label: 'Microphone Models (Composite models with a built-in microphone)',
+      show: ['mic'],
+      steps: [
+        ['① Plug in', 'Connect the keyboard with a USB cable'],
+        ['② Connect', 'Click "Connect Keyboard" → the microphone guide page opens automatically once connected'],
+        ['③ Install software', 'On the guide page, download the dedicated software for your system (Windows / macOS)'],
+        ['④ Set up', 'Use the dedicated software to configure the microphone; key mapping can still be changed in the web tool']
+      ]
+    }
+  };
+
+  var conf = TYPES[type];
+  if (!conf) return; // no type parameter → keep the original full guide
+
+  var ALWAYS = ['toc', 'choose', 'connect', 'desktop', 'faq'];
+  var showSet = ALWAYS.concat(conf.show);
+
+  // Hide sections that are not needed
+  var cards = document.querySelectorAll('.container > .card');
+  var hiddenIds = {};
+  Array.prototype.forEach.call(cards, function (card) {
+    var id = card.id || '';
+    var visible = showSet.indexOf(id) !== -1;
+    if (!visible) {
+      card.style.display = 'none';
+      if (id) hiddenIds[id] = true;
+    }
+  });
+
+  // Also hide ToC entries that point to hidden sections
+  var tocLinks = document.querySelectorAll('.toc a');
+  Array.prototype.forEach.call(tocLinks, function (a) {
+    var target = (a.getAttribute('href') || '').replace('#', '');
+    if (hiddenIds[target]) a.style.display = 'none';
+  });
+
+  // Top banner + quick start
+  var typing = document.getElementById('typing');
+  if (typing) {
+    document.getElementById('typingLabel').textContent = '📖 Viewing: ' + conf.label;
+    var quick = document.getElementById('quickSteps');
+    quick.innerHTML = conf.steps.map(function (s) {
+      return '<div class="qstep"><b>' + s[0] + '</b><span>' + s[1] + '</span></div>';
+    }).join('');
+    typing.style.display = '';
+  }
+
+  // Also make the title more specific
+  var sub = document.querySelector('.hero > p');
+  if (sub) sub.textContent = 'Showing only the guide for "' + conf.label + '"';
+})();
+</script>
 
 </body>
 </html>

@@ -1,20 +1,32 @@
 // src/components/DownloadBadge.jsx
-// 左上角「软件下载」入口 → 跳转到平台自适应下载页 (/ws/download.html)
+// 「软件下载」入口 → 跳转到平台自适应下载页 (/ws/download.html)
 // 下载页读取 /ws/download/manifest.json 自动识别系统并推荐对应平台包,
 // 所以这里不用关心版本号与文件名 —— 发版只改 manifest 和包文件本身。
 //
-// 注意: 桌面版自身运行时不显示这个入口 (UA 带 YYWLDesktop 标记)
+// 显示规则: 只在「没有顶栏下载入口」的页面显示 (连接页 / 按键测试页)。
+// 配置页 (/customize、/bt) 顶栏已经有「⬇ 软件下载」按钮, 这里不重复显示,
+// 否则会像之前那样和左上角的型号徽章挤在一起。
+//
+// 桌面版自身 (UA 带 YYWLDesktop) 不显示。
 
 import React from 'react';
+import { useLocation } from 'react-router-dom';
 import { useLang } from '../context/LanguageContext.jsx';
 
 const DOWNLOAD_PAGE = 'download.html';
+// 这些路由的顶栏自带下载按钮
+const ROUTES_WITH_INLINE_ENTRY = ['/customize', '/bt'];
 
 export default function DownloadBadge() {
   const { t } = useLang();
+  const { pathname } = useLocation();
 
   // 已经在桌面版里了 → 不需要再下载一次
   if (typeof navigator !== 'undefined' && /YYWLDesktop/i.test(navigator.userAgent || '')) {
+    return null;
+  }
+  // 配置页顶栏已有入口 → 不重复显示
+  if (ROUTES_WITH_INLINE_ENTRY.some((p) => pathname.startsWith(p))) {
     return null;
   }
 

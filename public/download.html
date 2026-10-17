@@ -35,6 +35,11 @@
   .warn { background: #fff7ed; border: 1px solid #fed7aa; border-radius: 10px; padding: 11px 15px; margin-top: 12px; font-size: 0.88rem; color: #9a3412; }
   .info { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; padding: 11px 15px; margin-top: 12px; font-size: 0.88rem; color: #166534; }
   .foot-note { font-size: 0.82rem; color: #94a3b8; margin-top: 14px; }
+  .domestic { border: 2px dashed #fcd34d; background: #fffdf5; }
+  .domestic.on { border-style: solid; border-color: #f59e0b; background: #fffbeb; box-shadow: 0 0 0 4px rgba(245,158,11,.08); }
+  .oslist { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .oslist span { font-size: .78rem; background: #fff; border: 1px solid #e2e8f0; border-radius: 999px; padding: 3px 10px; color: #475569; }
+  .cmd { display: block; background: #0f172a; color: #a7f3d0; border-radius: 8px; padding: 10px 12px; font-family: ui-monospace, Menlo, monospace; font-size: .82rem; margin-top: 8px; overflow-x: auto; white-space: pre-wrap; word-break: break-all; }
   table { width: 100%; border-collapse: collapse; font-size: 0.84rem; margin-top: 10px; }
   th, td { padding: 8px 10px; border-bottom: 1px solid #f1f5f9; text-align: left; }
   th { color: #334155; background: #f8fafc; font-weight: 600; }
@@ -98,6 +103,55 @@
     </div>
   </div>
 
+  <!-- 国产操作系统（信创）说明 -->
+  <div class="card domestic" id="domesticCard">
+    <h2>🀄 国产操作系统（信创）用户</h2>
+    <p id="domesticBrand" style="display:none;font-size:.88rem;color:#b45309;font-weight:700;margin-bottom:6px"></p>
+    <p style="font-size:.9rem;color:#475569">
+      麒麟、统信 UOS、深度等国产系统本质上是 Linux，<strong>用 Linux 版（AppImage）即可</strong>，
+      但<strong>能否运行取决于 CPU 架构</strong>——请先确认架构再下载。
+    </p>
+
+    <div class="oslist">
+      <span>银河麒麟 V10</span><span>中标麒麟 NeoKylin</span><span>openKylin</span>
+      <span>统信 UOS</span><span>深度 deepin</span><span>优麒麟 UbuntuKylin</span>
+      <span>中科方德</span><span>红旗 Linux</span><span>麒麟信安</span><span>普华 / 一铭 / 新支点</span>
+    </div>
+
+    <div style="margin-top:16px">
+      <strong style="font-size:.92rem;color:#334155">① 先查 CPU 架构</strong>
+      <p style="font-size:.86rem;color:#64748b;margin-top:4px">打开终端（Ctrl+Alt+T），执行：</p>
+      <code class="cmd">uname -m</code>
+      <table style="margin-top:10px">
+        <tr><th style="width:150px">终端输出</th><th>对应 CPU</th><th>能不能用</th></tr>
+        <tr><td><code>x86_64</code></td><td>Intel / AMD / 兆芯 / 海光</td><td>✅ <strong>直接下载 Linux 版</strong></td></tr>
+        <tr><td><code>aarch64</code></td><td>飞腾 Phytium / 鲲鹏 Kunpeng</td><td>⚠️ 需 ARM64 专用包，请联系我们</td></tr>
+        <tr><td><code>loongarch64</code></td><td>龙芯 Loongson</td><td>❌ 暂不支持</td></tr>
+        <tr><td><code>mips64</code> / <code>sw_64</code></td><td>龙芯旧款 / 申威 Sunway</td><td>❌ 暂不支持</td></tr>
+      </table>
+    </div>
+
+    <div style="margin-top:16px">
+      <strong style="font-size:.92rem;color:#334155">② 运行 AppImage（x86_64 机器）</strong>
+      <p style="font-size:.86rem;color:#64748b;margin-top:4px">下载后放进任意目录，在终端执行下面三行（文件名按实际替换）：</p>
+      <code class="cmd">chmod +x yywlkey-config-1.0.0-linux-x64.AppImage
+./yywlkey-config-1.0.0-linux-x64.AppImage
+# 若提示 FUSE 相关错误，改用：
+./yywlkey-config-1.0.0-linux-x64.AppImage --appimage-extract-and-run</code>
+      <p style="font-size:.84rem;color:#64748b;margin-top:8px">
+        也可以图形界面操作：右键 AppImage →「属性」→「权限」→ 勾选「允许作为程序执行」，再双击运行。
+      </p>
+    </div>
+
+    <div class="warn">
+      ⚠️ <strong>国产系统上的常见问题</strong><br>
+      · <strong>权限被拦</strong>：麒麟/UOS 的「安全中心」或「应用防护」可能拦截未知程序，需在弹窗里选择「允许」或在安全中心加白名单。<br>
+      · <strong>没装 FUSE</strong>：部分精简版系统没有 libfuse2，用上面的 <code>--appimage-extract-and-run</code> 参数即可绕过。<br>
+      · <strong>USB 设备读不到</strong>：Linux 需要给 hidraw 加 udev 权限，配置工具里会直接给出可复制的命令；执行后拔插一次键盘。<br>
+      · <strong>ARM64 / 龙芯机器</strong>：请把 <code>uname -m</code> 的结果发给我们，可单独编译对应版本。
+    </div>
+  </div>
+
   <!-- 版本信息 -->
   <div class="card">
     <h2>🔐 版本与校验</h2>
@@ -150,6 +204,17 @@
     }
   }
 
+  // 国产系统识别关键词 (麒麟 / 统信 / 深度 / 方德 / 红旗 等)
+  var DOMESTIC_PATTERNS = [
+    { re: /kylin|neokylin/i, name: '银河麒麟 / 中标麒麟' },
+    { re: /openkylin/i, name: 'openKylin' },
+    { re: /uniontech|uos/i, name: '统信 UOS' },
+    { re: /deepin/i, name: '深度 deepin' },
+    { re: /fangde/i, name: '中科方德' },
+    { re: /redflag|cxlinux/i, name: '红旗 Linux' },
+    { re: /kylinsec/i, name: '麒麟信安' }
+  ];
+
   async function detect() {
     var ua = navigator.userAgent || '';
     var plat = (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || '';
@@ -157,6 +222,12 @@
     if (/Win/i.test(plat) || /Windows/i.test(ua)) os = 'windows';
     else if (/Mac/i.test(plat) || /Mac OS X|Macintosh/i.test(ua)) os = 'macos';
     else if (/Linux|X11/i.test(plat) || (/Linux/i.test(ua) && !/Android/i.test(ua))) os = 'linux';
+
+    // 国产系统: 本质是 Linux, 统一归到 linux 分支, 但额外记录品牌名
+    var domesticName = '';
+    for (var i = 0; i < DOMESTIC_PATTERNS.length; i++) {
+      if (DOMESTIC_PATTERNS[i].re.test(ua)) { domesticName = DOMESTIC_PATTERNS[i].name; os = 'linux'; break; }
+    }
 
     var arch = 'x64';
     try {
@@ -167,7 +238,7 @@
     } catch (e) { /* 老浏览器不支持，保持 x64 */ }
 
     var mobile = /Android|iPhone|iPad|iPod|Mobile/i.test(ua);
-    return { os: os, arch: arch, mobile: mobile };
+    return { os: os, arch: arch, mobile: mobile, domestic: domesticName };
   }
 
   function pick(mf, det) {
@@ -200,6 +271,17 @@
 
     $('verBadge').textContent = '版本 ' + mf.version + (mf.updated ? ' · ' + mf.updated : '');
 
+    // 国产系统: 高亮下方说明卡片, 并在推荐区标注品牌
+    if (det.domestic) {
+      var dc = $('domesticCard');
+      if (dc) dc.className = 'card domestic on';
+      var brand = $('domesticBrand');
+      if (brand) {
+        brand.style.display = 'block';
+        brand.textContent = '✅ 检测到：' + det.domestic + '（Linux 内核）—— 请按下面步骤确认 CPU 架构后再下载';
+      }
+    }
+
     // 推荐区
     var rec = pick(mf, det);
     if (det.mobile) {
@@ -215,7 +297,8 @@
       $('recBtn').className = 'dl disabled';
       $('recBtn').textContent = '请手动选择';
     } else {
-      $('detected').textContent = '✅ 检测到：' + OS_LABEL[det.os] + (det.arch === 'arm64' ? ' · ARM64' : ' · x64');
+      var osText = det.domestic ? (det.domestic + ' · Linux 系') : OS_LABEL[det.os];
+      $('detected').textContent = '✅ 检测到：' + osText + (det.arch === 'arm64' ? ' · ARM64' : ' · x64');
       $('recTitle').textContent = rec.label;
       $('recMeta').textContent = '版本 ' + mf.version +
         (rec.available && rec.size ? ' · ' + mb(rec.size) : '') +
@@ -231,6 +314,10 @@
       }
       if (det.os === 'macos') {
         $('recNote').textContent = '提示：如果你的 Mac 是 Apple 芯片但这里显示 Intel 版，请在下方选「Apple 芯片」版本。';
+      }
+      if (det.domestic) {
+        $('recNote').textContent = '国产系统请先在终端执行 uname -m：输出 x86_64 可直接用此包（兆芯/海光/Intel/AMD 机器）；' +
+          '输出 aarch64（飞腾/鲲鹏）或 loongarch64（龙芯）需单独构建，请把结果发给我们。详见下方「国产操作系统」说明。';
       }
     }
 
