@@ -46,10 +46,16 @@ if (!fs.existsSync(versionPath)) {
 }
 const buildInfo = JSON.parse(fs.readFileSync(versionPath, 'utf8'))
 
-// 清单: 除 update.json 与 version.json 以外的所有文件
-// (version.json 由客户端在安装时按清单里的 buildId 自行写入, 放进清单会导致每次都"内容不同")
+// 清单: 排除三类文件
+//   update.json           —— 清单自身
+//   version.json          —— 客户端安装时按 buildId 自行写入 (放进清单会每次都"内容不同")
+//   download/manifest.json —— 由 CI 的 manifest 任务单独生成并覆盖, 时间晚于构建,
+//                             放进清单会让 sha256 与服务器实际文件对不上, 更新直接失败
+const EXCLUDE_NAMES = ['update.json', 'version.json']
+const EXCLUDE_PATHS = ['download/manifest.json']
 const files = walk(DIST)
-  .filter((f) => !['update.json', 'version.json'].includes(path.basename(f)))
+  .filter((f) => !EXCLUDE_NAMES.includes(path.basename(f)))
+  .filter((f) => !EXCLUDE_PATHS.includes(path.relative(DIST, f).replace(/\\/g, '/')))
   .sort()
 
 const entries = files.map((abs) => {
