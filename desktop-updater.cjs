@@ -17,6 +17,8 @@ const crypto = require('crypto');
 
 const MANIFEST_NAME = 'update.json';
 const VERSION_NAME = 'version.json';
+// 清单不管理、但页面需要的数据文件 (更新时从旧目录原样带过来)
+const PRESERVE_PATHS = ['download/manifest.json'];
 
 // ---------- 基础工具 ----------
 
@@ -152,13 +154,32 @@ async function install(opts) {
   };
   fs.writeFileSync(path.join(targetDir, VERSION_NAME), JSON.stringify(versionInfo, null, 2));
 
+  // 清单不管理、但页面需要的数据文件 (下载页清单由 CI 单独维护, 更新时原样保留)
+  const preserved = [];
+  for (const rel of PRESERVE_PATHS) {
+    const from = currentDir ? path.join(currentDir, rel) : null;
+    if (from && fs.existsSync(from)) {
+      try { preserved.push({ rel, buf: fs.readFileSync(from) }); } catch { /* 忽略 */ }
+    }
+  }
+
   // 清理清单里没有的残留文件 (只在本目录内)
   const keep = new Set(manifest.files.map((f) => path.normalize(f.path)));
   keep.add(VERSION_NAME);
+  for (const p of preserved) keep.add(path.normalize(p.rel));
   for (const abs of walk(targetDir)) {
     const rel = path.relative(targetDir, abs).replace(/\\/g, '/');
     if (!keep.has(path.normalize(rel))) {
       try { fs.unlinkSync(abs); } catch { /* 忽略 */ }
+    }
+  }
+
+  // 回填保留文件
+  for (const p of preserved) {
+    const dest = path.join(targetDir, p.rel);
+    if (!fs.existsSync(dest)) {
+      fs.mkdirSync(path.dirname(dest), { recursive: true });
+      fs.writeFileSync(dest, p.buf);
     }
   }
 
