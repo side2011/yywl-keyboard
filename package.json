@@ -8,7 +8,10 @@
   "main": "desktop-main.cjs",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && node scripts/make-update.mjs",
+    "build:plain": "vite build",
+    "make-update": "node scripts/make-update.mjs",
+    "release:web": "vite build && node scripts/make-update.mjs --offline",
     "lint": "eslint .",
     "preview": "vite preview",
     "desktop": "vite build && electron-builder --win --config.win.signAndEditExecutable=false",
@@ -27,6 +30,7 @@
     "files": [
       "dist/**/*",
       "desktop-main.cjs",
+      "desktop-updater.cjs",
       "package.json"
     ],
     "win": {

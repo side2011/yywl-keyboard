@@ -1,7 +1,7 @@
 # 桌面版打包与发布说明
 
 > 桌面版 = **把整个网页打包进 Electron**，双击即用、离线可跑、不需要浏览器。
-> 客户在内网/无外网环境下用这个；外网客户直接用网页版 `https://key.itytsoft.com/ws/`。
+> 客户在内网/无外网环境下用这个；外网客户直接用网页版 `https://key.itytsoft.com/`。
 
 ---
 
@@ -124,7 +124,7 @@ Actions 页面 → 点某次运行 → 底部 **Artifacts** 下载 zip，解压�
 
 ### 4.5 三平台发布清单（发版照做即可）
 
-下载页 `/ws/download.html` 是**数据驱动**的：它读取 `/ws/download/manifest.json`，自动识别访问者系统并推荐对应包。**发版只改 manifest，不用改任何代码。**
+下载页 `/download.html` 是**数据驱动**的：它读取 `/download/manifest.json`，自动识别访问者系统并推荐对应包。**发版只改 manifest，不用改任何代码。**
 
 **命名约定**（上传前把 CI 产物改成这个名字）：
 
@@ -137,13 +137,13 @@ Actions 页面 → 点某次运行 → 底部 **Artifacts** 下载 zip，解压�
 
 **发布步骤**：
 
-1. 把包上传到 `/ws/download/`（FTP 根目录下的 `download/`）
+1. 把包上传到 `/download/`（站点根目录下的 `download/`）
 2. 计算 SHA256：
    - Windows `certutil -hashfile 文件名 SHA256`
    - macOS/Linux `shasum -a 256 文件名`
 3. 编辑 `public/download/manifest.json` → 改 `version`、`updated`，把对应包的 `available` 置为 `true`，填 `file` / `size` / `sha256`
 4. `npm run build` → 上传 `dist/download/manifest.json`（**只需这一个文件**，网页不用重发）
-5. 打开 `https://key.itytsoft.com/ws/download.html` 确认推荐卡片正确
+5. 打开 `https://key.itytsoft.com/download.html` 确认推荐卡片正确
 
 > 未发布的平台把 `available` 保持 `false`，页面会显示"尚未发布"而不是给一个 404 链接 —— 这就是"预留位置"的意义：mac/linux 包到位前不用改代码，到位后改一个布尔值即可。
 
@@ -160,13 +160,13 @@ npm run desktop:win
 copy "dist-desktop\YYWL键盘配置工具-1.0.0-win.zip" "$env:TEMP\yywlkey-config-1.0.0-win-x64.zip"
 
 # 3) 上传（凭据从 quick-config/.env 读，别写死）
-#    目标目录：/ws/download/，最终地址 https://key.itytsoft.com/ws/download/<文件名>
+#    目标目录：/download/，最终地址 https://key.itytsoft.com/download/<文件名>
 curl.exe -T "$env:TEMP\yywlkey-config-1.0.0-win-x64.zip" `
   "ftp://key.itytsoft.com/download/yywlkey-config-1.0.0-win-x64.zip" `
   --user "<user>:<pass>" --ftp-create-dirs
 
 # 4) 验证
-curl -sI https://key.itytsoft.com/ws/download/yywlkey-config-1.0.0-win-x64.zip
+curl -sI https://key.itytsoft.com/download/yywlkey-config-1.0.0-win-x64.zip
 # 期望 200 + Content-Type: application/zip + 正确的 Content-Length
 ```
 
@@ -175,7 +175,7 @@ curl -sI https://key.itytsoft.com/ws/download/yywlkey-config-1.0.0-win-x64.zip
 网页左上角「软件下载」的地址是**由 `package.json` 的 `version` 自动拼出来的**（`DownloadBadge.jsx` 里 `import pkg from '../../package.json'`）：
 
 ```
-/ws/download/yywlkey-config-${pkg.version}-win-x64.zip
+/download/yywlkey-config-${pkg.version}-win-x64.zip
 ```
 
 所以发新版的正确顺序是：

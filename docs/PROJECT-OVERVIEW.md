@@ -3,7 +3,7 @@
 > 分析对象：`E:\AI项目\yywl-keyboard-app`
 > 分析时间：2026-10-17（当日仍有提交）
 > 分析方式：只读通读 + 四个子系统并行深读（未修改任何源码、未运行构建）
-> 品牌：颖昱物联（YYWL / YingYu IoT）　对外站点：`https://key.itytsoft.com/ws/`
+> 品牌：颖昱物联（YYWL / YingYu IoT）　对外站点：`https://key.itytsoft.com/`（2026-10 已从 /ws/ 迁移到根目录）
 
 ---
 
@@ -45,10 +45,10 @@
 
 ```
                         ┌───────────────────────────────┐
-   浏览器用户 ─────────▶ │ key.itytsoft.com/ws/  (nginx) │
+   浏览器用户 ─────────▶ │ key.itytsoft.com/      (nginx) │
                         └───────────────┬───────────────┘
                                         │ WebHID (navigator.hid)
-   桌面用户 ── exe ──▶ Electron 内置 http://127.0.0.1:随机端口/ws/ ─┘
+   桌面用户 ── exe ──▶ Electron 内置 http://127.0.0.1:随机端口/ ─┘
                                         │
    工厂/售后 ──▶ YYWL快速配置 (node-hid 主进程直连)
                                         │
@@ -152,10 +152,14 @@
 ### 5.1 形态、构建与部署
 
 - 栈：React 19.2 + Vite 7.3 + react-router-dom 6.30 + Tailwind 3.4 + daisyUI 5 + react-hot-toast + MiSans 字体（woff2 按 unicode-range 分片，200+ 文件）。
-- 路径前缀 `/ws/` **写死三处**，改一处必须同步另外两处：
-  - `vite.config.js:7`（`base: '/ws/'`）
+- 路径前缀（历史为 `/ws/`，2026-10 起改为根 `/`）原本**写死三处**，改动需同步：
+
+> **根目录部署的两个配套决定**（2026-10）
+> 1. 构建产物目录用 `/static/` 而不是 `/assets/`：站点根的 `/assets` 是旧站遗留目录（`root:root` 755），FTP 账号写入报 553。见 `vite.config.js` 的 `build.assetsDir`。
+> 2. 构建时为每个前端路由额外输出 `<route>/index.html`（`vite.config.js` 里的 `spaRouteFallbacks` 插件，路由表 `customize / bt / keytest / mic`）。**这样即使 nginx 没配 `try_files` SPA 回退，直接访问 `/customize` 也能打开**（nginx 默认 `index` 指令会 301 到 `/customize/` 再返回该目录的 index.html）。新增前端路由时记得同步这个数组，否则该路由只能从首页点进去、刷新会 404。
+  - `vite.config.js`（`base: '/'`）
   - `src/App.jsx:14`（`basename="/ws"`）
-  - `desktop-main.cjs:38-44,146`（本地静态服务器把 `dist` 挂到 `/ws/`，窗口加载 `http://127.0.0.1:PORT/ws/`）
+  - `desktop-main.cjs`（本地静态服务器把 `dist` 挂到 `/`，窗口加载 `http://127.0.0.1:PORT/`）
 - 命令：`npm run dev` / `npm run build` / `npm run desktop`（产出 `dist-desktop/`，`target: dir` 免安装绿包）。
 - 语言：中英双语，`src/i18n.js`（379 行）以**中文原文为 key**，`zh` 模式直接返回 key —— 漏词条会在英文界面露出中文。
 
@@ -186,7 +190,7 @@
 - `requestDevice` 返回空时用 `getDevices()` 区分"用户主动取消"与"没插键盘"（`KeyboardConnector.jsx:25-32, 85-91`）。
 
 **Electron 路径（`desktop-main.cjs`）**
-- 不用 `file://`：主进程起 http 服务监听 `127.0.0.1` 随机端口（`:67`），把 `dist` 挂到 `/ws/`，带 SPA 回退和路径穿越防护。**localhost 属安全上下文，`navigator.hid` 与 history 路由都能正常工作**，这是整个设计的关键技巧。
+- 不用 `file://`：主进程起 http 服务监听 `127.0.0.1` 随机端口（`:67`），把 `dist` 挂到 `/`，带 SPA 回退和路径穿越防护。**localhost 属安全上下文，`navigator.hid` 与 history 路由都能正常工作**，这是整个设计的关键技巧。
 - Electron 没有系统级 HID 选择器，必须拦 `select-hid-device` 事件自己选（`:91-115`）：用 `node-hid` 按 `VID + PID + serialNumber` 匹配，优先挑 `usagePage=0xFF00/0xffa0` 的**配置接口**（对应 C# 里的 `mi_03`）。
 - ⚠️ 源码明确警告：**不能设 `setPermissionCheckHandler` 返回 true**（`:89`），会跳过设备选择导致 `requestDevice` 返回空数组。
 - 外链一律 `shell.openExternal`（`:133-144`），单实例锁（`:155-165`）。

@@ -343,7 +343,7 @@ const KeyboardConfigurator = () => {
         <div className="flex items-center gap-3">
           <a href={`${import.meta.env.BASE_URL}tutorial.html?type=old`} target="_blank" rel="noopener noreferrer"
             className="px-3 py-1 text-sm font-semibold border-2 border-gray-300 rounded-lg text-gray-600 hover:border-indigo-400 hover:text-indigo-600 transition-colors cursor-pointer bg-white">
-            {lang === 'en' ? '📖 Guide' : '📖 说明'}
+            {lang === 'en' ? '📖 Config Guide' : '📖 配置说明'}
           </a>
           <a href={`${import.meta.env.BASE_URL}download.html`}
             className="px-3 py-1 text-sm font-semibold border-2 border-indigo-200 rounded-lg text-indigo-600 hover:border-indigo-400 hover:text-indigo-700 hover:bg-indigo-50 transition-colors cursor-pointer bg-white">
@@ -369,7 +369,7 @@ const KeyboardConfigurator = () => {
 
           <div className="bg-white rounded-xl shadow-sm border-2 border-indigo-100 p-4">
             <div className="grid grid-cols-2 gap-2.5">
-              <button className="py-3 text-sm font-bold border-2 border-indigo-300 text-indigo-700 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer" onClick={handleReadConfig}>{t('读取配置')}</button>
+              <button className="py-3 text-sm font-bold border-2 border-gray-300 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer" onClick={handleReadConfig}>{t('读取键盘配置')}</button>
               <button className="py-3 text-sm font-bold border-2 border-gray-300 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer" onClick={handleClearKey}>{t('清除当前键')}</button>
               <button className="py-3 text-sm font-bold border-2 border-gray-300 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer" onClick={handleClearAll}>{t('全部清除')}</button>
               <button className="py-3 text-base font-extrabold bg-gradient-to-r from-indigo-600 to-violet-600 text-white hover:from-indigo-500 hover:to-violet-500 rounded-lg transition-all cursor-pointer shadow-md active:scale-[0.97] tracking-wide" onClick={handleSaveToDevice}>{t('保存到键盘')}</button>

@@ -396,7 +396,7 @@ export default function BtConfigurator() {
         <div className="flex items-center gap-3">
           <a href={`${import.meta.env.BASE_URL}tutorial.html?type=bt`} target="_blank" rel="noopener noreferrer"
             className="px-3 py-1 text-sm font-semibold border-2 border-gray-300 rounded-lg text-gray-600 hover:border-indigo-400 hover:text-indigo-600 transition-colors cursor-pointer bg-white">
-            {lang === 'en' ? '📖 Guide' : '📖 说明'}
+            {lang === 'en' ? '📖 Config Guide' : '📖 配置说明'}
           </a>
           <a href={`${import.meta.env.BASE_URL}download.html`}
             className="px-3 py-1 text-sm font-semibold border-2 border-indigo-200 rounded-lg text-indigo-600 hover:border-indigo-400 hover:text-indigo-700 hover:bg-indigo-50 transition-colors cursor-pointer bg-white">
@@ -495,8 +495,8 @@ export default function BtConfigurator() {
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
             <div className="grid grid-cols-2 gap-3">
               <button onClick={handleReadConfig}
-                className="py-3 text-base font-bold border-2 border-indigo-300 text-indigo-700 rounded-lg hover:bg-indigo-50 transition-colors cursor-pointer">
-                {t('读取配置')}
+                className="py-3 text-base font-bold border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer">
+                {t('读取键盘配置')}
               </button>
               <button onClick={handleClearKey}
                 className="py-3 text-base font-bold border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer">

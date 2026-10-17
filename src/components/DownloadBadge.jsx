@@ -1,6 +1,6 @@
 // src/components/DownloadBadge.jsx
-// 「软件下载」入口 → 跳转到平台自适应下载页 (/ws/download.html)
-// 下载页读取 /ws/download/manifest.json 自动识别系统并推荐对应平台包,
+// 「软件下载」入口 → 跳转到平台自适应下载页 (/download.html)
+// 下载页读取 /download/manifest.json 自动识别系统并推荐对应平台包,
 // 所以这里不用关心版本号与文件名 —— 发版只改 manifest 和包文件本身。
 //
 // 显示规则: 只在「没有顶栏下载入口」的页面显示 (连接页 / 按键测试页)。

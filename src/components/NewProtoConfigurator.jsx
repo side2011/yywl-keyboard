@@ -772,7 +772,7 @@ export default function NewProtoConfigurator() {
         <div className="flex items-center gap-3">
           <a href={`${import.meta.env.BASE_URL}tutorial.html?type=new`} target="_blank" rel="noopener noreferrer"
             className="px-3 py-1 text-sm font-semibold border-2 border-gray-300 rounded-lg text-gray-600 hover:border-indigo-400 hover:text-indigo-600 transition-colors cursor-pointer bg-white">
-            {lang === 'en' ? '📖 Guide' : '📖 说明'}
+            {lang === 'en' ? '📖 Config Guide' : '📖 配置说明'}
           </a>
           <a href={`${import.meta.env.BASE_URL}download.html`}
             className="px-3 py-1 text-sm font-semibold border-2 border-indigo-200 rounded-lg text-indigo-600 hover:border-indigo-400 hover:text-indigo-700 hover:bg-indigo-50 transition-colors cursor-pointer bg-white">
@@ -851,7 +851,7 @@ export default function NewProtoConfigurator() {
           {/* 操作按钮 */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
             <div className="grid grid-cols-2 gap-3">
-              <button disabled={loading} className={`py-3.5 text-base font-bold border-2 rounded-lg transition-colors ${loading ? 'cursor-not-allowed opacity-50 border-gray-200 text-gray-400' : 'border-indigo-300 text-indigo-700 hover:bg-indigo-50 cursor-pointer'}`} onClick={() => !loading && handleReadConfig()}>{t('读取配置')}</button>
+              <button disabled={loading} className={`py-3.5 text-base font-bold border-2 rounded-lg transition-colors ${loading ? 'cursor-not-allowed opacity-50 border-gray-200 text-gray-400' : 'border-gray-300 text-gray-700 hover:bg-gray-50 cursor-pointer'}`} onClick={() => !loading && handleReadConfig()}>{t('读取键盘配置')}</button>
               <button disabled={loading} className={`py-3.5 text-base font-bold border-2 rounded-lg transition-colors ${loading ? 'cursor-not-allowed opacity-50 border-gray-200 text-gray-400' : 'border-gray-300 text-gray-700 hover:bg-gray-50 cursor-pointer'}`} onClick={() => !loading && handleClearKey()}>{t('清除当前键')}</button>
               <button disabled={loading} className={`py-3.5 text-base font-bold border-2 rounded-lg transition-colors ${loading ? 'cursor-not-allowed opacity-50 border-gray-200 text-gray-400' : 'border-gray-300 text-gray-700 hover:bg-gray-50 cursor-pointer'}`} onClick={() => !loading && handleClearAll()}>{t('全部清除')}</button>
               <button disabled={loading} className={`py-3.5 text-lg font-extrabold rounded-lg transition-all shadow-md ${loading ? 'cursor-not-allowed opacity-50' : 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white hover:from-indigo-500 hover:to-violet-500 cursor-pointer active:scale-[0.97]'}`} onClick={() => !loading && handleSaveToDevice()}>{t('保存到键盘')}</button>

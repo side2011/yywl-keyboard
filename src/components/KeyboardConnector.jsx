@@ -708,7 +708,7 @@ function KeyboardConnector() {
         })()}
         <div className="text-center mt-4 space-y-2">
           <div className="flex items-center justify-center gap-3 flex-wrap">
-            <a href={lang === 'en' ? '/ws/tutorial-en.html' : '/ws/tutorial.html'} target="_blank" rel="noopener noreferrer"
+            <a href={lang === 'en' ? '/tutorial-en.html' : '/tutorial.html'} target="_blank" rel="noopener noreferrer"
               className="inline-flex items-center gap-2 px-6 py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-sm rounded-xl border-2 border-indigo-200 transition-colors cursor-pointer">
               {lang === 'en' ? 'View User Guide' : '📖 查看使用说明'}
             </a>

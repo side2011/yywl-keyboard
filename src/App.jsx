@@ -12,7 +12,7 @@ import { Toaster } from 'react-hot-toast';
 
 function App() {
   return (
-    <BrowserRouter basename="/ws" future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+    <BrowserRouter basename="/" future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <LanguageProvider>
         <DeviceProvider>
           <div className="min-h-screen">
