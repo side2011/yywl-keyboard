@@ -32,52 +32,92 @@ const KEYCODE_LABELS = {
 
 // 多媒体键 — 新协议/旧协议 (C# KeyMediaForm)
 const MEDIA_KEYS = [
-  { label: '播放/暂停', code: [0x04, 0xCD, 0x00, 0x00] },
-  { label: '停止播放', code: [0x04, 0xB7, 0x00, 0x00] },
-  { label: '上一首', code: [0x04, 0xB6, 0x00, 0x00] },
-  { label: '下一首', code: [0x04, 0xB5, 0x00, 0x00] },
-  { label: '我的电脑', code: [0x04, 0x94, 0x01, 0x00] },
-  { label: '亮度+', code: [0x04, 0x6F, 0x00, 0x00] },
-  { label: '亮度-', code: [0x04, 0x70, 0x00, 0x00] },
-  { label: '打开媒体', code: [0x04, 0x83, 0x01, 0x00] },
-  { label: '系统静音', code: [0x04, 0xE2, 0x00, 0x00] },
-  { label: '音量+', code: [0x04, 0xEA, 0x00, 0x00] },
-  { label: '音量-', code: [0x04, 0xE9, 0x00, 0x00] },
-  { label: '打开计算器', code: [0x04, 0x92, 0x01, 0x00] },
-  { label: '打开浏览器', code: [0x04, 0x23, 0x02, 0x00] },
-  { label: '打开邮件', code: [0x04, 0x8A, 0x01, 0x00] },
-  { label: '网页刷新', code: [0x04, 0x53, 0x01, 0x00] },
-  { label: '网页前进', code: [0x04, 0x52, 0x01, 0x00] },
-  { label: '网页后退', code: [0x04, 0x55, 0x01, 0x00] },
-  { label: '低音+', code: [0x04, 0x27, 0x02, 0x00] },
-  { label: '低音-', code: [0x04, 0x25, 0x02, 0x00] },
-  { label: '高音+', code: [0x04, 0x24, 0x02, 0x00] },
+  { label: '播放/暂停', icon: 'play', code: [0x04, 0xCD, 0x00, 0x00] },
+  { label: '停止播放', icon: 'stop', code: [0x04, 0xB7, 0x00, 0x00] },
+  { label: '上一首', icon: 'prev', code: [0x04, 0xB6, 0x00, 0x00] },
+  { label: '下一首', icon: 'next', code: [0x04, 0xB5, 0x00, 0x00] },
+  { label: '我的电脑', icon: 'monitor', code: [0x04, 0x94, 0x01, 0x00] },
+  { label: '亮度+', icon: 'bright-plus', code: [0x04, 0x6F, 0x00, 0x00] },
+  { label: '亮度-', icon: 'bright-minus', code: [0x04, 0x70, 0x00, 0x00] },
+  { label: '打开媒体', icon: 'camera', code: [0x04, 0x83, 0x01, 0x00] },
+  { label: '系统静音', icon: 'mute', code: [0x04, 0xE2, 0x00, 0x00] },
+  { label: '音量+', icon: 'vol-up', code: [0x04, 0xEA, 0x00, 0x00] },
+  { label: '音量-', icon: 'vol-down', code: [0x04, 0xE9, 0x00, 0x00] },
+  { label: '打开计算器', icon: 'calc', code: [0x04, 0x92, 0x01, 0x00] },
+  { label: '打开浏览器', icon: 'globe', code: [0x04, 0x23, 0x02, 0x00] },
+  { label: '打开邮件', icon: 'mail', code: [0x04, 0x8A, 0x01, 0x00] },
+  { label: '网页刷新', icon: 'refresh', code: [0x04, 0x53, 0x01, 0x00] },
+  { label: '网页前进', icon: 'forward', code: [0x04, 0x52, 0x01, 0x00] },
+  { label: '网页后退', icon: 'back', code: [0x04, 0x55, 0x01, 0x00] },
+  { label: '低音+', icon: 'bass-up', code: [0x04, 0x27, 0x02, 0x00] },
+  { label: '低音-', icon: 'bass-down', code: [0x04, 0x25, 0x02, 0x00] },
+  { label: '高音+', icon: 'treble-up', code: [0x04, 0x24, 0x02, 0x00] },
 ];
 
 // 多媒体键 — 蓝牙 QT (Consumer Usage 16bit)
 const BT_MEDIA_KEYS = [
-  { label: '播放/暂停', code: 0x00CD },
-  { label: '停止播放', code: 0x00B7 },
-  { label: '上一首', code: 0x00B6 },
-  { label: '下一首', code: 0x00B5 },
-  { label: '我的电脑', code: 0x0194 },
-  { label: '屏幕亮度+', code: 0x006F },
-  { label: '屏幕亮度-', code: 0x0070 },
-  { label: '打开媒体', code: 0x0183 },
-  { label: '系统静音', code: 0x00E2 },
-  { label: '音量+', code: 0x00E9 },
-  { label: '音量-', code: 0x00EA },
-  { label: '打开计算器', code: 0x0192 },
-  { label: '打开浏览器', code: 0x0223 },
-  { label: '打开邮件', code: 0x018A },
-  { label: '低音+', code: 0x0152 },
-  { label: '低音-', code: 0x0153 },
-  { label: '高音+', code: 0x0154 },
-  { label: '高音-', code: 0x0155 },
-  { label: '网页刷新', code: 0x0227 },
-  { label: '网页前进', code: 0x0225 },
-  { label: '网页后退', code: 0x0224 },
+  { label: '播放/暂停', icon: 'play', code: 0x00CD },
+  { label: '停止播放', icon: 'stop', code: 0x00B7 },
+  { label: '上一首', icon: 'prev', code: 0x00B6 },
+  { label: '下一首', icon: 'next', code: 0x00B5 },
+  { label: '我的电脑', icon: 'monitor', code: 0x0194 },
+  { label: '屏幕亮度+', icon: 'bright-plus', code: 0x006F },
+  { label: '屏幕亮度-', icon: 'bright-minus', code: 0x0070 },
+  { label: '打开媒体', icon: 'camera', code: 0x0183 },
+  { label: '系统静音', icon: 'mute', code: 0x00E2 },
+  { label: '音量+', icon: 'vol-up', code: 0x00E9 },
+  { label: '音量-', icon: 'vol-down', code: 0x00EA },
+  { label: '打开计算器', icon: 'calc', code: 0x0192 },
+  { label: '打开浏览器', icon: 'globe', code: 0x0223 },
+  { label: '打开邮件', icon: 'mail', code: 0x018A },
+  { label: '低音+', icon: 'bass-up', code: 0x0152 },
+  { label: '低音-', icon: 'bass-down', code: 0x0153 },
+  { label: '高音+', icon: 'treble-up', code: 0x0154 },
+  { label: '高音-', icon: 'treble-down', code: 0x0155 },
+  { label: '网页刷新', icon: 'refresh', code: 0x0227 },
+  { label: '网页前进', icon: 'forward', code: 0x0225 },
+  { label: '网页后退', icon: 'back', code: 0x0224 },
 ];
+
+// ---- 媒体功能图标 (内联 SVG, 对照 QT 软件媒体页样式) ----
+function MediaIcon({ name, size = 22 }) {
+  const common = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round' };
+  const f = { fill: 'currentColor', stroke: 'none' };
+  switch (name) {
+    case 'play': return <svg {...common}><path d="M8 5.5v13l11-6.5z" {...f} /></svg>;
+    case 'stop': return <svg {...common}><rect x="7" y="7" width="10" height="10" rx="1.5" {...f} /></svg>;
+    case 'prev': return <svg {...common}><path d="M6.5 6v12" /><path d="M17.5 6l-8.5 6 8.5 6z" {...f} /></svg>;
+    case 'next': return <svg {...common}><path d="M17.5 6v12" /><path d="M6.5 6l8.5 6-8.5 6z" {...f} /></svg>;
+    case 'monitor': return <svg {...common}><rect x="3" y="4" width="18" height="12" rx="2" /><path d="M8 20h8M12 16v4" /></svg>;
+    case 'bright-plus': return (
+      <svg {...common}>
+        <circle cx="12" cy="12" r="3.6" />
+        <path d="M12 3.5v2.5M12 18v2.5M3.5 12H6M18 12h2.5M5.5 5.5l1.8 1.8M16.7 16.7l1.8 1.8M18.5 5.5l-1.8 1.8M7.3 16.7l-1.8 1.8M19.5 16.5h3M18 18v-3" />
+      </svg>
+    );
+    case 'bright-minus': return (
+      <svg {...common}>
+        <circle cx="12" cy="12" r="3.6" />
+        <path d="M12 3.5v2.5M12 18v2.5M3.5 12H6M18 12h2.5M5.5 5.5l1.8 1.8M16.7 16.7l1.8 1.8M18.5 5.5l-1.8 1.8M7.3 16.7l-1.8 1.8M19.5 16.5h3" />
+      </svg>
+    );
+    case 'camera': return <svg {...common}><rect x="3" y="7" width="13" height="11" rx="2" /><path d="M16 10.5l5-3v9l-5-3z" /></svg>;
+    case 'mute': return <svg {...common}><path d="M11 5L6.5 9H3v6h3.5L11 19z" {...f} /><path d="M15.5 9.5l5 5M20.5 9.5l-5 5" /></svg>;
+    case 'vol-up': return <svg {...common}><path d="M11 5L6.5 9H3v6h3.5L11 19z" {...f} /><path d="M15 8.5a5 5 0 010 7M17.5 6a9 9 0 010 12" /></svg>;
+    case 'vol-down': return <svg {...common}><path d="M11 5L6.5 9H3v6h3.5L11 19z" {...f} /><path d="M15 9a3.5 3.5 0 010 6" /></svg>;
+    case 'calc': return <svg {...common}><rect x="5" y="3" width="14" height="18" rx="2" /><path d="M9 7.5h6" /><path d="M9 12h.01M12 12h.01M15 12h.01M9 16h.01M12 16h.01M15 16h.01" strokeWidth="2.6" /></svg>;
+    case 'globe': return <svg {...common}><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3a14.5 14.5 0 010 18M12 3a14.5 14.5 0 000 18" /></svg>;
+    case 'mail': return <svg {...common}><rect x="3" y="5" width="18" height="14" rx="2" /><path d="M3 7.5l9 6 9-6" /></svg>;
+    case 'bass-up': return <svg {...common}><path d="M11 7L7 10.5H4v3h3l4 3.5z" {...f} /><path d="M17.5 14.5v-5M15.5 12l2-2 2 2" /></svg>;
+    case 'bass-down': return <svg {...common}><path d="M11 7L7 10.5H4v3h3l4 3.5z" {...f} /><path d="M17.5 9.5v5M15.5 12l2 2 2-2" /></svg>;
+    case 'treble-up': return <svg {...common}><path d="M11 7L7 10.5H4v3h3l4 3.5z" {...f} /><path d="M15 11a3.5 3.5 0 010 5M17.5 14.5v-5M15.5 12l2-2 2 2" /></svg>;
+    case 'treble-down': return <svg {...common}><path d="M11 7L7 10.5H4v3h3l4 3.5z" {...f} /><path d="M15 13a3.5 3.5 0 010-5M17.5 9.5v5M15.5 12l2 2 2-2" /></svg>;
+    case 'refresh': return <svg {...common}><path d="M20.5 12a8.5 8.5 0 11-2.5-5.98" /><path d="M21 3.5V8h-4.5" /></svg>;
+    case 'forward': return <svg {...common}><path d="M5 5v14" /><path d="M13.5 5.5L19.5 12l-6 6.5z" {...f} /></svg>;
+    case 'back': return <svg {...common}><path d="M19 5v14" /><path d="M10.5 5.5L4.5 12l6 6.5z" {...f} /></svg>;
+    default: return <svg {...common}><circle cx="12" cy="12" r="9" /></svg>;
+  }
+}
 
 // 鼠标 — 新协议
 const MOUSE_ACTIONS = [
@@ -289,12 +329,22 @@ function KeyEditor({ config, proto, multiKeyOnly, onSave, onClose }) {
         )}
 
         {tab === 3 && (
-          <div style={s.keyGrid}>
+          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(86px,1fr))',gap:8}}>
             {(proto === 'bt' ? BT_MEDIA_KEYS : MEDIA_KEYS).map((m, i) => {
               const code = proto === 'bt' ? [0x04, m.code & 0xFF, (m.code >> 8) & 0xFF, 0x00] : m.code;
               const active = mediaCodeEq(mediaCode, code);
               return (
-                <div key={i} style={s.key(active)} onClick={() => setMediaCode(code)}>{m.label}</div>
+                <div key={i} onClick={() => setMediaCode(code)} style={{
+                  display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:6,
+                  padding:'12px 4px',borderRadius:10,cursor:'pointer',transition:'all 0.15s',
+                  border:active ? '2px solid #6366f1' : '1px solid #e2e8f0',
+                  background:active ? '#eef2ff' : '#fff',
+                }}>
+                  <span style={{color:active ? '#6366f1' : '#334155',display:'flex'}}>
+                    <MediaIcon name={m.icon} />
+                  </span>
+                  <span style={{fontSize:12,color:active ? '#6366f1' : '#475569',textAlign:'center',lineHeight:1.2}}>{m.label}</span>
+                </div>
               );
             })}
           </div>

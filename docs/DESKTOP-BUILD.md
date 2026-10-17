@@ -118,9 +118,34 @@ git push github --tags
 
 Actions 页面 → 点某次运行 → 底部 **Artifacts** 下载 zip，解压即是各平台安装包。
 
-拿到后按 §4 的流程改名传到 `/ws/download/`，网页下载入口按 `package.json` 的 version 自动生效。
+拿到后按 §4.5 的「三平台发布清单」改名、上传、更新 manifest，网页下载页会自动生效。
 
-> 建议顺序：先打 tag → CI 出三平台包 → 传服务器 → 再发网页，避免用户点下载 404。
+> 建议顺序：先打 tag → CI 出三平台包 → 传服务器 + 改 manifest → 再发网页，避免用户点下载 404。
+
+### 4.5 三平台发布清单（发版照做即可）
+
+下载页 `/ws/download.html` 是**数据驱动**的：它读取 `/ws/download/manifest.json`，自动识别访问者系统并推荐对应包。**发版只改 manifest，不用改任何代码。**
+
+**命名约定**（上传前把 CI 产物改成这个名字）：
+
+| 平台 | 文件名 |
+|---|---|
+| Windows x64 | `yywlkey-config-<ver>-win-x64.zip` |
+| macOS Intel | `yywlkey-config-<ver>-mac-x64.zip` |
+| macOS Apple Silicon | `yywlkey-config-<ver>-mac-arm64.zip` |
+| Linux x64 | `yywlkey-config-<ver>-linux-x64.AppImage` |
+
+**发布步骤**：
+
+1. 把包上传到 `/ws/download/`（FTP 根目录下的 `download/`）
+2. 计算 SHA256：
+   - Windows `certutil -hashfile 文件名 SHA256`
+   - macOS/Linux `shasum -a 256 文件名`
+3. 编辑 `public/download/manifest.json` → 改 `version`、`updated`，把对应包的 `available` 置为 `true`，填 `file` / `size` / `sha256`
+4. `npm run build` → 上传 `dist/download/manifest.json`（**只需这一个文件**，网页不用重发）
+5. 打开 `https://key.itytsoft.com/ws/download.html` 确认推荐卡片正确
+
+> 未发布的平台把 `available` 保持 `false`，页面会显示"尚未发布"而不是给一个 404 链接 —— 这就是"预留位置"的意义：mac/linux 包到位前不用改代码，到位后改一个布尔值即可。
 
 ---
 

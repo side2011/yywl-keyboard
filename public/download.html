@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>下载桌面版 - 多功能小键盘配置工具 | 颖昱物联</title>
+<link rel="icon" type="image/png" href="/favicon.png">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; background: #f8fafc; color: #1e293b; line-height: 1.7; }
+  .hero { background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); color: #fff; text-align: center; padding: 54px 20px 46px; }
+  .hero h1 { font-size: 2rem; font-weight: 800; margin-bottom: 8px; }
+  .hero p { font-size: 1rem; opacity: 0.92; max-width: 640px; margin: 0 auto; }
+  .hero .badge { display: inline-block; background: rgba(255,255,255,0.18); padding: 5px 14px; border-radius: 20px; font-size: 0.8rem; margin: 8px 4px 0; }
+  .container { max-width: 860px; margin: -28px auto 40px; padding: 0 20px; }
+  .card { background: #fff; border-radius: 16px; box-shadow: 0 4px 24px rgba(0,0,0,0.06); padding: 30px 28px; margin-bottom: 20px; border: 1px solid #e2e8f0; }
+  .card h2 { font-size: 1.2rem; font-weight: 800; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+  .rec { border: 2px solid #6366f1; background: linear-gradient(180deg,#f5f3ff,#ffffff); }
+  .rec .detected { display: inline-flex; align-items: center; gap: 6px; font-size: 0.78rem; font-weight: 700; color: #4338ca; background: #eef2ff; border: 1px solid #c7d2fe; border-radius: 999px; padding: 3px 10px; margin-bottom: 10px; }
+  .rec h3 { font-size: 1.25rem; font-weight: 800; margin-bottom: 4px; }
+  .rec .meta { font-size: 0.85rem; color: #64748b; margin-bottom: 16px; }
+  .dl { display: inline-flex; align-items: center; gap: 8px; padding: 13px 30px; border-radius: 12px; background: linear-gradient(135deg,#4f46e5,#7c3aed); color: #fff; text-decoration: none; font-size: 1rem; font-weight: 700; box-shadow: 0 6px 18px rgba(79,70,229,0.32); transition: transform .15s; }
+  .dl:hover { transform: translateY(-1px); }
+  .dl.disabled { background: #e2e8f0; color: #94a3b8; box-shadow: none; cursor: not-allowed; pointer-events: none; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 640px) { .grid { grid-template-columns: 1fr; } }
+  .pkg { border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px 16px; background: #fcfdff; display: flex; flex-direction: column; gap: 6px; }
+  .pkg.on { border-color: #c7d2fe; }
+  .pkg .name { font-weight: 700; font-size: 0.95rem; }
+  .pkg .sub { font-size: 0.8rem; color: #94a3b8; }
+  .pkg .row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 4px; }
+  .mini { font-size: 0.82rem; font-weight: 700; padding: 7px 14px; border-radius: 8px; text-decoration: none; color: #4338ca; background: #eef2ff; border: 1px solid #c7d2fe; }
+  .mini.off { color: #94a3b8; background: #f8fafc; border-color: #e2e8f0; pointer-events: none; }
+  .tip { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 11px 15px; margin-top: 12px; font-size: 0.88rem; color: #1e40af; }
+  .warn { background: #fff7ed; border: 1px solid #fed7aa; border-radius: 10px; padding: 11px 15px; margin-top: 12px; font-size: 0.88rem; color: #9a3412; }
+  .info { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; padding: 11px 15px; margin-top: 12px; font-size: 0.88rem; color: #166534; }
+  .foot-note { font-size: 0.82rem; color: #94a3b8; margin-top: 14px; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.84rem; margin-top: 10px; }
+  th, td { padding: 8px 10px; border-bottom: 1px solid #f1f5f9; text-align: left; }
+  th { color: #334155; background: #f8fafc; font-weight: 600; }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.82em; background: #f1f5f9; padding: 2px 6px; border-radius: 4px; word-break: break-all; }
+  .copy { font-size: 0.78rem; font-weight: 700; color: #4338ca; background: #eef2ff; border: 1px solid #c7d2fe; border-radius: 6px; padding: 3px 9px; cursor: pointer; }
+  .footer { text-align: center; padding: 26px 20px 46px; color: #94a3b8; font-size: 0.85rem; }
+  .footer a { color: #6366f1; text-decoration: none; }
+  .back-link { display: inline-flex; align-items: center; gap: 6px; color: #fff; text-decoration: none; font-size: 0.92rem; opacity: .9; margin-bottom: 18px; }
+  .back-link:hover { opacity: 1; }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <a href="/ws/" class="back-link">← 返回配置工具</a>
+  <h1>🖥️ 下载桌面版</h1>
+  <p>把整个配置工具打包成一个程序，<strong>内网可用、完全离线</strong>，不依赖浏览器</p>
+  <div>
+    <span class="badge">Windows · macOS · Linux</span>
+    <span class="badge" id="verBadge">版本读取中…</span>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- 推荐下载（自动识别系统） -->
+  <div class="card rec" id="recCard">
+    <div class="detected" id="detected">🔍 正在识别你的系统…</div>
+    <h3 id="recTitle">桌面版安装包</h3>
+    <div class="meta" id="recMeta">请稍候…</div>
+    <a class="dl" id="recBtn" href="#">⬇ 下载</a>
+    <div class="foot-note" id="recNote"></div>
+  </div>
+
+  <!-- 全部平台 -->
+  <div class="card">
+    <h2>📦 全部平台</h2>
+    <div class="grid" id="grid"></div>
+    <div class="tip">
+      💡 不确定选哪个？<strong>Windows</strong> 几乎都是 64 位；<strong>macOS</strong> 看左上角苹果菜单 →「关于本机」，
+      Apple M1/M2/M3/M4 选 <strong>Apple 芯片</strong>，Intel 选 <strong>Intel 芯片</strong>。
+    </div>
+  </div>
+
+  <!-- 安装说明 -->
+  <div class="card">
+    <h2>📌 安装与使用</h2>
+    <table>
+      <tr><th style="width:110px">平台</th><th>步骤</th></tr>
+      <tr><td>Windows</td><td>解压 zip → 双击 <code>YYWL键盘配置工具.exe</code>（免安装，不用管理员权限）</td></tr>
+      <tr><td>macOS</td><td>解压 → 把 .app 拖到「应用程序」→ 首次打开若被拦截，<strong>右键 → 打开 → 再点「打开」</strong></td></tr>
+      <tr><td>Linux</td><td>给 AppImage 加可执行权限：<code>chmod +x *.AppImage</code>，然后双击或命令行运行</td></tr>
+    </table>
+    <div class="warn">
+      ⚠️ 程序<strong>未做代码签名</strong>：Windows 首次运行可能提示"未知发布者"（点「更多信息」→「仍要运行」）；
+      macOS 首次打开需右键→打开。这只是系统安全提示，不代表文件有问题。
+    </div>
+    <div class="info">
+      ✅ 桌面版与网页版界面、功能完全一致，配置数据各自独立。<br>
+      ✅ 内网批量部署：解压后整个文件夹拷到目标电脑即可。
+    </div>
+  </div>
+
+  <!-- 版本信息 -->
+  <div class="card">
+    <h2>🔐 版本与校验</h2>
+    <div id="shaList" style="font-size:.86rem;color:#475569">加载中…</div>
+    <div class="tip">
+      💡 企业内网分发时，可用 SHA256 校验安装包是否被篡改：<br>
+      Windows <code>certutil -hashfile 文件名 SHA256</code>　·　macOS/Linux <code>shasum -a 256 文件名</code>
+    </div>
+  </div>
+
+</div>
+
+<div class="footer">
+  <p>颖昱物联 · 多功能小键盘配置工具</p>
+  <p style="margin-top:6px">技术支持 QQ：<strong>1291285148</strong></p>
+  <p style="margin-top:6px"><a href="/ws/">返回配置工具</a> · <a href="/ws/tutorial.html">使用说明</a></p>
+</div>
+
+<script>
+(function () {
+  // 兜底数据：即使 manifest.json 拉取失败，页面依然可用
+  var FALLBACK = {
+    version: '1.0.0',
+    updated: '',
+    packages: [
+      { id: 'win-x64', platform: 'windows', arch: 'x64', label: 'Windows 10 / 11（64 位）', file: 'yywlkey-config-1.0.0-win-x64.zip', available: true, note: '免安装绿色版' },
+      { id: 'mac-x64', platform: 'macos', arch: 'x64', label: 'macOS · Intel 芯片', file: 'yywlkey-config-1.0.0-mac-x64.zip', available: false, note: '尚未发布' },
+      { id: 'mac-arm64', platform: 'macos', arch: 'arm64', label: 'macOS · Apple 芯片（M 系列）', file: 'yywlkey-config-1.0.0-mac-arm64.zip', available: false, note: '尚未发布' },
+      { id: 'linux-x64', platform: 'linux', arch: 'x64', label: 'Linux（AppImage）', file: 'yywlkey-config-1.0.0-linux-x64.AppImage', available: false, note: '尚未发布' }
+    ]
+  };
+
+  var OS_LABEL = { windows: 'Windows', macos: 'macOS', linux: 'Linux' };
+  var $ = function (id) { return document.getElementById(id); };
+
+  function mb(n) { return n ? (n / 1048576).toFixed(1) + ' MB' : ''; }
+
+  function fileUrl(pkg) { return 'download/' + pkg.file; }
+
+  async function loadManifest() {
+    try {
+      var r = await fetch('download/manifest.json?t=' + Date.now(), { cache: 'no-store' });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      var data = await r.json();
+      if (!data || !Array.isArray(data.packages) || !data.packages.length) throw new Error('bad manifest');
+      return data;
+    } catch (e) {
+      console.warn('[download] manifest 读取失败，使用内置默认数据:', e.message);
+      return FALLBACK;
+    }
+  }
+
+  async function detect() {
+    var ua = navigator.userAgent || '';
+    var plat = (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || '';
+    var os = 'unknown';
+    if (/Win/i.test(plat) || /Windows/i.test(ua)) os = 'windows';
+    else if (/Mac/i.test(plat) || /Mac OS X|Macintosh/i.test(ua)) os = 'macos';
+    else if (/Linux|X11/i.test(plat) || (/Linux/i.test(ua) && !/Android/i.test(ua))) os = 'linux';
+
+    var arch = 'x64';
+    try {
+      if (navigator.userAgentData && navigator.userAgentData.getHighEntropyValues) {
+        var h = await navigator.userAgentData.getHighEntropyValues(['architecture']);
+        if (h && h.architecture === 'arm') arch = 'arm64';
+      }
+    } catch (e) { /* 老浏览器不支持，保持 x64 */ }
+
+    var mobile = /Android|iPhone|iPad|iPod|Mobile/i.test(ua);
+    return { os: os, arch: arch, mobile: mobile };
+  }
+
+  function pick(mf, det) {
+    var list = mf.packages;
+    var byOs = list.filter(function (p) { return p.platform === det.os; });
+    if (!byOs.length) return null;
+    // 精确匹配架构；否则取该平台第一个（mac 上 Intel 机器可能被识别成 x64，正好命中）
+    var exact = byOs.filter(function (p) { return p.arch === det.arch; });
+    return (exact.length ? exact : byOs)[0];
+  }
+
+  function pkgCard(pkg) {
+    var el = document.createElement('div');
+    el.className = 'pkg' + (pkg.available ? ' on' : '');
+    var size = pkg.available && pkg.size ? mb(pkg.size) : (pkg.note || '尚未发布');
+    el.innerHTML =
+      '<div class="name">' + pkg.label + '</div>' +
+      '<div class="sub">' + (pkg.arch === 'arm64' ? 'ARM64' : 'x64') + ' · ' + size + '</div>' +
+      '<div class="row">' +
+        (pkg.available
+          ? '<a class="mini" href="' + fileUrl(pkg) + '" download>下载</a>'
+          : '<span class="mini off">尚未发布</span>') +
+      '</div>';
+    return el;
+  }
+
+  async function boot() {
+    var mf = await loadManifest();
+    var det = await detect();
+
+    $('verBadge').textContent = '版本 ' + mf.version + (mf.updated ? ' · ' + mf.updated : '');
+
+    // 推荐区
+    var rec = pick(mf, det);
+    if (det.mobile) {
+      $('detected').textContent = '📱 检测到移动设备';
+      $('recTitle').textContent = '请在电脑上打开本页面';
+      $('recMeta').textContent = '桌面版只能在 Windows / macOS / Linux 电脑上安装。';
+      $('recBtn').className = 'dl disabled';
+      $('recBtn').textContent = '仅支持电脑';
+    } else if (!rec) {
+      $('detected').textContent = '❓ 未能识别系统';
+      $('recTitle').textContent = '请从下方列表选择';
+      $('recMeta').textContent = '你的系统不在自动识别范围内，请手动选择对应平台。';
+      $('recBtn').className = 'dl disabled';
+      $('recBtn').textContent = '请手动选择';
+    } else {
+      $('detected').textContent = '✅ 检测到：' + OS_LABEL[det.os] + (det.arch === 'arm64' ? ' · ARM64' : ' · x64');
+      $('recTitle').textContent = rec.label;
+      $('recMeta').textContent = '版本 ' + mf.version +
+        (rec.available && rec.size ? ' · ' + mb(rec.size) : '') +
+        (rec.note ? ' · ' + rec.note : '');
+      if (rec.available) {
+        $('recBtn').className = 'dl';
+        $('recBtn').textContent = '⬇ 下载 ' + OS_LABEL[det.os] + ' 版';
+        $('recBtn').href = fileUrl(rec);
+        $('recBtn').setAttribute('download', '');
+      } else {
+        $('recBtn').className = 'dl disabled';
+        $('recBtn').textContent = '该平台尚未发布';
+      }
+      if (det.os === 'macos') {
+        $('recNote').textContent = '提示：如果你的 Mac 是 Apple 芯片但这里显示 Intel 版，请在下方选「Apple 芯片」版本。';
+      }
+    }
+
+    // 全部平台
+    var grid = $('grid');
+    mf.packages.forEach(function (p) { grid.appendChild(pkgCard(p)); });
+
+    // SHA256 列表
+    var rows = mf.packages.filter(function (p) { return p.available; });
+    if (!rows.length) {
+      $('shaList').textContent = '暂无可下载的安装包。';
+    } else {
+      $('shaList').innerHTML = rows.map(function (p) {
+        return '<div style="margin-bottom:10px">' +
+          '<div style="font-weight:700;color:#334155">' + p.label + '</div>' +
+          '<div style="margin-top:4px">文件：<code>' + p.file + '</code>' +
+          (p.size ? ' · ' + mb(p.size) : '') + '</div>' +
+          (p.sha256
+            ? '<div style="margin-top:4px">SHA256：<code>' + p.sha256 + '</code> ' +
+              '<button class="copy" data-sha="' + p.sha256 + '">复制</button></div>'
+            : '') +
+          '</div>';
+      }).join('');
+      Array.prototype.forEach.call(document.querySelectorAll('.copy'), function (btn) {
+        btn.addEventListener('click', function () {
+          var sha = btn.getAttribute('data-sha');
+          var done = function () { btn.textContent = '已复制'; setTimeout(function () { btn.textContent = '复制'; }, 1500); };
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(sha).then(done).catch(done);
+          } else {
+            var ta = document.createElement('textarea');
+            ta.value = sha; document.body.appendChild(ta); ta.select();
+            try { document.execCommand('copy'); } catch (e) {}
+            document.body.removeChild(ta); done();
+          }
+        });
+      });
+    }
+  }
+
+  boot().catch(function (e) {
+    console.error('[download] 初始化失败:', e);
+    $('detected').textContent = '⚠️ 页面初始化失败';
+    $('recTitle').textContent = '请刷新重试';
+    $('recMeta').textContent = String(e && e.message || e);
+  });
+})();
+</script>
+</body>
+</html>

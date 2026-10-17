@@ -32,6 +32,7 @@ const en = {
   '请先用 USB 线连接键盘': 'Please connect the keyboard with the USB cable first',
   '软件下载': 'Download App',
   'Windows 桌面版 · 离线可用，适合内网环境': 'Windows desktop app · works offline, ideal for intranet use',
+  'Windows / macOS / Linux 桌面版 · 离线可用，适合内网环境': 'Desktop app for Windows / macOS / Linux · works offline, ideal for intranet use',
   '插好线后，点击下方「连接键盘」开始识别': 'Once plugged in, click "Connect Keyboard" below to detect it.',
   '连接键盘': 'Connect Keyboard',
   '断开连接': 'Disconnect',

@@ -516,10 +516,10 @@ export default function NewProtoConfigurator() {
     } finally { setLedLoading(false); }
   };
 
-  const handleLedColorChange = (index, field, value) => {
+  const handleLedColorChange = (index, colorObj) => {
     setLedColors(prev => {
       const next = [...prev];
-      next[index] = { ...next[index], [field]: value };
+      next[index] = { ...next[index], ...colorObj };
       return next;
     });
   };
@@ -1162,19 +1162,27 @@ export default function NewProtoConfigurator() {
                     {t('基础颜色')} <span className="text-sm font-normal text-gray-400">({t('共')} {keyCount} {t('键')})</span>
                   </label>
                   {/* 全局颜色应用 */}
-                  <div className="flex items-center gap-3 mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
-                    <span className="text-sm text-gray-500">{t('统一设置:')}</span>
-                    <input type="color" className="w-10 h-10 rounded-lg border border-gray-300 cursor-pointer"
-                      value="#ff0000"
-                      onChange={(e) => {
-                        const hex = e.target.value;
-                        const r = parseInt(hex.slice(1, 3), 16);
-                        const g = parseInt(hex.slice(3, 5), 16);
-                        const b = parseInt(hex.slice(5, 7), 16);
-                        handleApplyColorToAll(r, g, b);
-                      }} />
-                    <span className="text-sm text-gray-400">{t('应用到全部按键')}</span>
-                  </div>
+                  {(() => {
+                    // 统一色块跟随当前基础颜色 (修复: 原来写死 #ff0000 导致选色后色块不变/选色不生效)
+                    const c0 = ledColors[0] || { r: 0, g: 0, b: 0 };
+                    const unifiedHex = '#' + [c0.r, c0.g, c0.b].map(v => v.toString(16).padStart(2, '0')).join('');
+                    return (
+                      <div className="flex items-center gap-3 mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                        <span className="text-sm text-gray-500">{t('统一设置:')}</span>
+                        <input type="color" className="w-10 h-10 rounded-lg border border-gray-300 cursor-pointer"
+                          value={unifiedHex}
+                          onChange={(e) => {
+                            const hex = e.target.value;
+                            handleApplyColorToAll(
+                              parseInt(hex.slice(1, 3), 16),
+                              parseInt(hex.slice(3, 5), 16),
+                              parseInt(hex.slice(5, 7), 16),
+                            );
+                          }} />
+                        <span className="text-sm text-gray-400">{t('应用到全部按键')}</span>
+                      </div>
+                    );
+                  })()}
                   {/* 逐键颜色 */}
                   <div className="grid grid-cols-3 gap-3">
                     {Array.from({ length: keyCount }, (_, i) => {
@@ -1187,9 +1195,11 @@ export default function NewProtoConfigurator() {
                             value={hex}
                             onChange={(e) => {
                               const h = e.target.value;
-                              handleLedColorChange(i, 'r', parseInt(h.slice(1, 3), 16));
-                              handleLedColorChange(i, 'g', parseInt(h.slice(3, 5), 16));
-                              handleLedColorChange(i, 'b', parseInt(h.slice(5, 7), 16));
+                              handleLedColorChange(i, {
+                                r: parseInt(h.slice(1, 3), 16),
+                                g: parseInt(h.slice(3, 5), 16),
+                                b: parseInt(h.slice(5, 7), 16),
+                              });
                             }} />
                           <span className="text-sm text-gray-400 font-mono">{hex.toUpperCase()}</span>
                         </div>

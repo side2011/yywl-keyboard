@@ -20,6 +20,55 @@ function createDefaultConfig() {
   return { mode: 0, modifierMask: 0, keyCode: 0, mediaCode: 0, mouse: null, delay: 0 };
 }
 
+// ---- 媒体功能图标 (内联 SVG, 对照 QT 软件媒体页样式) ----
+const MEDIA_ICON_BY_LABEL = {
+  '播放/暂停': 'play', '停止播放': 'stop', '上一首': 'prev', '下一首': 'next',
+  '我的电脑': 'monitor', '屏幕亮度+': 'bright-plus', '屏幕亮度-': 'bright-minus',
+  '打开媒体': 'camera', '系统静音': 'mute', '音量+': 'vol-up', '音量-': 'vol-down',
+  '打开计算器': 'calc', '打开浏览器': 'globe', '打开邮件': 'mail',
+  '低音+': 'bass-up', '低音-': 'bass-down', '高音+': 'treble-up', '高音-': 'treble-down',
+  '网页刷新': 'refresh', '网页前进': 'forward', '网页后退': 'back',
+};
+
+function MediaIcon({ name, size = 20 }) {
+  const common = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round' };
+  const f = { fill: 'currentColor', stroke: 'none' };
+  switch (name) {
+    case 'play': return <svg {...common}><path d="M8 5.5v13l11-6.5z" {...f} /></svg>;
+    case 'stop': return <svg {...common}><rect x="7" y="7" width="10" height="10" rx="1.5" {...f} /></svg>;
+    case 'prev': return <svg {...common}><path d="M6.5 6v12" /><path d="M17.5 6l-8.5 6 8.5 6z" {...f} /></svg>;
+    case 'next': return <svg {...common}><path d="M17.5 6v12" /><path d="M6.5 6l8.5 6-8.5 6z" {...f} /></svg>;
+    case 'monitor': return <svg {...common}><rect x="3" y="4" width="18" height="12" rx="2" /><path d="M8 20h8M12 16v4" /></svg>;
+    case 'bright-plus': return (
+      <svg {...common}>
+        <circle cx="12" cy="12" r="3.6" />
+        <path d="M12 3.5v2.5M12 18v2.5M3.5 12H6M18 12h2.5M5.5 5.5l1.8 1.8M16.7 16.7l1.8 1.8M18.5 5.5l-1.8 1.8M7.3 16.7l-1.8 1.8M19.5 16.5h3M18 18v-3" />
+      </svg>
+    );
+    case 'bright-minus': return (
+      <svg {...common}>
+        <circle cx="12" cy="12" r="3.6" />
+        <path d="M12 3.5v2.5M12 18v2.5M3.5 12H6M18 12h2.5M5.5 5.5l1.8 1.8M16.7 16.7l1.8 1.8M18.5 5.5l-1.8 1.8M7.3 16.7l-1.8 1.8M19.5 16.5h3" />
+      </svg>
+    );
+    case 'camera': return <svg {...common}><rect x="3" y="7" width="13" height="11" rx="2" /><path d="M16 10.5l5-3v9l-5-3z" /></svg>;
+    case 'mute': return <svg {...common}><path d="M11 5L6.5 9H3v6h3.5L11 19z" {...f} /><path d="M15.5 9.5l5 5M20.5 9.5l-5 5" /></svg>;
+    case 'vol-up': return <svg {...common}><path d="M11 5L6.5 9H3v6h3.5L11 19z" {...f} /><path d="M15 8.5a5 5 0 010 7M17.5 6a9 9 0 010 12" /></svg>;
+    case 'vol-down': return <svg {...common}><path d="M11 5L6.5 9H3v6h3.5L11 19z" {...f} /><path d="M15 9a3.5 3.5 0 010 6" /></svg>;
+    case 'calc': return <svg {...common}><rect x="5" y="3" width="14" height="18" rx="2" /><path d="M9 7.5h6" /><path d="M9 12h.01M12 12h.01M15 12h.01M9 16h.01M12 16h.01M15 16h.01" strokeWidth="2.6" /></svg>;
+    case 'globe': return <svg {...common}><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3a14.5 14.5 0 010 18M12 3a14.5 14.5 0 000 18" /></svg>;
+    case 'mail': return <svg {...common}><rect x="3" y="5" width="18" height="14" rx="2" /><path d="M3 7.5l9 6 9-6" /></svg>;
+    case 'bass-up': return <svg {...common}><path d="M11 7L7 10.5H4v3h3l4 3.5z" {...f} /><path d="M17.5 14.5v-5M15.5 12l2-2 2 2" /></svg>;
+    case 'bass-down': return <svg {...common}><path d="M11 7L7 10.5H4v3h3l4 3.5z" {...f} /><path d="M17.5 9.5v5M15.5 12l2 2 2-2" /></svg>;
+    case 'treble-up': return <svg {...common}><path d="M11 7L7 10.5H4v3h3l4 3.5z" {...f} /><path d="M15 11a3.5 3.5 0 010 5M17.5 14.5v-5M15.5 12l2-2 2 2" /></svg>;
+    case 'treble-down': return <svg {...common}><path d="M11 7L7 10.5H4v3h3l4 3.5z" {...f} /><path d="M15 13a3.5 3.5 0 010-5M17.5 9.5v5M15.5 12l2 2 2-2" /></svg>;
+    case 'refresh': return <svg {...common}><path d="M20.5 12a8.5 8.5 0 11-2.5-5.98" /><path d="M21 3.5V8h-4.5" /></svg>;
+    case 'forward': return <svg {...common}><path d="M5 5v14" /><path d="M13.5 5.5L19.5 12l-6 6.5z" {...f} /></svg>;
+    case 'back': return <svg {...common}><path d="M19 5v14" /><path d="M10.5 5.5L4.5 12l6 6.5z" {...f} /></svg>;
+    default: return <svg {...common}><circle cx="12" cy="12" r="9" /></svg>;
+  }
+}
+
 export default function BtConfigurator() {
   const { t, lang, toggleLang } = useLang();
   const navigate = useNavigate();
@@ -575,15 +624,16 @@ export default function BtConfigurator() {
             {activeTab === MODE.MEDIA && (
               <div>
                 <label className="text-base font-bold text-gray-700 mb-3 block">{t('选择多媒体功能')}</label>
-                <div className="flex flex-wrap gap-2">
+                <div className="grid grid-cols-4 sm:grid-cols-5 lg:grid-cols-7 gap-2">
                   {BT_MEDIA_KEYS.map((mk) => {
                     const isSel = currentConfig.mediaCode === mk.code;
                     return (
                       <button key={mk.label} onClick={() => updateConfig({ mode: MODE.MEDIA, mediaCode: mk.code })}
-                        className={`px-4 py-2 text-base rounded-lg border transition-colors cursor-pointer ${
-                          isSel ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300'
+                        className={`flex flex-col items-center justify-center gap-1.5 py-3 px-1 rounded-xl border-2 transition-colors cursor-pointer ${
+                          isSel ? 'bg-indigo-50 border-indigo-500 text-indigo-700' : 'bg-white border-gray-200 text-gray-600 hover:border-indigo-300'
                         }`}>
-                        {mk.label}
+                        <MediaIcon name={MEDIA_ICON_BY_LABEL[mk.label]} />
+                        <span className="text-xs leading-tight text-center">{mk.label}</span>
                       </button>
                     );
                   })}
