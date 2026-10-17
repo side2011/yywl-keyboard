@@ -46,9 +46,10 @@ if (!fs.existsSync(versionPath)) {
 }
 const buildInfo = JSON.parse(fs.readFileSync(versionPath, 'utf8'))
 
-// 清单: 除 update.json 自身以外的所有文件
+// 清单: 除 update.json 与 version.json 以外的所有文件
+// (version.json 由客户端在安装时按清单里的 buildId 自行写入, 放进清单会导致每次都"内容不同")
 const files = walk(DIST)
-  .filter((f) => path.basename(f) !== 'update.json')
+  .filter((f) => !['update.json', 'version.json'].includes(path.basename(f)))
   .sort()
 
 const entries = files.map((abs) => {
