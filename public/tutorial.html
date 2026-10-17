@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>使用教程 - 多功能小键盘配置工具 | 颖昱物联</title>
+<link rel="icon" type="image/png" href="/favicon.png">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; background: #f8fafc; color: #1e293b; line-height: 1.7; }
+  .hero { background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); color: white; text-align: center; padding: 60px 20px 50px; }
+  .hero h1 { font-size: 2.2rem; font-weight: 800; margin-bottom: 10px; }
+  .hero p { font-size: 1.1rem; opacity: 0.9; max-width: 620px; margin: 0 auto; }
+  .hero .badge { display: inline-block; background: rgba(255,255,255,0.2); padding: 6px 16px; border-radius: 20px; font-size: 0.85rem; margin-top: 16px; }
+  .container { max-width: 860px; margin: -30px auto 40px; padding: 0 20px; }
+  .card { background: white; border-radius: 16px; box-shadow: 0 4px 24px rgba(0,0,0,0.06); padding: 36px 32px; margin-bottom: 24px; border: 1px solid #e2e8f0; }
+  .step { display: flex; gap: 20px; }
+  .step-num { flex-shrink: 0; width: 48px; height: 48px; border-radius: 50%; background: linear-gradient(135deg, #4f46e5, #7c3aed); color: white; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; font-weight: 800; box-shadow: 0 4px 12px rgba(79,70,229,0.3); }
+  .step-content { flex: 1; }
+  .step-content h3 { font-size: 1.2rem; font-weight: 700; color: #1e293b; margin-bottom: 8px; }
+  .step-content p { font-size: 1rem; color: #475569; }
+  .tip { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 12px 16px; margin-top: 12px; font-size: 0.9rem; color: #1e40af; }
+  .warn { background: #fff7ed; border: 1px solid #fed7aa; border-radius: 10px; padding: 12px 16px; margin-top: 12px; font-size: 0.9rem; color: #9a3412; }
+  .info { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; padding: 12px 16px; margin-top: 12px; font-size: 0.9rem; color: #166534; }
+  .mode-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 14px; }
+  @media (max-width: 600px) { .mode-grid { grid-template-columns: 1fr; } }
+  .mode-item { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px 16px; }
+  .mode-item h4 { font-size: 0.95rem; font-weight: 700; color: #4f46e5; margin-bottom: 4px; }
+  .mode-item p { font-size: 0.85rem; color: #64748b; line-height: 1.5; }
+  .shortcut-box { background: linear-gradient(135deg, #f0f9ff, #ede9fe); border: 1px solid #c7d2fe; border-radius: 12px; padding: 20px; margin-top: 16px; }
+  .shortcut-box h4 { font-size: 1rem; font-weight: 700; color: #4338ca; margin-bottom: 8px; }
+  .shortcut-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; font-size: 0.9rem; }
+  .shortcut-row .keys { background: white; border: 1px solid #d1d5db; border-radius: 6px; padding: 3px 10px; font-family: monospace; font-size: 0.85rem; color: #374151; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+  .faq { margin-top: 16px; }
+  .faq-item { border-bottom: 1px solid #f1f5f9; padding: 16px 0; }
+  .faq-item:last-child { border-bottom: none; }
+  .faq-item h4 { font-size: 1rem; font-weight: 700; color: #1e293b; margin-bottom: 6px; }
+  .faq-item p { font-size: 0.9rem; color: #64748b; }
+  .footer { text-align: center; padding: 30px 20px; color: #94a3b8; font-size: 0.85rem; }
+  .footer a { color: #6366f1; text-decoration: none; }
+  .footer .qq { font-family: monospace; font-weight: 700; color: #475569; font-size: 1rem; }
+  .back-link { display: inline-flex; align-items: center; gap: 6px; color: white; text-decoration: none; font-size: 0.95rem; opacity: 0.9; margin-bottom: 20px; }
+  .back-link:hover { opacity: 1; }
+  .lang-link { display: inline-flex; align-items: center; gap: 6px; color: white; text-decoration: none; font-size: 0.9rem; opacity: 0.85; margin-left: 16px; padding: 4px 14px; border: 1px solid rgba(255,255,255,0.4); border-radius: 8px; }
+  .lang-link:hover { opacity: 1; background: rgba(255,255,255,0.1); }
+  .emoji { font-size: 1.4rem; margin-right: 4px; }
+  table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 0.88rem; }
+  table th { background: #f1f5f9; padding: 8px 12px; text-align: left; font-weight: 600; color: #334155; border-bottom: 2px solid #e2e8f0; }
+  table td { padding: 8px 12px; border-bottom: 1px solid #f1f5f9; color: #475569; }
+  table tr:last-child td { border-bottom: none; }
+  .model-tag { display: inline-block; background: #e0e7ff; color: #4338ca; padding: 2px 8px; border-radius: 6px; font-size: 0.78rem; font-weight: 600; margin: 2px; }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <a href="/ws/" class="back-link">← 返回配置工具</a>
+  <a href="/ws/tutorial-en.html" class="lang-link">English</a>
+  <h1>📖 多功能小键盘使用教程</h1>
+  <p>从零开始，手把手教你配置颖昱物联全系列多功能小键盘</p>
+  <div class="badge">适用型号：1键 ~ 12键 / 旋钮 / 脚踏 / 方向键 等全系列</div>
+</div>
+
+<div class="container">
+
+  <!-- 蓝牙无线款 — 置顶提醒 -->
+  <div class="card" style="border-left: 4px solid #f59e0b;">
+    <div class="step">
+      <div class="step-num" style="background:linear-gradient(135deg,#f59e0b,#d97706); box-shadow:0 4px 12px rgba(245,158,11,0.3);">!</div>
+      <div class="step-content">
+        <h3><span class="emoji">📡</span>蓝牙无线款用户请注意</h3>
+        <p>如果你使用的是<strong>蓝牙无线款</strong>小键盘，本网页工具不支持配置。蓝牙无线款需要使用专用的桌面配置软件，请点击下方按钮下载：</p>
+        <a href="https://key.itytsoft.com/lybz.html" target="_blank" rel="noopener noreferrer"
+           style="display:inline-flex; align-items:center; gap:8px; margin-top:14px; padding:14px 32px; background:linear-gradient(135deg,#f59e0b,#d97706); color:white; font-size:1.05rem; font-weight:700; border-radius:12px; text-decoration:none; box-shadow:0 4px 14px rgba(245,158,11,0.4); transition:transform 0.2s;"
+           onmouseover="this.style.transform='scale(1.03)'" onmouseout="this.style.transform='scale(1)'">
+          📥 下载蓝牙无线款配置软件
+        </a>
+        <div class="warn" style="margin-top:14px">
+          ⚠️ 蓝牙无线款的 VID 为 0x1189 或 0x514C。如果你不确定自己的型号，可以先尝试连接——系统会自动检测并提示。
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 1 -->
+  <div class="card">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-content">
+        <h3><span class="emoji">🔌</span>准备工作</h3>
+        <p>在开始之前，请确保你具备以下条件：</p>
+        <div class="tip">
+          ✅ <strong>浏览器：</strong>Chrome 89+ 或 Edge 89+（必须支持 WebHID API）<br>
+          ✅ <strong>设备：</strong>小键盘已通过 USB 线连接到电脑<br>
+          ✅ <strong>网络：</strong>能正常访问本工具网页
+        </div>
+        <div class="warn">
+          ⚠️ 不支持 Safari、Firefox 及部分国产浏览器（如360、QQ浏览器）。<br>
+          Windows 系统自带的 Edge 浏览器即可使用。macOS 用户请安装 Chrome 或 Edge。
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 2 -->
+  <div class="card">
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-content">
+        <h3><span class="emoji">🔗</span>连接键盘</h3>
+        <p>打开浏览器访问 <strong>key.itytsoft.com/ws/</strong>，点击页面中间的<strong>「连接键盘」</strong>按钮。</p>
+        <p style="margin-top:10px">浏览器会弹出一个设备选择窗口，在列表中选择 <strong>YYWL-Keyboard</strong> 或对应设备名称，然后点击<strong>「连接」</strong>。</p>
+        <div class="tip">
+          💡 如果列表中显示"未知设备"，可以选择后点连接，再手动选择对应型号即可。<br>
+          💡 连接成功后会自动跳转到配置页面，顶部会显示设备型号和按键数量。
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 3 -->
+  <div class="card">
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-content">
+        <h3><span class="emoji">⌨️</span>配置按键功能</h3>
+        <p>进入配置页面后，左侧显示物理按键（K1 ~ Kn，按键数量取决于你的型号），右侧是功能设置区域。</p>
+        <p style="margin-top:8px"><strong>操作步骤：</strong></p>
+        <p>① 点击左侧任意按键（如 K1）选中它<br>
+           ② 在右侧选择功能模式并设置具体参数<br>
+           ③ 切换到下一个按键继续配置</p>
+
+        <p style="margin-top:16px; font-weight:700; font-size:1.05rem;">🎯 四种功能模式</p>
+        <div class="mode-grid">
+          <div class="mode-item">
+            <h4>⌨️ 键盘模式</h4>
+            <p>模拟键盘按键。可搭配修饰键（Ctrl / Shift / Alt / Win 可多选），再选择一个按键。<br><br><strong>示例：</strong>Ctrl+C（复制）、Win+D（显示桌面）、Alt+F4（关闭窗口）</p>
+          </div>
+          <div class="mode-item">
+            <h4>🖱️ 鼠标模式</h4>
+            <p>模拟鼠标操作。可设置鼠标按键（左键/右键/中键）和 X/Y 轴移动量、滚轮值。<br><br><strong>示例：</strong>设为左键=鼠标单击、设 X=10 Y=0 =鼠标右移</p>
+          </div>
+          <div class="mode-item">
+            <h4>🎵 多媒体模式</h4>
+            <p>一键触发多媒体功能，如播放/暂停、音量调节、打开浏览器等。<br><br><strong>可选：</strong>播放/暂停、音量+/-、静音、计算器、浏览器、亮度调节等 20 种功能</p>
+          </div>
+          <div class="mode-item">
+            <h4>🔗 多键合一模式</h4>
+            <p>按一次键自动发送一串按键序列（最多可设置多个按键），可搭配修饰键。<br><br><strong>示例：</strong>输入邮箱地址、自动输入密码、一键发送快捷文字等</p>
+          </div>
+        </div>
+
+        <div style="margin-top:20px; background:linear-gradient(135deg,#fef3c7,#fde68a); border:2px solid #f59e0b; border-radius:14px; padding:18px 20px;">
+          <h4 style="font-size:1.05rem; font-weight:800; color:#92400e; margin-bottom:8px;">🎯 快捷键捕获功能</h4>
+          <p style="font-size:0.92rem; color:#78350f; margin-bottom:10px;">
+            不想在虚拟键盘上找按键？试试<strong>捕获按键</strong>功能！只需在大键盘上直接按下你想设置的按键，系统会自动识别并填入配置。
+          </p>
+          <p style="font-size:0.88rem; color:#92400e;">
+            <strong>操作步骤：</strong><br>
+            ① 选中要配置的小键盘按键（如 K1）<br>
+            ② 点击键盘模式区域的<strong>「🎯 捕获按键」</strong>按钮<br>
+            ③ 按钮变黄闪烁后，在大键盘上按下目标按键（支持 Ctrl/Shift/Alt/Win 组合键）<br>
+            ④ 按键自动填入，配置完成！按 <strong>Esc</strong> 可取消捕获
+          </p>
+          <div class="tip" style="margin-top:10px; background:#fffbeb; border-color:#fcd34d;">
+            💡 例如：想设置 Ctrl+C（复制），点击捕获后直接在大键盘按 Ctrl+C，系统会自动识别修饰键和按键码。
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 4 -->
+  <div class="card">
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-content">
+        <h3><span class="emoji">💡</span>灯光设置</h3>
+        <p>配置页面右下方有灯光设置区域。不同型号支持的灯光模式略有不同，常见的灯光模式包括：</p>
+        <div class="tip">
+          🌈 <strong>常见模式：</strong>灯光关闭、按下亮（红/绿/蓝/黄/青/紫/白）、流水模式、常亮模式、台灯模式、自定义颜色等<br><br>
+          🎨 选择"自定义颜色"模式后，可以点击颜色选择器自定义 RGB 颜色值。<br><br>
+          💡 部分型号（如 7键无灯款）不支持灯光功能，此时灯光设置区域不会显示。
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 5 -->
+  <div class="card">
+    <div class="step">
+      <div class="step-num">5</div>
+      <div class="step-content">
+        <h3><span class="emoji">⏱️</span>延迟时间设置（部分型号支持）</h3>
+        <p>部分型号支持为每个按键设置延迟时间（单位：毫秒）。这个功能在<strong>多键合一模式</strong>下特别有用——可以控制按键序列中每个按键之间的间隔时间。</p>
+
+        <div class="info">
+          <strong>✅ 支持延迟时间的型号：</strong><br>
+          <span class="model-tag">1键</span>
+          <span class="model-tag">2键</span>
+          <span class="model-tag">2键迷你</span>
+          <span class="model-tag">3键</span>
+          <span class="model-tag">4键</span>
+          <span class="model-tag">5键</span>
+          <span class="model-tag">6键</span>
+          <span class="model-tag">5键触摸</span>
+          <span class="model-tag">8键新款</span>
+          <span class="model-tag">8键开关款</span>
+          <span class="model-tag">10键定制</span>
+          <span class="model-tag">2键Plus</span>
+          <span class="model-tag">3键Plus</span>
+          <span class="model-tag">3键定制</span>
+          <span class="model-tag">方向键</span>
+        </div>
+        <div class="warn" style="margin-top:10px">
+          <strong>❌ 不支持延迟时间的型号：</strong><br>
+          7键（含无灯款）、8键旧款、9键、12键、旋钮、DIY 10键、旋钮+4键、4键侧插（新旧款）、脚踏开关<br><br>
+          这些型号连接后不会显示延迟时间设置区域，属于正常情况。
+        </div>
+
+        <div class="tip" style="margin-top:12px">
+          💡 如果你的型号支持延迟，在左侧"延迟时间"区域为每个按键输入毫秒数（0~60000ms）。<br>
+          💡 设为 0 表示无延迟，设为 500 表示按下后等待 500ms 再触发下一个。
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 6 -->
+  <div class="card">
+    <div class="step">
+      <div class="step-num">6</div>
+      <div class="step-content">
+        <h3><span class="emoji">💾</span>保存配置到键盘</h3>
+        <p>所有按键配置完成后，点击左侧操作区域的<strong>「保存到键盘」</strong>按钮（蓝紫色渐变按钮），配置会写入键盘的内部存储。</p>
+        <div class="tip">
+          ✅ 保存成功后屏幕上方会弹出"配置已成功保存到键盘！"的绿色提示。<br>
+          ✅ 配置保存在键盘内部闪存中，断电不丢失，换电脑也能保持设置不变。<br>
+          💡 也可以点击"读取配置"从键盘读回当前保存的设置，方便查看和修改。
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 7 -->
+  <div class="card">
+    <div class="step">
+      <div class="step-num">7</div>
+      <div class="step-content">
+        <h3><span class="emoji">📋</span>配置方案管理</h3>
+        <p>如果你有多个使用场景（比如办公和游戏各一套配置），可以利用<strong>配置列表</strong>功能保存和切换不同方案：</p>
+        <div class="shortcut-box">
+          <h4>📌 操作说明</h4>
+          <div class="shortcut-row"><span>保存当前配置为方案</span><span class="keys">输入名称 → 保存</span></div>
+          <div class="shortcut-row"><span>加载已保存的方案</span><span class="keys">选中 → 读取（或双击）</span></div>
+          <div class="shortcut-row"><span>覆盖更新已有方案</span><span class="keys">选中 → 更新</span></div>
+          <div class="shortcut-row"><span>删除方案</span><span class="keys">选中 → 删除</span></div>
+          <div class="shortcut-row"><span>导出/导入方案</span><span class="keys">导出JSON / 导入JSON</span></div>
+        </div>
+        <div class="tip" style="margin-top:14px">
+          💡 配置方案保存在浏览器的本地存储中，同一浏览器下永久保留。<br>
+          💡 通过"导出"功能可备份为 JSON 文件，换电脑时"导入"即可恢复。
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 8 -->
+  <div class="card">
+    <div class="step">
+      <div class="step-num">8</div>
+      <div class="step-content">
+        <h3><span class="emoji">🎯</span>按键测试</h3>
+        <p>配置完成后，可以使用<strong>按键测试</strong>功能验证每个按键是否按预期工作。在连接页面或配置页面顶部栏点击<strong>「🎯 按键测试」</strong>按钮即可进入测试界面。</p>
+        <div class="tip" style="margin-top:12px">
+          🎯 <strong>功能说明：</strong><br>
+          ① 按下小键盘上的任意按键，测试界面会实时高亮显示被按下的物理按键<br>
+          ② 自动显示该按键当前配置的功能（键盘/鼠标/多媒体/多键合一）<br>
+          ③ 显示原始 HID 数据（ReportID、长度、HEX），方便调试<br>
+          ④ 事件日志记录最近的按键历史，可一键清空
+        </div>
+        <div class="info" style="margin-top:12px">
+          💡 <strong>使用场景：</strong>配置保存后，用按键测试功能快速验证每个按键触发效果是否正确，无需切换到其他应用程序。<br>
+          💡 测试界面会自动读取当前键盘上保存的配置，显示每个按键对应的功能。
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 型号速查 -->
+  <div class="card">
+    <h2 style="font-size:1.3rem; font-weight:800; color:#1e293b; margin-bottom:16px;"><span class="emoji">📊</span>型号功能速查表</h2>
+    <div style="overflow-x:auto">
+    <table>
+      <thead>
+        <tr><th>型号</th><th>按键数</th><th>灯光</th><th>延迟</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>1键</td><td>1</td><td>✅</td><td>✅</td></tr>
+        <tr><td>2键</td><td>2</td><td>✅</td><td>✅</td></tr>
+        <tr><td>2键迷你</td><td>2</td><td>✅</td><td>✅</td></tr>
+        <tr><td>3键</td><td>3</td><td>✅</td><td>✅</td></tr>
+        <tr><td>4键</td><td>4</td><td>✅</td><td>✅</td></tr>
+        <tr><td>5键</td><td>5</td><td>✅</td><td>✅</td></tr>
+        <tr><td>5键触摸</td><td>5</td><td>✅</td><td>✅</td></tr>
+        <tr><td>6键</td><td>6</td><td>✅</td><td>✅</td></tr>
+        <tr><td>7键</td><td>7</td><td>✅</td><td>❌</td></tr>
+        <tr><td>7键无灯</td><td>7</td><td>❌</td><td>❌</td></tr>
+        <tr><td>8键</td><td>8</td><td>✅</td><td>❌</td></tr>
+        <tr><td>8键新款</td><td>8</td><td>✅</td><td>✅</td></tr>
+        <tr><td>8键开关款</td><td>8</td><td>✅</td><td>✅</td></tr>
+        <tr><td>9键</td><td>9</td><td>✅</td><td>❌</td></tr>
+        <tr><td>10键定制</td><td>10</td><td>✅</td><td>✅</td></tr>
+        <tr><td>12键</td><td>12</td><td>✅</td><td>❌</td></tr>
+        <tr><td>旋钮</td><td>1</td><td>✅</td><td>❌</td></tr>
+        <tr><td>DIY 10键</td><td>10</td><td>✅</td><td>❌</td></tr>
+        <tr><td>旋钮+4键</td><td>5</td><td>✅</td><td>❌</td></tr>
+        <tr><td>4键侧插</td><td>4</td><td>✅</td><td>❌</td></tr>
+        <tr><td>4键侧插新款</td><td>4</td><td>✅</td><td>❌</td></tr>
+        <tr><td>2键Plus</td><td>2</td><td>✅</td><td>✅</td></tr>
+        <tr><td>3键Plus</td><td>3</td><td>✅</td><td>✅</td></tr>
+        <tr><td>3键定制</td><td>3</td><td>✅</td><td>✅</td></tr>
+        <tr><td>方向键</td><td>4</td><td>✅</td><td>✅</td></tr>
+        <tr><td>脚踏开关</td><td>1</td><td>❌</td><td>❌</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <!-- FAQ -->
+  <div class="card">
+    <h2 style="font-size:1.3rem; font-weight:800; color:#1e293b; margin-bottom:6px;"><span class="emoji">❓</span>常见问题</h2>
+    <div class="faq">
+      <div class="faq-item">
+        <h4>Q：连接后显示"未知设备"怎么办？</h4>
+        <p>这是正常的，不影响使用。连接后在设备信息区域会出现手动选择型号的选项，选择你对应的型号即可。</p>
+      </div>
+      <div class="faq-item">
+        <h4>Q：保存配置后灯光模式没变化？</h4>
+        <p>点击"读取配置"按钮从键盘重新读取，确认灯光模式下拉框是否正确显示。如果仍有问题，可尝试先选其他模式保存，再选回目标模式保存。</p>
+      </div>
+      <div class="faq-item">
+        <h4>Q：多键合一最多支持多少个按键？</h4>
+        <p>不同型号支持的最大按键序列长度不同（一般 7~50 个），具体数量在配置页面按键序列旁会显示。点击虚拟键盘依次添加按键，点击 × 可删除。</p>
+      </div>
+      <div class="faq-item">
+        <h4>Q：配置会丢失吗？</h4>
+        <p>配置保存在键盘内部闪存中，断电不丢失。换电脑、重装系统都不影响键盘上的配置。网页上的配置方案保存在浏览器本地存储中。</p>
+      </div>
+      <div class="faq-item">
+        <h4>Q：为什么我的键盘没有延迟时间设置？</h4>
+        <p>并非所有型号都支持延迟时间功能。请参考上方"型号功能速查表"确认你的型号是否支持。不支持的型号不会显示延迟设置区域，这是正常的。</p>
+      </div>
+      <div class="faq-item">
+        <h4>Q：蓝牙无线款能用这个工具吗？</h4>
+        <p>蓝牙无线款需要使用专用配置软件，本网页工具不支持。</p>
+        <a href="https://key.itytsoft.com/lybz.html" target="_blank" rel="noopener noreferrer"
+           style="display:inline-flex; align-items:center; gap:6px; margin-top:10px; padding:8px 20px; background:#f59e0b; color:white; font-size:0.88rem; font-weight:600; border-radius:8px; text-decoration:none;">
+          📥 前往下载蓝牙款配置软件
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- 配置示例 -->
+  <div class="card">
+    <h2 style="font-size:1.3rem; font-weight:800; color:#1e293b; margin-bottom:16px;"><span class="emoji">🎯</span>推荐配置参考</h2>
+    <p style="color:#64748b; margin-bottom:14px;">以下是几种常见使用场景的配置建议，你可以根据实际需求灵活调整：</p>
+    <div class="shortcut-box">
+      <h4>💼 办公效率（适合 4~6 键）</h4>
+      <div class="shortcut-row"><span><strong>K1</strong></span><span class="keys">Ctrl + C（复制）</span></div>
+      <div class="shortcut-row"><span><strong>K2</strong></span><span class="keys">Ctrl + V（粘贴）</span></div>
+      <div class="shortcut-row"><span><strong>K3</strong></span><span class="keys">Ctrl + Z（撤销）</span></div>
+      <div class="shortcut-row"><span><strong>K4</strong></span><span class="keys">Ctrl + S（保存）</span></div>
+    </div>
+    <div class="shortcut-box" style="margin-top:12px">
+      <h4>🎬 多媒体控制（适合 1~3 键）</h4>
+      <div class="shortcut-row"><span><strong>K1</strong></span><span class="keys">播放 / 暂停</span></div>
+      <div class="shortcut-row"><span><strong>K2</strong></span><span class="keys">音量 +</span></div>
+      <div class="shortcut-row"><span><strong>K3</strong></span><span class="keys">音量 -</span></div>
+    </div>
+    <div class="shortcut-box" style="margin-top:12px">
+      <h4>🔗 一键输入（多键合一模式）</h4>
+      <div class="shortcut-row"><span><strong>K1</strong> — 自动输入邮箱地址</span><span class="keys">多键合一</span></div>
+      <div class="shortcut-row"><span><strong>K2</strong> — 自动输入常用密码</span><span class="keys">多键合一</span></div>
+    </div>
+  </div>
+
+</div>
+
+<div class="footer">
+  <p>颖昱物联 · 多功能小键盘配置工具</p>
+  <p style="margin-top:6px">技术支持 QQ：<span class="qq">1291285148</span></p>
+  <p style="margin-top:6px"><a href="/ws/">返回配置工具</a></p>
+</div>
+
+</body>
+</html>

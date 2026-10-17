@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>颖昱物联 - 多功能小键盘配置工具</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+    <!-- 兜底: IE / 老内核浏览器不执行 type=module, 页面会白屏 — 这里给出明确提示 -->
+    <script nomodule>
+      document.getElementById('root').innerHTML =
+        '<div style="font:16px/1.8 system-ui,-apple-system,Segoe UI,Microsoft YaHei;padding:48px 24px;max-width:600px;margin:0 auto;color:#334155">' +
+        '<h2 style="color:#dc2626;margin:0 0 12px">浏览器版本过低，无法打开</h2>' +
+        '<p>本工具需要支持 <b>WebHID</b> 的现代浏览器才能连接小键盘。</p>' +
+        '<p style="color:#64748b">IE 浏览器、以及很旧的 Chromium 内核浏览器无法加载本页面。</p>' +
+        '<p style="margin-top:20px">请改用 <b>Google Chrome</b> 或 <b>Microsoft Edge</b>（89 以上版本）打开本页面。</p>' +
+        '</div>';
+    </script>
+  </body>
+</html>

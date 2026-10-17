@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>User Guide - Multi-Function Keyboard Config Tool | YingYu IoT</title>
+<link rel="icon" type="image/png" href="/favicon.png">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; background: #f8fafc; color: #1e293b; line-height: 1.7; }
+  .hero { background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); color: white; text-align: center; padding: 60px 20px 50px; }
+  .hero h1 { font-size: 2.2rem; font-weight: 800; margin-bottom: 10px; }
+  .hero p { font-size: 1.1rem; opacity: 0.9; max-width: 620px; margin: 0 auto; }
+  .hero .badge { display: inline-block; background: rgba(255,255,255,0.2); padding: 6px 16px; border-radius: 20px; font-size: 0.85rem; margin-top: 16px; }
+  .container { max-width: 860px; margin: -30px auto 40px; padding: 0 20px; }
+  .card { background: white; border-radius: 16px; box-shadow: 0 4px 24px rgba(0,0,0,0.06); padding: 36px 32px; margin-bottom: 24px; border: 1px solid #e2e8f0; }
+  .step { display: flex; gap: 20px; }
+  .step-num { flex-shrink: 0; width: 48px; height: 48px; border-radius: 50%; background: linear-gradient(135deg, #4f46e5, #7c3aed); color: white; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; font-weight: 800; box-shadow: 0 4px 12px rgba(79,70,229,0.3); }
+  .step-content { flex: 1; }
+  .step-content h3 { font-size: 1.2rem; font-weight: 700; color: #1e293b; margin-bottom: 8px; }
+  .step-content p { font-size: 1rem; color: #475569; }
+  .tip { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 12px 16px; margin-top: 12px; font-size: 0.9rem; color: #1e40af; }
+  .warn { background: #fff7ed; border: 1px solid #fed7aa; border-radius: 10px; padding: 12px 16px; margin-top: 12px; font-size: 0.9rem; color: #9a3412; }
+  .info { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; padding: 12px 16px; margin-top: 12px; font-size: 0.9rem; color: #166534; }
+  .mode-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 14px; }
+  @media (max-width: 600px) { .mode-grid { grid-template-columns: 1fr; } }
+  .mode-item { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px 16px; }
+  .mode-item h4 { font-size: 0.95rem; font-weight: 700; color: #4f46e5; margin-bottom: 4px; }
+  .mode-item p { font-size: 0.85rem; color: #64748b; line-height: 1.5; }
+  .shortcut-box { background: linear-gradient(135deg, #f0f9ff, #ede9fe); border: 1px solid #c7d2fe; border-radius: 12px; padding: 20px; margin-top: 16px; }
+  .shortcut-box h4 { font-size: 1rem; font-weight: 700; color: #4338ca; margin-bottom: 8px; }
+  .shortcut-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; font-size: 0.9rem; }
+  .shortcut-row .keys { background: white; border: 1px solid #d1d5db; border-radius: 6px; padding: 3px 10px; font-family: monospace; font-size: 0.85rem; color: #374151; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+  .faq { margin-top: 16px; }
+  .faq-item { border-bottom: 1px solid #f1f5f9; padding: 16px 0; }
+  .faq-item:last-child { border-bottom: none; }
+  .faq-item h4 { font-size: 1rem; font-weight: 700; color: #1e293b; margin-bottom: 6px; }
+  .faq-item p { font-size: 0.9rem; color: #64748b; }
+  .footer { text-align: center; padding: 30px 20px; color: #94a3b8; font-size: 0.85rem; }
+  .footer a { color: #6366f1; text-decoration: none; }
+  .footer .qq { font-family: monospace; font-weight: 700; color: #475569; font-size: 1rem; }
+  .back-link { display: inline-flex; align-items: center; gap: 6px; color: white; text-decoration: none; font-size: 0.95rem; opacity: 0.9; margin-bottom: 20px; }
+  .back-link:hover { opacity: 1; }
+  .lang-link { display: inline-flex; align-items: center; gap: 6px; color: white; text-decoration: none; font-size: 0.9rem; opacity: 0.85; margin-left: 16px; padding: 4px 14px; border: 1px solid rgba(255,255,255,0.4); border-radius: 8px; }
+  .lang-link:hover { opacity: 1; background: rgba(255,255,255,0.1); }
+  .emoji { font-size: 1.4rem; margin-right: 4px; }
+  table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 0.88rem; }
+  table th { background: #f1f5f9; padding: 8px 12px; text-align: left; font-weight: 600; color: #334155; border-bottom: 2px solid #e2e8f0; }
+  table td { padding: 8px 12px; border-bottom: 1px solid #f1f5f9; color: #475569; }
+  table tr:last-child td { border-bottom: none; }
+  .model-tag { display: inline-block; background: #e0e7ff; color: #4338ca; padding: 2px 8px; border-radius: 6px; font-size: 0.78rem; font-weight: 600; margin: 2px; }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <a href="/ws/" class="back-link">< Back to Config Tool</a>
+  <a href="/ws/tutorial.html" class="lang-link">中文</a>
+  <h1>User Guide</h1>
+  <p>A complete step-by-step guide to configure all YingYu IoT multi-function keypads</p>
+  <div class="badge">Models: 1-Key to 12-Key / Knob / Foot Switch / Arrow Keys and more</div>
+</div>
+
+<div class="container">
+
+  <!-- Bluetooth wireless notice -->
+  <div class="card" style="border-left: 4px solid #f59e0b;">
+    <div class="step">
+      <div class="step-num" style="background:linear-gradient(135deg,#f59e0b,#d97706); box-shadow:0 4px 12px rgba(245,158,11,0.3);">!</div>
+      <div class="step-content">
+        <h3><span class="emoji">&#128225;</span>Bluetooth Wireless Users Please Note</h3>
+        <p>If you are using a <strong>Bluetooth wireless</strong> keypad, this web tool does not support configuration. Bluetooth models require a dedicated desktop configuration software. Please click the button below to download:</p>
+        <a href="https://key.itytsoft.com/lybz.html" target="_blank" rel="noopener noreferrer"
+           style="display:inline-flex; align-items:center; gap:8px; margin-top:14px; padding:14px 32px; background:linear-gradient(135deg,#f59e0b,#d97706); color:white; font-size:1.05rem; font-weight:700; border-radius:12px; text-decoration:none; box-shadow:0 4px 14px rgba(245,158,11,0.4); transition:transform 0.2s;"
+           onmouseover="this.style.transform='scale(1.03)'" onmouseout="this.style.transform='scale(1)'">
+          Download Bluetooth Config Software
+        </a>
+        <div class="warn" style="margin-top:14px">
+          Bluetooth wireless models have VID 0x1189 or 0x514C. If you are unsure of your model, try connecting first -- the system will auto-detect and notify you.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 1 -->
+  <div class="card">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-content">
+        <h3><span class="emoji">&#128268;</span>Preparation</h3>
+        <p>Before getting started, make sure you meet the following requirements:</p>
+        <div class="tip">
+          <strong>Browser:</strong> Chrome 89+ or Edge 89+ (must support WebHID API)<br>
+          <strong>Device:</strong> Keypad connected to computer via USB cable<br>
+          <strong>Network:</strong> Able to access this web tool
+        </div>
+        <div class="warn">
+          Safari, Firefox, and some regional browsers (e.g. 360, QQ Browser) are NOT supported.<br>
+          The built-in Edge browser on Windows works fine. macOS users should install Chrome or Edge.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 2 -->
+  <div class="card">
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-content">
+        <h3><span class="emoji">&#128279;</span>Connect the Keypad</h3>
+        <p>Open your browser and go to <strong>key.itytsoft.com/ws/</strong>, then click the <strong>"Connect Keyboard"</strong> button in the center of the page.</p>
+        <p style="margin-top:10px">A device selection window will appear. Choose <strong>YYWL-Keyboard</strong> or the corresponding device name from the list, then click <strong>"Connect"</strong>.</p>
+        <div class="tip">
+          If "Unknown Device" appears in the list, you can still connect and then manually select the correct model.<br>
+          After a successful connection, you will be redirected to the config page. The device model and key count will be shown at the top.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 3 -->
+  <div class="card">
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-content">
+        <h3><span class="emoji">&#9000;&#65039;</span>Configure Key Functions</h3>
+        <p>On the config page, the left side shows the physical keys (K1 ~ Kn, count depends on your model), and the right side is the function settings area.</p>
+        <p style="margin-top:8px"><strong>Steps:</strong></p>
+        <p>1. Click any key on the left (e.g. K1) to select it<br>
+           2. Choose a function mode on the right and set the parameters<br>
+           3. Switch to the next key and continue configuring</p>
+
+        <p style="margin-top:16px; font-weight:700; font-size:1.05rem;">Four Function Modes</p>
+        <div class="mode-grid">
+          <div class="mode-item">
+            <h4>Keyboard Mode</h4>
+            <p>Simulate keyboard keystrokes. Combine with modifier keys (Ctrl / Shift / Alt / Win, multi-select), then pick a key.<br><br><strong>Examples:</strong> Ctrl+C (Copy), Win+D (Show Desktop), Alt+F4 (Close Window)</p>
+          </div>
+          <div class="mode-item">
+            <h4>Mouse Mode</h4>
+            <p>Simulate mouse actions. Set mouse button (Left/Right/Middle) and X/Y movement, scroll value.<br><br><strong>Examples:</strong> Left click = mouse click, X=10 Y=0 = move right</p>
+          </div>
+          <div class="mode-item">
+            <h4>Media Mode</h4>
+            <p>Trigger multimedia functions like play/pause, volume control, open browser, etc.<br><br><strong>Options:</strong> Play/Pause, Volume +/-, Mute, Calculator, Browser, Brightness and 20 more functions</p>
+          </div>
+          <div class="mode-item">
+            <h4>Multi-Key Mode</h4>
+            <p>Press once to send a sequence of keystrokes (configurable length), optionally with modifiers.<br><br><strong>Examples:</strong> Auto-type email address, auto-enter password, one-click shortcut text</p>
+          </div>
+        </div>
+
+        <div style="margin-top:20px; background:linear-gradient(135deg,#fef3c7,#fde68a); border:2px solid #f59e0b; border-radius:14px; padding:18px 20px;">
+          <h4 style="font-size:1.05rem; font-weight:800; color:#92400e; margin-bottom:8px;">🎯 Key Capture Feature</h4>
+          <p style="font-size:0.92rem; color:#78350f; margin-bottom:10px;">
+            Don't want to hunt for keys on the virtual keyboard? Try the <strong>Capture Key</strong> feature! Just press the key you want on your physical keyboard and it's automatically configured.
+          </p>
+          <p style="font-size:0.88rem; color:#92400e;">
+            <strong>Steps:</strong><br>
+            ① Select the keypad key to configure (e.g. K1)<br>
+            ② Click the <strong>"🎯 Capture Key"</strong> button in the Keyboard mode area<br>
+            ③ When the button turns yellow and pulses, press your target key on the physical keyboard (supports Ctrl/Shift/Alt/Win combos)<br>
+            ④ The key is automatically captured and configured! Press <strong>Esc</strong> to cancel
+          </p>
+          <div class="tip" style="margin-top:10px; background:#fffbeb; border-color:#fcd34d;">
+            💡 Example: To set Ctrl+C (Copy), click Capture then press Ctrl+C on your keyboard — modifiers and key code are detected automatically.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 4 -->
+  <div class="card">
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-content">
+        <h3><span class="emoji">&#128161;</span>Light Settings</h3>
+        <p>The light settings area is at the bottom-right of the config page. Available light modes vary by model. Common modes include:</p>
+        <div class="tip">
+          <strong>Common modes:</strong> Light Off, Press-Lit (Red/Green/Blue/Yellow/Cyan/Purple/White), Flow modes, Always On, Lamp Mode, Custom Color, etc.<br><br>
+          After selecting "Custom Color" mode, click the color picker to set a custom RGB value.<br><br>
+          Some models (e.g. 7-Key No-LED) do not support lighting. In that case, the light settings area will not be shown.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 5 -->
+  <div class="card">
+    <div class="step">
+      <div class="step-num">5</div>
+      <div class="step-content">
+        <h3><span class="emoji">&#9201;&#65039;</span>Delay Time Settings (select models)</h3>
+        <p>Some models support per-key delay time (in milliseconds). This is especially useful in <strong>Multi-Key mode</strong> -- it controls the interval between keystrokes in the sequence.</p>
+
+        <div class="info">
+          <strong>Models that support delay:</strong><br>
+          <span class="model-tag">1-Key</span>
+          <span class="model-tag">2-Key</span>
+          <span class="model-tag">2-Key Mini</span>
+          <span class="model-tag">3-Key</span>
+          <span class="model-tag">4-Key</span>
+          <span class="model-tag">5-Key</span>
+          <span class="model-tag">6-Key</span>
+          <span class="model-tag">5-Key Touch</span>
+          <span class="model-tag">8-Key New</span>
+          <span class="model-tag">8-Key Switch</span>
+          <span class="model-tag">10-Key Custom</span>
+          <span class="model-tag">2-Key Plus</span>
+          <span class="model-tag">3-Key Plus</span>
+          <span class="model-tag">3-Key Custom</span>
+          <span class="model-tag">Arrow Keys</span>
+        </div>
+        <div class="warn" style="margin-top:10px">
+          <strong>Models that do NOT support delay:</strong><br>
+          7-Key (incl. No-LED), 8-Key (old), 9-Key, 12-Key, Knob, DIY 10-Key, Knob+4-Key, 4-Key Side-Plug (old/new), Foot Switch<br><br>
+          These models will not show the delay settings area after connection, which is normal.
+        </div>
+
+        <div class="tip" style="margin-top:12px">
+          If your model supports delay, enter the millisecond value (0~60000ms) for each key in the "Delay Time" area on the left.<br>
+          Set to 0 for no delay. Set to 500 to wait 500ms before triggering the next key.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 6 -->
+  <div class="card">
+    <div class="step">
+      <div class="step-num">6</div>
+      <div class="step-content">
+        <h3><span class="emoji">&#128190;</span>Save Config to Keyboard</h3>
+        <p>After configuring all keys, click the <strong>"Save to Keyboard"</strong> button (the gradient blue-purple button) in the operation area on the left. The config will be written to the keyboard's internal storage.</p>
+        <div class="tip">
+          A green "Config saved to keyboard successfully!" toast will appear upon success.<br>
+          Config is stored in the keyboard's flash memory -- it survives power loss and works across different computers.<br>
+          You can also click "Read Config" to read back the current saved settings from the keyboard.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 7 -->
+  <div class="card">
+    <div class="step">
+      <div class="step-num">7</div>
+      <div class="step-content">
+        <h3><span class="emoji">&#128203;</span>Config Profile Management</h3>
+        <p>If you have multiple use cases (e.g. one for work and one for gaming), use the <strong>Config List</strong> feature to save and switch between different profiles:</p>
+        <div class="shortcut-box">
+          <h4>How to Use</h4>
+          <div class="shortcut-row"><span>Save current config as profile</span><span class="keys">Enter name > Save</span></div>
+          <div class="shortcut-row"><span>Load a saved profile</span><span class="keys">Select > Load (or double-click)</span></div>
+          <div class="shortcut-row"><span>Overwrite an existing profile</span><span class="keys">Select > Update</span></div>
+          <div class="shortcut-row"><span>Delete a profile</span><span class="keys">Select > Delete</span></div>
+          <div class="shortcut-row"><span>Export / Import profiles</span><span class="keys">Export JSON / Import JSON</span></div>
+        </div>
+        <div class="tip" style="margin-top:14px">
+          Config profiles are saved in browser local storage and persist indefinitely in the same browser.<br>
+          Use "Export" to back up as a JSON file. Use "Import" to restore on another computer.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 8 -->
+  <div class="card">
+    <div class="step">
+      <div class="step-num">8</div>
+      <div class="step-content">
+        <h3><span class="emoji">&#127919;</span>Key Test</h3>
+        <p>After configuring, use the <strong>Key Test</strong> feature to verify that each key works as expected. Click the <strong>"Key Test"</strong> button on the connection page or config page top bar to enter the test interface.</p>
+        <div class="tip" style="margin-top:12px">
+          <strong>Features:</strong><br>
+          1. Press any key on the keypad -- the test interface highlights the pressed physical key in real time<br>
+          2. Automatically shows the configured function for that key (Keyboard / Mouse / Media / Multi-Key)<br>
+          3. Displays raw HID data (ReportID, length, HEX dump) for debugging<br>
+          4. Event log records recent key presses with a one-click clear option
+        </div>
+        <div class="info" style="margin-top:12px">
+          <strong>Use case:</strong> After saving your config, use Key Test to quickly verify each key's trigger effect without switching to another application.<br>
+          The test interface automatically reads the current config saved on the keyboard and displays each key's assigned function.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Model reference table -->
+  <div class="card">
+    <h2 style="font-size:1.3rem; font-weight:800; color:#1e293b; margin-bottom:16px;"><span class="emoji">&#128202;</span>Model Feature Reference</h2>
+    <div style="overflow-x:auto">
+    <table>
+      <thead>
+        <tr><th>Model</th><th>Keys</th><th>LED</th><th>Delay</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>1-Key</td><td>1</td><td>Yes</td><td>Yes</td></tr>
+        <tr><td>2-Key</td><td>2</td><td>Yes</td><td>Yes</td></tr>
+        <tr><td>2-Key Mini</td><td>2</td><td>Yes</td><td>Yes</td></tr>
+        <tr><td>3-Key</td><td>3</td><td>Yes</td><td>Yes</td></tr>
+        <tr><td>4-Key</td><td>4</td><td>Yes</td><td>Yes</td></tr>
+        <tr><td>5-Key</td><td>5</td><td>Yes</td><td>Yes</td></tr>
+        <tr><td>5-Key Touch</td><td>5</td><td>Yes</td><td>Yes</td></tr>
+        <tr><td>6-Key</td><td>6</td><td>Yes</td><td>Yes</td></tr>
+        <tr><td>7-Key</td><td>7</td><td>Yes</td><td>No</td></tr>
+        <tr><td>7-Key No-LED</td><td>7</td><td>No</td><td>No</td></tr>
+        <tr><td>8-Key</td><td>8</td><td>Yes</td><td>No</td></tr>
+        <tr><td>8-Key New</td><td>8</td><td>Yes</td><td>Yes</td></tr>
+        <tr><td>8-Key Switch</td><td>8</td><td>Yes</td><td>Yes</td></tr>
+        <tr><td>9-Key</td><td>9</td><td>Yes</td><td>No</td></tr>
+        <tr><td>10-Key Custom</td><td>10</td><td>Yes</td><td>Yes</td></tr>
+        <tr><td>12-Key</td><td>12</td><td>Yes</td><td>No</td></tr>
+        <tr><td>Knob</td><td>1</td><td>Yes</td><td>No</td></tr>
+        <tr><td>DIY 10-Key</td><td>10</td><td>Yes</td><td>No</td></tr>
+        <tr><td>Knob+4-Key</td><td>5</td><td>Yes</td><td>No</td></tr>
+        <tr><td>4-Key Side-Plug</td><td>4</td><td>Yes</td><td>No</td></tr>
+        <tr><td>4-Key Side-Plug New</td><td>4</td><td>Yes</td><td>No</td></tr>
+        <tr><td>2-Key Plus</td><td>2</td><td>Yes</td><td>Yes</td></tr>
+        <tr><td>3-Key Plus</td><td>3</td><td>Yes</td><td>Yes</td></tr>
+        <tr><td>3-Key Custom</td><td>3</td><td>Yes</td><td>Yes</td></tr>
+        <tr><td>Arrow Keys</td><td>4</td><td>Yes</td><td>Yes</td></tr>
+        <tr><td>Foot Switch</td><td>1</td><td>No</td><td>No</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <!-- FAQ -->
+  <div class="card">
+    <h2 style="font-size:1.3rem; font-weight:800; color:#1e293b; margin-bottom:6px;"><span class="emoji">&#10067;</span>FAQ</h2>
+    <div class="faq">
+      <div class="faq-item">
+        <h4>Q: It shows "Unknown Device" after connecting. What should I do?</h4>
+        <p>This is normal and does not affect usage. After connecting, a manual model selection dropdown will appear in the device info area. Simply select your model.</p>
+      </div>
+      <div class="faq-item">
+        <h4>Q: The light mode didn't change after saving?</h4>
+        <p>Click "Read Config" to re-read from the keyboard and check if the light mode dropdown shows correctly. If the issue persists, try saving a different mode first, then switch back to the desired mode and save again.</p>
+      </div>
+      <div class="faq-item">
+        <h4>Q: What is the maximum number of keys in Multi-Key mode?</h4>
+        <p>The maximum sequence length varies by model (typically 7~50 keys). The exact limit is shown next to the key sequence on the config page. Click the virtual keyboard to add keys, and click x to remove them.</p>
+      </div>
+      <div class="faq-item">
+        <h4>Q: Will the config be lost?</h4>
+        <p>Config is stored in the keyboard's internal flash memory and survives power loss. Switching computers or reinstalling the OS does not affect the keyboard config. Web-based config profiles are saved in browser local storage.</p>
+      </div>
+      <div class="faq-item">
+        <h4>Q: Why doesn't my keyboard have delay time settings?</h4>
+        <p>Not all models support the delay time feature. Refer to the "Model Feature Reference" table above to check if your model supports it. Models without support will not show the delay settings area, which is expected.</p>
+      </div>
+      <div class="faq-item">
+        <h4>Q: Can I use this tool with a Bluetooth wireless model?</h4>
+        <p>Bluetooth wireless models require dedicated configuration software. This web tool does not support them.</p>
+        <a href="https://key.itytsoft.com/lybz.html" target="_blank" rel="noopener noreferrer"
+           style="display:inline-flex; align-items:center; gap:6px; margin-top:10px; padding:8px 20px; background:#f59e0b; color:white; font-size:0.88rem; font-weight:600; border-radius:8px; text-decoration:none;">
+          Download Bluetooth Config Software
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recommended configs -->
+  <div class="card">
+    <h2 style="font-size:1.3rem; font-weight:800; color:#1e293b; margin-bottom:16px;"><span class="emoji">&#127919;</span>Recommended Configurations</h2>
+    <p style="color:#64748b; margin-bottom:14px;">Here are some common configuration suggestions. Feel free to adapt them to your needs:</p>
+    <div class="shortcut-box">
+      <h4>Office Productivity (for 4~6 keys)</h4>
+      <div class="shortcut-row"><span><strong>K1</strong></span><span class="keys">Ctrl + C (Copy)</span></div>
+      <div class="shortcut-row"><span><strong>K2</strong></span><span class="keys">Ctrl + V (Paste)</span></div>
+      <div class="shortcut-row"><span><strong>K3</strong></span><span class="keys">Ctrl + Z (Undo)</span></div>
+      <div class="shortcut-row"><span><strong>K4</strong></span><span class="keys">Ctrl + S (Save)</span></div>
+    </div>
+    <div class="shortcut-box" style="margin-top:12px">
+      <h4>Media Control (for 1~3 keys)</h4>
+      <div class="shortcut-row"><span><strong>K1</strong></span><span class="keys">Play / Pause</span></div>
+      <div class="shortcut-row"><span><strong>K2</strong></span><span class="keys">Volume +</span></div>
+      <div class="shortcut-row"><span><strong>K3</strong></span><span class="keys">Volume -</span></div>
+    </div>
+    <div class="shortcut-box" style="margin-top:12px">
+      <h4>Auto-Type (Multi-Key Mode)</h4>
+      <div class="shortcut-row"><span><strong>K1</strong> -- Auto-type email address</span><span class="keys">Multi-Key</span></div>
+      <div class="shortcut-row"><span><strong>K2</strong> -- Auto-type password</span><span class="keys">Multi-Key</span></div>
+    </div>
+  </div>
+
+</div>
+
+<div class="footer">
+  <p>YingYu IoT - Multi-Function Keyboard Config Tool</p>
+  <p style="margin-top:6px">Tech Support QQ: <span class="qq">1291285148</span></p>
+  <p style="margin-top:6px"><a href="/ws/">Back to Config Tool</a></p>
+</div>
+
+</body>
+</html>

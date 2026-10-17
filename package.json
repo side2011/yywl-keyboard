@@ -1,0 +1,85 @@
+{
+  "name": "yywl-keyboard-app",
+  "private": true,
+  "version": "1.0.0",
+  "description": "YYWL 多功能小键盘配置工具（网页版 / Electron 桌面版）",
+  "author": "YYWL <1291285148@qq.com>",
+  "type": "module",
+  "main": "desktop-main.cjs",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "lint": "eslint .",
+    "preview": "vite preview",
+    "desktop": "vite build && electron-builder --win --config.win.signAndEditExecutable=false",
+    "desktop:dir": "vite build && electron-builder --win --dir --config.win.signAndEditExecutable=false",
+    "desktop:win": "vite build && electron-builder --win zip --config.win.signAndEditExecutable=false",
+    "desktop:mac": "vite build && electron-builder --mac zip",
+    "desktop:linux": "vite build && electron-builder --linux AppImage"
+  },
+  "build": {
+    "appId": "com.yywl.keyboard-config",
+    "productName": "YYWL键盘配置工具",
+    "directories": {
+      "output": "dist-desktop",
+      "buildResources": "build"
+    },
+    "files": [
+      "dist/**/*",
+      "desktop-main.cjs",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        "zip"
+      ],
+      "icon": "build/icon.png"
+    },
+    "mac": {
+      "target": [
+        "zip"
+      ],
+      "category": "public.app-category.utilities",
+      "icon": "build/icon.png"
+    },
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "category": "Utility",
+      "icon": "build/icon.png"
+    },
+    "compression": "normal",
+    "npmRebuild": false,
+    "asarUnpack": [
+      "node_modules/node-hid/**"
+    ]
+  },
+  "dependencies": {
+    "node-hid": "^3.4.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.1.1",
+    "autoprefixer": "^10.4.24",
+    "dais": "^1.0.1",
+    "daisyui": "^5.5.18",
+    "electron": "^33.4.0",
+    "electron-builder": "^25.1.8",
+    "eslint": "^9.39.1",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.4.24",
+    "globals": "^16.5.0",
+    "misans": "^5.0.0",
+    "postcss": "^8.5.6",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-hot-toast": "^2.6.0",
+    "react-router-dom": "^6.30.3",
+    "sharp": "^0.35.2",
+    "tailwindcss": "^3.4.19",
+    "vite": "^7.3.1"
+  }
+}

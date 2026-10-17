@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 512 512">
+    <!--
+    备选方案 · 圆角方块版 (键位 + 旋钮 + 电路纹)
+    想换回这套: 把 build/alt/icon-squircle.png 覆盖成 build/icon.png 即可, package.json 不用改。
+      · 圆角方块更贴合 Windows/macOS 原生图标语言
+      · 右侧旋钮对应在售的"旋钮款/带编码器"型号
+  -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#7c6cf8"/>
+      <stop offset="48%" stop-color="#5b4fe9"/>
+      <stop offset="100%" stop-color="#6d28d9"/>
+    </linearGradient>
+    <linearGradient id="sheen" x1="0" y1="0" x2="0.3" y2="1">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.26"/>
+      <stop offset="52%" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="amber" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#fde68a"/>
+      <stop offset="100%" stop-color="#f59e0b"/>
+    </linearGradient>
+    <radialGradient id="knob" cx="0.35" cy="0.3" r="0.8">
+      <stop offset="0%" stop-color="#8b7bf9"/>
+      <stop offset="100%" stop-color="#4c3fd6"/>
+    </radialGradient>
+  </defs>
+
+  <rect x="36" y="36" width="440" height="440" rx="108" fill="url(#bg)"/>
+  <rect x="36" y="36" width="440" height="440" rx="108" fill="url(#sheen)"/>
+
+  <!-- 电路走线 (装饰, 小尺寸下弱化为纹理) -->
+  <g opacity="0.45" stroke="#ffffff" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M74 392 h52 l20 20"/>
+    <path d="M74 368 v-24"/>
+  </g>
+  <circle cx="150" cy="416" r="5" fill="#ffffff" opacity="0.55"/>
+
+  <!-- 3x2 键位 -->
+  <g>
+    <rect x="64"  y="176" width="76" height="76" rx="23" fill="#ffffff" fill-opacity="0.95"/>
+    <rect x="156" y="176" width="76" height="76" rx="23" fill="#ffffff" fill-opacity="0.95"/>
+    <rect x="248" y="176" width="76" height="76" rx="23" fill="#ffffff" fill-opacity="0.95"/>
+    <rect x="64"  y="268" width="76" height="76" rx="23" fill="#ffffff" fill-opacity="0.95"/>
+    <rect x="156" y="268" width="76" height="76" rx="23" fill="url(#amber)"/>
+    <rect x="248" y="268" width="76" height="76" rx="23" fill="#ffffff" fill-opacity="0.95"/>
+  </g>
+
+  <!-- 旋钮 -->
+  <circle cx="398" cy="256" r="52" fill="none" stroke="#ffffff" stroke-opacity="0.35" stroke-width="3"/>
+  <circle cx="398" cy="256" r="44" fill="#ffffff"/>
+  <circle cx="398" cy="256" r="32" fill="url(#knob)"/>
+  <rect x="394" y="212" width="8" height="16" rx="4" fill="url(#amber)"/>
+</svg>

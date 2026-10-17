@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 512 512">
+    <!--
+    颖昱物联 · 自定义小键盘 —— 程序图标【主方案 · 六边形】
+    设计说明:
+      · 六边形底板 = 硬件/物联语汇, 轮廓本身具备显著性 (比圆角方块更少见, 便于商标注册)
+      · 品牌渐变 #7c6cf8 -> #5b4fe9 -> #6d28d9 + 顶部斜向高光
+      · 3x2 键位 = 小键盘本体, 居中键为琥珀渐变 = "这个键可以被你自定义"
+      · 两处电路走线与焊点 = "物联"属性, 48px 以上可辨, 小尺寸弱化为纹理
+    版权: 全部坐标手工计算, 未使用任何第三方图形素材/图标库/字体/商标元素。
+    取舍: 不做 3x3 (16px 下 9 键会糊成一片); 6 键在小尺寸仍有辨识度。
+  -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#7c6cf8"/><stop offset="48%" stop-color="#5b4fe9"/><stop offset="100%" stop-color="#6d28d9"/>
+    </linearGradient>
+    <linearGradient id="sheen" x1="0" y1="0" x2="0.3" y2="1">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.26"/><stop offset="52%" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="amber" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#fde68a"/><stop offset="100%" stop-color="#f59e0b"/>
+    </linearGradient>
+  </defs>
+  <path d="M256 30 L452 143 V369 L256 482 L60 369 V143 Z" fill="url(#bg)"/>
+  <path d="M256 30 L452 143 V369 L256 482 L60 369 V143 Z" fill="url(#sheen)"/>
+  <g opacity="0.4" stroke="#ffffff" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M96 352 v44 h40"/><path d="M416 160 v-44 h-40"/>
+  </g>
+  <g>
+    <rect x="115" y="165" width="82" height="82" rx="24" fill="#ffffff" fill-opacity="0.95"/>
+    <rect x="215" y="165" width="82" height="82" rx="24" fill="#ffffff" fill-opacity="0.95"/>
+    <rect x="315" y="165" width="82" height="82" rx="24" fill="#ffffff" fill-opacity="0.95"/>
+    <rect x="115" y="265" width="82" height="82" rx="24" fill="#ffffff" fill-opacity="0.95"/>
+    <rect x="215" y="265" width="82" height="82" rx="24" fill="url(#amber)"/>
+    <rect x="315" y="265" width="82" height="82" rx="24" fill="#ffffff" fill-opacity="0.95"/>
+  </g>
+</svg>
