@@ -1,0 +1,38 @@
+# 统一行尾为 LF
+#
+# 背景: Windows 版 git 默认 core.autocrlf=true, 会把文本文件检出成 CRLF,
+# 而 macOS / Linux 检出 LF。这导致同一份源码在三个平台的运行器上产出**字节不同**的
+# 网页产物 (public/ 下的 html 等被原样复制), 内容指纹 buildId 因此不一致:
+#   Windows 包  buildId = 89e62c152482 (CRLF)
+#   macOS 包    buildId = afed8f2cdc98 (LF)
+# 结果是桌面版第一次启动就误判"有新版本", 白下一次 8.7 MB 更新。
+# 用 eol=lf 强制所有平台检出 LF, 三个平台产物逐字节一致。
+
+* text=auto eol=lf
+
+# 二进制文件不做任何行尾转换
+*.png      binary
+*.jpg      binary
+*.jpeg     binary
+*.gif      binary
+*.ico      binary
+*.icns     binary
+*.woff2    binary
+*.woff     binary
+*.ttf      binary
+*.zip      binary
+*.rar      binary
+*.7z       binary
+*.gz       binary
+*.exe      binary
+*.dll      binary
+*.node     binary
+*.asar     binary
+*.appimage binary
+*.AppImage binary
+*.pdf      binary
+
+# Windows 批处理必须保持 CRLF
+*.bat      text eol=crlf
+*.cmd      text eol=crlf
+*.ps1      text eol=crlf
