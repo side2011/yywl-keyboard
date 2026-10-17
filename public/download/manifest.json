@@ -1,5 +1,4 @@
 {
-  "_说明": "发布新版本时只改这个文件：① 把安装包传到 /ws/download/ ② 改 version、updated 和对应包的 available/size/sha256。网页会自动读取，不用改代码。",
   "version": "1.0.0",
   "updated": "2026-10-17",
   "packages": [
@@ -10,8 +9,8 @@
       "label": "Windows 10 / 11（64 位）",
       "file": "yywlkey-config-1.0.0-win-x64.zip",
       "available": true,
-      "size": 121514816,
-      "sha256": "DB284033A0123D4E222AC2DF146F8CA57940853A220D84C7DD70DFB5E231DEE1",
+      "size": 121578309,
+      "sha256": "00497B080D29DBC7D7FFF002939C4DD8938FFCAAE7FC210E8EE8757BC1B8D9FA",
       "note": "免安装绿色版，解压即用"
     },
     {
@@ -20,8 +19,10 @@
       "arch": "x64",
       "label": "macOS · Intel 芯片",
       "file": "yywlkey-config-1.0.0-mac-x64.zip",
-      "available": false,
-      "note": "尚未发布"
+      "available": true,
+      "size": 110017380,
+      "sha256": "4C338D02CBAC53BDB130A2B0F906AC0E3B78958624B4A20716E4D72BE021E848",
+      "note": "右键 → 打开"
     },
     {
       "id": "mac-arm64",
@@ -29,8 +30,10 @@
       "arch": "arm64",
       "label": "macOS · Apple 芯片（M 系列）",
       "file": "yywlkey-config-1.0.0-mac-arm64.zip",
-      "available": false,
-      "note": "尚未发布"
+      "available": true,
+      "size": 105390187,
+      "sha256": "7D54C259267FABC81846328D373867AD0BD5AB9A2EAAB412B10AB71CCA5A034C",
+      "note": "右键 → 打开"
     },
     {
       "id": "linux-x64",
@@ -38,8 +41,10 @@
       "arch": "x64",
       "label": "Linux（AppImage）",
       "file": "yywlkey-config-1.0.0-linux-x64.AppImage",
-      "available": false,
-      "note": "尚未发布"
+      "available": true,
+      "size": 118462135,
+      "sha256": "E0ECF97049C3184CF3618B5202ABF5B89DA7D3662190AFF1B6775E361C8A3634",
+      "note": "chmod +x 后运行"
     }
   ]
 }
