@@ -35,3 +35,6 @@ dist-electron/
 *.ntvs*
 *.njsproj
 *.sw?
+
+# 打包产物与验证用临时文件
+release/
