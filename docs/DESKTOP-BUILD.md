@@ -268,3 +268,76 @@ curl -sI https://key.itytsoft.com/download/yywlkey-config-1.0.0-win-x64.zip
 ### 已知限制
 
 ⚠️ 本机打包**不会**把这个图标嵌进 exe —— 改 exe 资源需要 `winCodeSign`（含 macOS 符号链接），本机无创建符号链接特权（见 §2 末尾）。**CI 打出来的包才会带上图标与版本号**。同理 macOS 的 `.icns`、Linux 的 PNG 图标也由各自 runner 生成。
+
+
+## 9. 网页内容在线更新（桌面版热更新）
+
+桌面版 = Electron 外壳 + 本地网页。**外壳很少变、网页经常变**，所以更新只替换网页文件，不重新下发安装包。
+
+### 9.1 为什么这么做
+
+| 方案 | 问题 |
+|---|---|
+| electron-updater 整包更新 | macOS 未签名无法自动更新；每次都要下载 100+ MB 安装包 |
+| **按文件增量更新（当前方案）** | 只下变了的文件，典型改版几百 KB；三平台一套逻辑；**不需要代码签名** |
+
+### 9.2 发布流程（改完网页后）
+
+```bash
+npm run build          # 会依次执行 vite build + make-update
+# 产物：dist/（网页）+ dist/version.json（内容指纹）+ dist/update.json（更新清单）
+```
+
+把 `dist/` 全部上传到站点根（注意 `index.html` 最后传），**`update.json` 会跟着一起上去**，桌面版下次启动就会看到新版本。
+
+- `buildId` = `dist` 全部文件内容的哈希（不含 `version.json`/`update.json`）。
+  **同样的内容 → 同样的 buildId**，所以 CI 打包和线上部署不会造成"假更新"。
+- 想给内网做离线包：`npm run release:web`，产出 `release/offline-update/`，整个目录拷到目标机器，用桌面版菜单「文件 → 导入离线更新包」选它即可。
+
+### 9.3 客户端行为
+
+| 时机 | 行为 |
+|---|---|
+| 启动 6 秒后 | 静默检查更新；**离线自动跳过**，不弹任何错 |
+| 有新版本 | 后台下载（任务栏显示进度），完成后弹窗「立即重启 / 稍后」 |
+| 菜单 帮助 → 检查更新 | 手动检查，会明确提示"已是最新"或失败原因 |
+| 菜单 文件 → 导入离线更新包 | 内网/U 盘更新，选含 `update.json` 的目录 |
+| 菜单 帮助 → 版本信息 | 显示程序版本、网页版本、网页目录、更新地址 |
+
+### 9.4 安装位置与回滚
+
+```
+Windows: %APPDATA%/YYWL键盘配置工具/web/<buildId>/
+macOS:   ~/Library/Application Support/YYWL键盘配置工具/web/<buildId>/
+Linux:   ~/.config/YYWL键盘配置工具/web/<buildId>/
+```
+
+- 指针文件 `web/current.json` 记录当前使用哪个目录
+- **保留最近 2 个版本**（当前 + 上一个），更老的自动清理
+- 指针损坏或目录缺 `index.html` → 自动回退到安装包自带的网页（不会白屏）
+- 回滚线上：把旧版 `dist/` 和对应的 `update.json` 重新上传即可，客户端按 `buildId` 不一致触发回退更新
+
+### 9.5 每个文件都校验
+
+清单里带 `size` + `sha256`，下载后逐个校验；不匹配立即中止并保留旧版本。这能挡住半包、代理篡改、CDN 缓存串味。
+
+### 9.6 内网镜像
+
+默认更新地址 `https://key.itytsoft.com/`。内网可自建镜像（放 `update.json` + 同样的文件），然后任选一种方式改地址：
+
+```jsonc
+// Windows: %APPDATA%/YYWL键盘配置工具/config.json
+{
+  "updateBaseUrl": "http://192.168.1.10/yywl/",
+  "autoUpdate": true          // false = 只允许手动检查
+}
+```
+
+或设环境变量 `YYWL_UPDATE_BASE_URL`（优先级更高）。
+
+### 9.7 注意事项
+
+- **新增前端路由**要同步 `vite.config.js` 里的 `SPA_ROUTES`，否则构建不会生成该路由的静态入口
+- 更新只换网页，**换外壳（Electron 版本、权限逻辑）仍需重新发安装包**
+- 客户端 `userData/web/` 里是完整网页，可随时删掉该目录强制回到内置版本
+- 已实现自测：`node scripts/test-updater.mjs`（16 项：首次安装/零下载复用/只改一个文件/校验失败中止/离线导入/坏指针回退/清理保留 2 版/空清单报错）
