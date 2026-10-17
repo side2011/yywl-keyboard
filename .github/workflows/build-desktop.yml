@@ -1,0 +1,117 @@
+name: Build Desktop (Windows / macOS / Linux)
+
+# 三平台桌面版自动打包
+# 触发:
+#   1) 推送 v* 标签 (例如 v1.0.0) → 打包并自动挂到 GitHub Release
+#   2) 手动触发 (Actions 页面 Run workflow) → 只上传 Artifact
+# 说明:
+#   - 代码只有一份, desktop-main.cjs 里没有平台分支, 差异只在"在哪台机器上打包"
+#   - macOS 包必须在 macOS 上产出; Linux 包在 Linux 上产出 —— 这就是本 workflow 存在的理由
+#   - 未配置代码签名: macOS 首次打开需右键->打开; Windows 首次运行有 SmartScreen 提示
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: desktop-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Windows x64
+            os: windows-latest
+            artifact: yywl-keyboard-windows-x64
+            # 注意: 本机(无管理员/未开发者模式)打包必须加 --config.win.signAndEditExecutable=false,
+            # 否则 electron-builder 解压 winCodeSign 时因「无法创建符号链接」失败。
+            # GitHub 的 windows runner 是管理员权限, 这里不加该开关 → exe 会带上图标与版本信息。
+            package_cmd: npx electron-builder --win zip --x64 --publish never
+            out_glob: dist-desktop/*.zip
+          - name: macOS x64 + arm64
+            os: macos-latest
+            artifact: yywl-keyboard-macos
+            package_cmd: npx electron-builder --mac zip --x64 --arm64 --publish never
+            out_glob: dist-desktop/*.zip
+          - name: Linux x64
+            os: ubuntu-latest
+            artifact: yywl-keyboard-linux-x64
+            package_cmd: npx electron-builder --linux AppImage --x64 --publish never
+            out_glob: dist-desktop/*.AppImage
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 设置 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # electron / electron-builder 会下载二进制与打包工具, 缓存后二次构建快很多
+      - name: 缓存 Electron 与 electron-builder
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/electron
+            ~/.cache/electron-builder
+            ~/AppData/Local/electron/Cache
+            ~/AppData/Local/electron-builder/Cache
+          key: ${{ runner.os }}-electron-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-electron-
+
+      - name: 安装依赖
+        run: npm ci
+
+      - name: 构建网页产物
+        run: npm run build
+
+      - name: 打包桌面版
+        run: ${{ matrix.package_cmd }}
+        env:
+          # 没有签名证书, 明确关掉 macOS 自动找证书, 否则会报错
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 列出产物
+        shell: bash
+        run: ls -lh dist-desktop/ || true
+
+      - name: 校验 Windows 产物元数据 (图标/版本是否嵌入)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Get-ChildItem dist-desktop/win-unpacked/*.exe | ForEach-Object {
+            "文件: $($_.Name)"
+            "  FileVersion : $($_.VersionInfo.FileVersion)"
+            "  ProductName : $($_.VersionInfo.ProductName)"
+            "  CompanyName : $($_.VersionInfo.CompanyName)"
+          }
+
+      - name: 上传 Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.out_glob }}
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: 附加到 Release (仅标签触发)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ matrix.out_glob }}
+          fail_on_unmatched_files: true
+          generate_release_notes: true
