@@ -143,6 +143,26 @@ jobs:
             echo "  ✓ $name"
           done
 
+      # ---- 校验: 本次构建的网页内容是否与线上一致 (只检查, 不上传) ----
+      # update.json 必须描述**线上实际文件**, 所以它由部署流程生成, 不交给 CI 覆盖。
+      # 这里只做一致性检查: 若包内嵌的 buildId 与线上不同, 桌面版首次启动会白下一次全量更新。
+      - name: 校验构建内容与线上一一致
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          set -e
+          LOCAL=$(node -p "require('./dist/version.json').buildId")
+          echo "本次构建 buildId: $LOCAL"
+          REMOTE=$(curl -sS --max-time 30 https://key.itytsoft.com/version.json \
+            | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{try{console.log(JSON.parse(s).buildId)}catch(e){console.log('')}})" || echo "")
+          echo "线上 buildId:   $REMOTE"
+          if [ -n "$REMOTE" ] && [ "$LOCAL" != "$REMOTE" ]; then
+            echo "::warning::构建内容与线上不一致 (构建 $LOCAL / 线上 $REMOTE)"
+            echo "::warning::包内嵌网页与线上不同, 桌面版首次启动会触发一次全量更新; 建议先部署 dist 再打包。"
+          else
+            echo "✓ 一致: 桌面版首次启动不会触发无效更新"
+          fi
+
       - name: 上传 Artifact (备份用, 保留 30 天)
         uses: actions/upload-artifact@v4
         with:
