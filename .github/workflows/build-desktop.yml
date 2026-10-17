@@ -1,13 +1,17 @@
 name: Build Desktop (Windows / macOS / Linux)
 
-# 三平台桌面版自动打包
+# 三平台桌面版自动打包 + 自动发布
 # 触发:
-#   1) 推送 v* 标签 (例如 v1.0.0) → 打包并自动挂到 GitHub Release
-#   2) 手动触发 (Actions 页面 Run workflow) → 只上传 Artifact
-# 说明:
-#   - 代码只有一份, desktop-main.cjs 里没有平台分支, 差异只在"在哪台机器上打包"
-#   - macOS 包必须在 macOS 上产出; Linux 包在 Linux 上产出 —— 这就是本 workflow 存在的理由
-#   - 未配置代码签名: macOS 首次打开需右键->打开; Windows 首次运行有 SmartScreen 提示
+#   1) 推送 v* 标签 (例如 v1.0.0) → 打包, 挂到 GitHub Release, 并上传下载服务器
+#   2) 手动触发 (Actions 页面 Run workflow) → 打包 + 上传, 不建 Release
+#
+# 为什么在 CI 里直接传 FTP:
+#   三个包合计约 430 MB, 从国内拉 GitHub 的 Release/Artifact 只有几十 KB/s,
+#   而 runner 在海外机房, 上传到服务器是正常带宽, 一步到位。
+#
+# 需要的仓库 Secrets (Settings → Secrets and variables → Actions):
+#   FTP_HOST  FTP_USER  FTP_PASS
+#   未配置也不会失败, 会自动跳过上传步骤。
 
 on:
   workflow_dispatch:
@@ -33,21 +37,16 @@ jobs:
           - name: Windows x64
             os: windows-latest
             artifact: yywl-keyboard-windows-x64
-            # 注意: 本机(无管理员/未开发者模式)打包必须加 --config.win.signAndEditExecutable=false,
-            # 否则 electron-builder 解压 winCodeSign 时因「无法创建符号链接」失败。
-            # GitHub 的 windows runner 是管理员权限, 这里不加该开关 → exe 会带上图标与版本信息。
+            # GitHub 的 windows runner 是管理员权限, 不加 signAndEditExecutable=false → exe 会带图标与版本信息
             package_cmd: npx electron-builder --win zip --x64 --publish never
-            out_glob: dist-desktop/*.zip
           - name: macOS x64 + arm64
             os: macos-latest
             artifact: yywl-keyboard-macos
             package_cmd: npx electron-builder --mac zip --x64 --arm64 --publish never
-            out_glob: dist-desktop/*.zip
           - name: Linux x64
             os: ubuntu-latest
             artifact: yywl-keyboard-linux-x64
             package_cmd: npx electron-builder --linux AppImage --x64 --publish never
-            out_glob: dist-desktop/*.AppImage
 
     steps:
       - name: 检出代码
@@ -59,7 +58,6 @@ jobs:
           node-version: 22
           cache: npm
 
-      # electron / electron-builder 会下载二进制与打包工具, 缓存后二次构建快很多
       - name: 缓存 Electron 与 electron-builder
         uses: actions/cache@v4
         with:
@@ -81,7 +79,6 @@ jobs:
       - name: 打包桌面版
         run: ${{ matrix.package_cmd }}
         env:
-          # 没有签名证书, 明确关掉 macOS 自动找证书, 否则会报错
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -100,11 +97,57 @@ jobs:
             "  CompanyName : $($_.VersionInfo.CompanyName)"
           }
 
-      - name: 上传 Artifact
+      # ---- 改名为下载页约定的文件名 ----
+      - name: 按约定命名归档
+        shell: bash
+        run: |
+          set -e
+          mkdir -p release/download
+          VERSION=$(node -p "require('./package.json').version")
+          shopt -s nullglob
+          case "${{ runner.os }}" in
+            Windows)
+              for f in dist-desktop/*.zip; do cp "$f" "release/download/yywlkey-config-$VERSION-win-x64.zip"; done ;;
+            macOS)
+              for f in dist-desktop/*.zip; do
+                case "$f" in
+                  *arm64*) cp "$f" "release/download/yywlkey-config-$VERSION-mac-arm64.zip" ;;
+                  *)       cp "$f" "release/download/yywlkey-config-$VERSION-mac-x64.zip" ;;
+                esac
+              done ;;
+            Linux)
+              for f in dist-desktop/*.AppImage; do cp "$f" "release/download/yywlkey-config-$VERSION-linux-x64.AppImage"; done ;;
+          esac
+          ls -lh release/download/
+
+      # ---- 直接上传到下载服务器 (省掉从国内拉 100+ MB 的过程) ----
+      - name: 上传到下载服务器
+        shell: bash
+        env:
+          FTP_HOST: ${{ secrets.FTP_HOST }}
+          FTP_USER: ${{ secrets.FTP_USER }}
+          FTP_PASS: ${{ secrets.FTP_PASS }}
+        run: |
+          set -e
+          if [ -z "$FTP_HOST" ] || [ -z "$FTP_USER" ]; then
+            echo "::warning::未配置 FTP_HOST / FTP_USER / FTP_PASS, 跳过上传"
+            exit 0
+          fi
+          shopt -s nullglob
+          for f in release/download/*; do
+            name=$(basename "$f")
+            echo "上传 $name ($(du -h "$f" | cut -f1))"
+            curl -sS --fail --max-time 1800 --ftp-create-dirs \
+              -T "$f" "ftp://$FTP_HOST/download/$name" \
+              --user "$FTP_USER:$FTP_PASS"
+            echo "  ✓ $name"
+          done
+
+      - name: 上传 Artifact (备份用, 保留 30 天)
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact }}
-          path: ${{ matrix.out_glob }}
+          path: release/download/*
           if-no-files-found: error
           retention-days: 30
 
@@ -112,6 +155,61 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          files: ${{ matrix.out_glob }}
+          files: release/download/*
           fail_on_unmatched_files: true
           generate_release_notes: true
+
+  # ---- 汇总生成下载页清单, 并推到服务器 ----
+  manifest:
+    name: 生成下载清单
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 设置 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: 收集三个平台的产物
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: 归档到约定目录
+        run: |
+          mkdir -p release/download
+          find artifacts -type f -exec cp {} release/download/ \;
+          ls -lh release/download/
+
+      - name: 生成 manifest.json
+        run: node scripts/update-manifest.mjs
+
+      - name: 上传清单到服务器
+        env:
+          FTP_HOST: ${{ secrets.FTP_HOST }}
+          FTP_USER: ${{ secrets.FTP_USER }}
+          FTP_PASS: ${{ secrets.FTP_PASS }}
+        run: |
+          set -e
+          if [ -z "$FTP_HOST" ] || [ -z "$FTP_USER" ]; then
+            echo "::warning::未配置 FTP secrets, 跳过清单上传"
+            exit 0
+          fi
+          curl -sS --fail --max-time 120 --ftp-create-dirs \
+            -T public/download/manifest.json "ftp://$FTP_HOST/download/manifest.json" \
+            --user "$FTP_USER:$FTP_PASS"
+          echo "  ✓ manifest.json 已上传"
+
+      - name: 输出发布摘要
+        run: |
+          node -e "
+            const m = require('./public/download/manifest.json');
+            console.log('版本:', m.version, '更新日期:', m.updated);
+            for (const p of m.packages) {
+              console.log('  ' + (p.available ? '✓' : '·'), p.file, p.available ? (p.size/1048576).toFixed(1)+' MB' : '尚未发布');
+            }
+          "
