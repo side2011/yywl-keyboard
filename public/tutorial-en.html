@@ -69,6 +69,57 @@
   .btn.amber { background: linear-gradient(135deg,#f59e0b,#d97706); box-shadow: 0 4px 12px rgba(245,158,11,0.3); }
   .btn.ghost { background: #fff; color: #4338ca; border: 1px solid #c7d2fe; box-shadow: none; }
 
+  /* ---- Animated demos ---- */
+  .demo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 14px; }
+  @media (max-width: 760px) { .demo-grid { grid-template-columns: 1fr; } }
+  .demo { border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; background: #fff; }
+  .demo-head { font-size: .86rem; font-weight: 700; color: #334155; padding: 9px 12px; background: #f8fafc;
+               border-bottom: 1px solid #eef2f7; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .demo-head .replay { font-size: .72rem; color: #6366f1; cursor: pointer; user-select: none; white-space: nowrap; }
+  .demo-stage { position: relative; height: 196px; background: #f8fafc; overflow: hidden; }
+  .mock { position: absolute; inset: 10px; display: flex; gap: 8px; }
+  .mock-left { width: 62px; display: flex; flex-direction: column; gap: 6px; }
+  .mock-key { height: 34px; border: 1px solid #e2e8f0; border-radius: 8px; background: #fff; font-size: .72rem;
+              display: flex; align-items: center; justify-content: center; color: #475569; transition: all .25s; }
+  .mock-key.sel { background: #6366f1; border-color: #6366f1; color: #fff; }
+  .mock-main { flex: 1; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+  .mock-tabs { display: flex; gap: 4px; }
+  .mock-tab { flex: 1; text-align: center; font-size: .68rem; padding: 4px 0; border-radius: 6px;
+              color: #64748b; background: #fff; border: 1px solid #e2e8f0; transition: all .25s; }
+  .mock-tab.sel { background: #6366f1; border-color: #6366f1; color: #fff; }
+  .mock-grid { flex: 1; display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px;
+               align-content: start; overflow: hidden; }
+  .mock-fn { font-size: .62rem; text-align: center; padding: 5px 0; border-radius: 6px; background: #fff;
+             border: 1px solid #e2e8f0; color: #64748b; transition: all .25s; }
+  .mock-fn.sel { background: #c7d2fe; border-color: #818cf8; color: #3730a3; font-weight: 700; }
+  .mock-save { align-self: flex-end; font-size: .72rem; font-weight: 700; color: #fff; background: #6366f1;
+               padding: 5px 12px; border-radius: 8px; transition: all .25s; }
+  .mock-save.hit { transform: scale(.94); background: #4338ca; }
+  .mock-layer { display: flex; gap: 3px; align-self: flex-end; }
+  .mock-layer span { font-size: .62rem; padding: 2px 6px; border-radius: 5px; background: #fff; border: 1px solid #e2e8f0; color: #64748b; }
+  .mock-layer span.sel { background: #6366f1; border-color: #6366f1; color: #fff; }
+  .mock-input { font-size: .68rem; border: 1px solid #e2e8f0; border-radius: 6px; padding: 4px 6px;
+                background: #fff; color: #94a3b8; min-height: 22px; transition: all .2s; }
+  .mock-input.sel { border-color: #818cf8; box-shadow: 0 0 0 2px rgba(129,140,248,.18); }
+  .mock-input b { color: #334155; font-weight: 600; }
+  .mock-toast { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%) scale(.9); opacity: 0;
+                background: #111827; color: #f9fafb; font-size: .72rem; padding: 6px 12px; border-radius: 8px;
+                transition: all .3s; pointer-events: none; z-index: 6; }
+  .mock-toast.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  .cursor { position: absolute; left: 0; top: 0; width: 16px; height: 16px; pointer-events: none;
+            transition: transform .45s ease; z-index: 7; }
+  .cursor svg { display: block; filter: drop-shadow(0 1px 2px rgba(0,0,0,.35)); }
+  .cursor.click::after { content: ''; position: absolute; left: -5px; top: -5px; width: 22px; height: 22px;
+                         border-radius: 50%; border: 2px solid #6366f1; animation: curRipple .5s ease-out; }
+  @keyframes curRipple { from { transform: scale(.4); opacity: .9; } to { transform: scale(1.5); opacity: 0; } }
+  .demo-cap { font-size: .84rem; color: #475569; padding: 10px 12px; border-top: 1px solid #eef2f7;
+              min-height: 46px; display: flex; align-items: center; gap: 6px; }
+  .demo-cap b { color: #4338ca; }
+  @media (prefers-reduced-motion: reduce) {
+    .cursor { transition: none; }
+    .cursor.click::after { animation: none; }
+  }
+
   /* ---- Device picker ---- */
   .pick-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 14px; }
   @media (max-width: 640px) { .pick-grid { grid-template-columns: 1fr; } }
@@ -166,6 +217,7 @@
       <a href="#choose">0. Web or Desktop?</a>
       <a href="#generation">1. Identify Your Keyboard Generation</a>
       <a href="#connect">2. Connect the Keyboard</a>
+      <a href="#demos">🎬 Animated Demos</a>
       <a href="#old">3. Legacy Protocol Configuration</a>
       <a href="#new">4. Version 2.0 (New Protocol) Configuration</a>
       <a href="#bt">5. Bluetooth Wireless Configuration</a>
@@ -290,6 +342,41 @@
         <h3>After Connecting</h3>
         <p>The top of the page shows the model, key count, layer count, and other details, then jumps to the matching configuration page. If the model isn't recognized, a <strong>Select model manually</strong> dropdown appears — pick the right one.</p>
       </div>
+    </div>
+  </div>
+
+  <!-- Animated demos -->
+  <div class="card" id="demos">
+    <h2><span class="emoji">🎬</span>Four common tasks — just watch the animation</h2>
+    <p style="color:#475569;font-size:.92rem">
+      These are <strong>simulated demos</strong> (not screen recordings): where the cursor clicks, how tabs switch, and how saving works — one watch is all it takes.
+      Each demo loops automatically; you can also click "↻ Replay" in the top-right corner.
+    </p>
+    <div class="demo-grid">
+      <div class="demo" data-demo="basic">
+        <div class="demo-head"><span>① Change K1 to F5</span><span class="replay">↻ Replay</span></div>
+        <div class="demo-stage"></div>
+        <div class="demo-cap">Preparing…</div>
+      </div>
+      <div class="demo" data-demo="media">
+        <div class="demo-head"><span>② Change K2 to "Volume +"</span><span class="replay">↻ Replay</span></div>
+        <div class="demo-stage"></div>
+        <div class="demo-cap">Preparing…</div>
+      </div>
+      <div class="demo" data-demo="layer">
+        <div class="demo-head"><span>③ New protocol: Layer 2, then remap</span><span class="replay">↻ Replay</span></div>
+        <div class="demo-stage"></div>
+        <div class="demo-cap">Preparing…</div>
+      </div>
+      <div class="demo" data-demo="password">
+        <div class="demo-head"><span>④ One-key password (new protocol)</span><span class="replay">↻ Replay</span></div>
+        <div class="demo-stage"></div>
+        <div class="demo-cap">Preparing…</div>
+      </div>
+    </div>
+    <div class="tip">
+      💡 The animation only illustrates the interface layout; the actual tool UI prevails. Any change must be written to the device by clicking <strong>Save to Keyboard</strong>.
+      After a successful save, unplug and reconnect the USB cable once so the configuration takes effect immediately.
     </div>
   </div>
 
@@ -681,7 +768,7 @@
   var conf = TYPES[type];
   if (!conf) return; // no type parameter → keep the original full guide
 
-  var ALWAYS = ['toc', 'choose', 'connect', 'desktop', 'faq'];
+  var ALWAYS = ['toc', 'choose', 'connect', 'desktop', 'faq', 'demos'];
   var showSet = ALWAYS.concat(conf.show);
 
   // Hide sections that are not needed
@@ -717,6 +804,228 @@
   // Also make the title more specific
   var sub = document.querySelector('.hero > p');
   if (sub) sub.textContent = 'Showing only the guide for "' + conf.label + '"';
+})();
+</script>
+
+<script>
+/* ============================================================
+   Animated configuration demos
+   Each .demo reads the script for its data-demo value and walks through the operation step by step with a cursor + highlights.
+   Pure DOM/CSS, no external dependencies; loops continuously and starts only after entering the viewport.
+   ============================================================ */
+(function () {
+  var CURSOR = '<svg viewBox="0 0 24 24" width="16" height="16"><path d="M3 2l16 8-6.5 1.6L9 18z" fill="#111827" stroke="#fff" stroke-width="1.2" stroke-linejoin="round"/></svg>';
+
+  var DEMOS = {
+    basic: {
+      keys: ['K1', 'K2', 'K3'],
+      tabs: [{ id: 'keyboard', label: 'Keyboard' }, { id: 'mouse', label: 'Mouse' }, { id: 'media', label: 'Media' }],
+      grid: {
+        keyboard: ['A', 'B', 'C', 'D', 'F5', 'F6', 'Enter', 'Space'],
+        mouse: ['Left click', 'Right click', 'Middle click', 'Wheel up', 'Wheel down'],
+        media: ['Play/Pause', 'Volume +', 'Volume −', 'Mute', 'Previous', 'Next']
+      },
+      steps: [
+        { key: 0, cap: '① Click the key you want to change: <b>K1</b>' },
+        { tab: 'keyboard', cap: '② Switch to the <b>Keyboard</b> tab' },
+        { fn: 'F5', cap: '③ Click <b>F5</b> — K1 is now set to F5' },
+        { save: true, cap: '④ Click <b>Save to Keyboard</b> to write it to the device' },
+        { toast: 'Saved', cap: '⑤ Saved. Unplug and reconnect the cable to apply' }
+      ]
+    },
+    media: {
+      keys: ['K1', 'K2', 'K3'],
+      tabs: [{ id: 'keyboard', label: 'Keyboard' }, { id: 'mouse', label: 'Mouse' }, { id: 'media', label: 'Media' }],
+      grid: {
+        keyboard: ['A', 'B', 'C', 'D', 'F5', 'F6'],
+        mouse: ['Left click', 'Right click', 'Middle click', 'Wheel up', 'Wheel down'],
+        media: ['Play/Pause', 'Volume +', 'Volume −', 'Mute', 'Previous', 'Next']
+      },
+      steps: [
+        { key: 1, cap: '① Click <b>K2</b> to select the key you want to change' },
+        { tab: 'media', cap: '② Switch to the <b>Media</b> tab' },
+        { fn: 'Volume +', cap: '③ Click <b>Volume +</b> — K2 becomes volume up' },
+        { save: true, cap: '④ Click <b>Save to Keyboard</b>' },
+        { toast: 'Saved', cap: '⑤ Done. Media keys need no drivers' }
+      ]
+    },
+    layer: {
+      keys: ['K1', 'K2', 'K3'],
+      layers: ['Layer 1', 'Layer 2', 'Layer 3'],
+      tabs: [{ id: 'keyboard', label: 'Keyboard' }, { id: 'media', label: 'Media' }, { id: 'macro', label: 'Macro' }],
+      grid: {
+        keyboard: ['A', 'B', 'C', 'F5', 'F6', 'Enter'],
+        media: ['Volume +', 'Volume −', 'Mute', 'Play/Pause'],
+        macro: ['Record macro', 'Key sequence', 'Delay', 'One-key password']
+      },
+      steps: [
+        { layer: 1, cap: '① First switch to <b>Layer 2</b> (Layer 1 is unaffected)' },
+        { key: 2, cap: '② Select <b>K3</b>' },
+        { tab: 'macro', cap: '③ Switch to the <b>Macro</b> tab' },
+        { fn: 'Key sequence', cap: '④ Pick a macro function' },
+        { save: true, cap: '⑤ Save — only the current layer is written' },
+        { toast: 'Saved to Layer 2', cap: '⑥ Different layers can have completely different key mappings' }
+      ]
+    },
+    password: {
+      keys: ['K1', 'K2', 'K3'],
+      input: 'Enter password',
+      tabs: [{ id: 'keyboard', label: 'Keyboard' }, { id: 'macro', label: 'Macro' }],
+      grid: {
+        keyboard: ['A', 'B', 'C', 'F5', 'F6'],
+        macro: ['Record macro', 'Key sequence', 'One-key password', 'Delay']
+      },
+      steps: [
+        { key: 1, cap: '① Select <b>K2</b> (the one that will act as the password key)' },
+        { tab: 'macro', cap: '② Switch to the <b>Macro</b> tab' },
+        { fn: 'One-key password', cap: '③ Select <b>One-key password</b>' },
+        { input: 'abc123', cap: '④ Enter the password; the tool converts it into a key sequence and sends it' },
+        { save: true, cap: '⑤ Save to Keyboard' },
+        { toast: 'Saved', cap: '⑥ Press K2 once to type the whole password automatically' }
+      ]
+    }
+  };
+
+  function wait(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+
+  function build(stage, cfg) {
+    var html = '<div class="mock"><div class="mock-left">';
+    cfg.keys.forEach(function (k, i) {
+      html += '<div class="mock-key" data-role="key" data-i="' + i + '">' + k + '</div>';
+    });
+    html += '</div><div class="mock-main"><div class="mock-tabs">';
+    cfg.tabs.forEach(function (t) {
+      html += '<div class="mock-tab" data-role="tab" data-id="' + t.id + '">' + t.label + '</div>';
+    });
+    html += '</div>';
+    if (cfg.layers) {
+      html += '<div class="mock-layer">';
+      cfg.layers.forEach(function (l, i) {
+        html += '<span data-role="layer" data-i="' + i + '">' + l + '</span>';
+      });
+      html += '</div>';
+    }
+    html += '<div class="mock-grid" data-role="grid"></div>';
+    if (cfg.input) html += '<div class="mock-input" data-role="input">' + cfg.input + '…</div>';
+    html += '<div class="mock-save" data-role="save">Save to Keyboard</div></div></div>';
+    html += '<div class="mock-toast" data-role="toast"></div>';
+    html += '<div class="cursor" data-role="cursor">' + CURSOR + '</div>';
+    stage.innerHTML = html;
+    fillGrid(stage, cfg, cfg.tabs[0].id);
+    stage.querySelector('[data-role="cursor"]').style.transform = 'translate(6px, 6px)';
+  }
+
+  function fillGrid(stage, cfg, tabId) {
+    var list = cfg.grid[tabId] || [];
+    stage.querySelector('[data-role="grid"]').innerHTML = list.map(function (n) {
+      return '<div class="mock-fn" data-fn="' + n + '">' + n + '</div>';
+    }).join('');
+  }
+
+  function moveCursor(stage, cursor, el) {
+    var s = stage.getBoundingClientRect();
+    var r = el.getBoundingClientRect();
+    cursor.style.transform = 'translate(' + (r.left - s.left + r.width / 2 - 5) + 'px,' +
+      (r.top - s.top + r.height / 2 - 4) + 'px)';
+  }
+
+  function clear(stage, sel) {
+    Array.prototype.forEach.call(stage.querySelectorAll(sel), function (n) { n.classList.remove('sel'); });
+  }
+
+  async function play(demoEl, cfg) {
+    var stage = demoEl.querySelector('.demo-stage');
+    var capEl = demoEl.querySelector('.demo-cap');
+    build(stage, cfg);
+    var cursor = stage.querySelector('[data-role="cursor"]');
+    var toast = stage.querySelector('[data-role="toast"]');
+
+    for (var i = 0; i < cfg.steps.length; i++) {
+      var step = cfg.steps[i];
+      var target = null;
+
+      if (step.key !== undefined) target = stage.querySelector('[data-role="key"][data-i="' + step.key + '"]');
+      else if (step.tab) target = stage.querySelector('[data-role="tab"][data-id="' + step.tab + '"]');
+      else if (step.fn) target = stage.querySelector('[data-fn="' + step.fn + '"]');
+      else if (step.layer !== undefined) target = stage.querySelector('[data-role="layer"][data-i="' + step.layer + '"]');
+      else if (step.input) target = stage.querySelector('[data-role="input"]');
+      else if (step.save) target = stage.querySelector('[data-role="save"]');
+
+      if (target) {
+        moveCursor(stage, cursor, target);
+        await wait(430);
+        cursor.classList.add('click');
+        setTimeout(function (c) { return function () { c.classList.remove('click'); }; }(cursor), 520);
+      }
+
+      if (step.key !== undefined) {
+        clear(stage, '[data-role="key"]');
+        if (target) target.classList.add('sel');
+        clear(stage, '[data-fn]');
+      } else if (step.tab) {
+        clear(stage, '[data-role="tab"]');
+        if (target) target.classList.add('sel');
+        fillGrid(stage, cfg, step.tab);
+      } else if (step.fn) {
+        clear(stage, '[data-fn]');
+        var fnEl = stage.querySelector('[data-fn="' + step.fn + '"]');
+        if (fnEl) fnEl.classList.add('sel');
+      } else if (step.layer !== undefined) {
+        clear(stage, '[data-role="layer"]');
+        if (target) target.classList.add('sel');
+      } else if (step.input) {
+        if (target) {
+          target.classList.add('sel');
+          target.innerHTML = '';
+          for (var c = 0; c < step.input.length; c++) {
+            await wait(110);
+            target.innerHTML = '<b>' + step.input.slice(0, c + 1) + '</b>';
+          }
+        }
+      } else if (step.save) {
+        if (target) {
+          target.classList.add('hit');
+          setTimeout(function (t) { return function () { t.classList.remove('hit'); }; }(target), 400);
+        }
+      } else if (step.toast) {
+        toast.textContent = step.toast;
+        toast.classList.add('show');
+        setTimeout(function (t) { return function () { t.classList.remove('show'); }; }(toast), 1400);
+      }
+
+      capEl.innerHTML = step.cap;
+      await wait(step.hold || 1150);
+    }
+    await wait(1600);
+  }
+
+  function loop(demoEl, cfg) {
+    (async function () {
+      for (;;) { await play(demoEl, cfg); }
+    })();
+  }
+
+  function init() {
+    var demos = document.querySelectorAll('.demo');
+    if (!demos.length) return;
+    Array.prototype.forEach.call(demos, function (el) {
+      var cfg = DEMOS[el.getAttribute('data-demo')];
+      if (!cfg) return;
+      var replay = el.querySelector('.replay');
+      if (replay) replay.addEventListener('click', function () { loop(el, cfg); });
+      if (!('IntersectionObserver' in window)) { loop(el, cfg); return; }
+      var started = false;
+      var io = new IntersectionObserver(function (entries) {
+        entries.forEach(function (e) {
+          if (e.isIntersecting && !started) { started = true; loop(el, cfg); io.disconnect(); }
+        });
+      }, { threshold: 0.25 });
+      io.observe(el);
+    });
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else init();
 })();
 </script>
 
