@@ -195,6 +195,41 @@ Start-Sleep -Milliseconds 40
     await pasteFromClipboard();
   }
 
+  // 取当前鼠标位置（与 mouseClick 用同一坐标系，避免 DPI 缩放导致偏移）
+  async function getMousePosition() {
+    if (platform === 'win32') {
+      const ps = `
+Add-Type -TypeDefinition @"
+using System;
+using System.Runtime.InteropServices;
+public class YywlCursor {
+  [StructLayout(LayoutKind.Sequential)] public struct POINT { public int X; public int Y; }
+  [DllImport("user32.dll")] public static extern bool GetCursorPos(out POINT p);
+}
+"@
+$p = New-Object YywlCursor+POINT
+[YywlCursor]::GetCursorPos([ref]$p) | Out-Null
+Write-Output ("{0},{1}" -f $p.X, $p.Y)`;
+      const { stdout } = await run('powershell', ['-NoProfile', '-NonInteractive', '-Command', ps]);
+      const [x, y] = String(stdout).trim().split(',').map(Number);
+      if (Number.isFinite(x) && Number.isFinite(y)) return { x, y };
+      throw new Error('读取鼠标位置失败');
+    }
+    if (platform === 'darwin') {
+      try {
+        const { stdout } = await run('cliclick', ['p']);
+        const [x, y] = String(stdout).trim().split(',').map((v) => Number(v.split(':').pop()));
+        if (Number.isFinite(x) && Number.isFinite(y)) return { x, y };
+        throw new Error('解析失败');
+      } catch {
+        throw new Error('macOS 需要 cliclick 才能取鼠标位置：brew install cliclick');
+      }
+    }
+    const { stdout } = await run('xdotool', ['getmouselocation']);
+    const m = String(stdout).match(/x:(\d+)\s+y:(\d+)/);
+    if (m) return { x: Number(m[1]), y: Number(m[2]) };
+    throw new Error('读取鼠标位置失败（需要 xdotool）');
+  }
   // ---- 步骤调度 ----
 
   async function executeStep(step) {
@@ -253,7 +288,7 @@ Start-Sleep -Milliseconds 40
     return { ok: true, ms: Date.now() - started, commands: dryRun ? commands : undefined };
   }
 
-  return { runAction, executeStep, commands, sendKeys, mouseClick, pasteText, pasteImage };
+  return { runAction, executeStep, commands, sendKeys, mouseClick, pasteText, pasteImage, getMousePosition };
 }
 
 module.exports = {
