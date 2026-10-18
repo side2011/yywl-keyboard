@@ -125,6 +125,16 @@ const en = {
   '也可以从顶部菜单「文件 → 扩展动作…」打开；配好动作后回到这里绑定按键。':
     'You can also open it from the menu: File → Extended Actions. Then come back here to bind the key.',
   '未配置': 'Not set',
+  '层数': 'Layers',
+  'Mac 用户：键盘上没有 Command 键是正常的 —— Win 就是 Command ⌘，Alt 就是 Option ⌥。': 'Mac users: there is no Command key on the keypad - Win maps to Command ⌘ and Alt maps to Option ⌥.',
+  '固件信息': 'Firmware info',
+  '固件版本': 'Firmware version',
+  '子型号': 'Sub-model',
+  '自动': 'Auto',
+  '默认 1 层；确认这个键盘支持多层再切到 3 层（选择会按型号记住）':
+    'Defaults to 1 layer. Switch to 3 only if this keypad really supports multiple layers (remembered per model).',
+  '已启用 3 层，请重新「读取键盘配置」': '3 layers enabled - please read the config from the keyboard again',
+  '已切换为 1 层': 'Switched to 1 layer',
   '这些键由桌面版后台执行扩展动作': 'These keys run extended actions in the desktop app',
   '扩展动作需要桌面版（网页版无法执行）': 'Extended actions require the desktop app (not available on the web)',
   '键盘本身只能发标准按键；打开文件夹、开网址、粘贴文字/图片、鼠标点击，都要由桌面版在后台执行。这里只负责把按键绑定到某个动作。':
