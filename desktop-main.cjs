@@ -64,6 +64,23 @@ function createLocalServer() {
       try {
         let urlPath = new URL(req.url, 'http://127.0.0.1').pathname;
         urlPath = decodeURIComponent(urlPath);
+
+        // 给配置页读的「扩展动作摘要」：设备侧只存键码，
+        // 区分"普通 F13"和"扩展触发键 F13"只能靠桌面版这份配置
+        if (urlPath === '/__actions/summary') {
+          const payload = {
+            enabled: actionsConfig.enabled,
+            slots: (actionsConfig.actions || []).map((a) => ({
+              slot: a.slot,
+              hotkey: slotHotkey(a.slot, a),
+              name: a.name || '',
+              steps: (a.steps || []).length,
+            })),
+          };
+          res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
+          res.end(JSON.stringify(payload));
+          return;
+        }
         let rel = urlPath.replace(/^\/+/, '');
         if (!rel) rel = 'index.html';
         let filePath = path.join(webRoot, rel);
