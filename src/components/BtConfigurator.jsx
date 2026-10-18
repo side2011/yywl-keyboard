@@ -2,6 +2,7 @@
 // 蓝牙无线款配置页 — QT KEY_PRO 协议 (0xFB读信息/0xFA读配置/0xFD写键/0xFE 0xB0写灯光)
 // 支持 V10 (版本>=10) 与旧协议两种记录格式 (由 BtProtocolHandler 内部处理)
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { fetchActionSummary, toSlotMap } from '../services/action-slots';
 import { useNavigate } from 'react-router-dom';
 import { useDevice } from '../context/DeviceContext.jsx';
 import { useLang } from '../context/LanguageContext.jsx';
@@ -84,6 +85,9 @@ export default function BtConfigurator() {
   const [currentLayer, setCurrentLayer] = useState(0); // 0..2
   const [keyConfigs, setKeyConfigs] = useState(() => Array.from({ length: totalSlots }, createDefaultConfig));
   const [selectedKey, setSelectedKey] = useState(0);
+  // 桌面版里已配置的扩展动作（网页版拿不到 → 空对象）
+  const [actionNames, setActionNames] = useState({});
+  useEffect(() => { fetchActionSummary().then((s) => setActionNames(toSlotMap(s))); }, []);
   const [activeTab, setActiveTab] = useState(1); // 1=键盘 2=多媒体 3=鼠标 5=延时
   const [loading, setLoading] = useState(false);
   const [ledMode, setLedMode] = useState(0);
@@ -374,11 +378,13 @@ export default function BtConfigurator() {
 
   // 灯光作为右侧的一个"选项卡", 不再堆在左栏最底部(小屏会看不到)
   const LED_TAB = 'led';
+  const EXT_TAB = 'ext';
   const tabs = [
     { label: t('键盘'), mode: MODE.KEY },
     { label: t('鼠标'), mode: MODE.MOUSE },
     { label: t('多媒体'), mode: MODE.MEDIA },
     { label: t('延时'), mode: MODE.DELAY },
+    { label: t('扩展'), mode: EXT_TAB },
     { label: t('灯光'), mode: LED_TAB },
   ];
 
@@ -680,6 +686,38 @@ export default function BtConfigurator() {
               </div>
             )}
 
+            {/* 扩展动作：把按键设成触发键（Ctrl+Alt+Shift+F1..F12） */}
+            {activeTab === EXT_TAB && (
+              <div>
+                <p className="text-sm text-gray-500 mb-3">
+                  {t('扩展动作由桌面版后台执行。这里只需把按键设成触发键，具体动作在桌面版的「文件 → 扩展动作」里配置。')}
+                </p>
+                <div className="grid grid-cols-4 gap-2">
+                  {Array.from({ length: 12 }, (_, i) => {
+                    const code = 0x3a + i;
+                    const isSel = currentConfig.mode === MODE.KEY && currentConfig.keyCode === code && (currentConfig.modifierMask || 0) === 0x07;
+                    return (
+                      <button key={i}
+                        onClick={() => updateConfig({ mode: MODE.KEY, modifierMask: 0x07, keyCode: code })}
+                        className={`py-3 rounded-xl border-2 transition-all cursor-pointer ${
+                          isSel ? 'border-indigo-500 bg-indigo-50 shadow-sm' : 'border-gray-200 bg-white hover:border-indigo-300'
+                        }`}>
+                        <div className={`text-sm font-bold ${isSel ? 'text-indigo-700' : 'text-gray-700'}`}>{t('动作')} {i + 13}</div>
+                        <div className="text-[10px] text-gray-400 mt-0.5">Ctrl+Alt+Shift+F{i + 1}</div>
+                        <div className="text-[10px] mt-1 truncate px-1">
+                          {actionNames[i + 13]
+                            ? <span className="text-emerald-600 font-semibold" title={actionNames[i + 13]}>⚡ {actionNames[i + 13]}</span>
+                            : <span className="text-gray-300">{t('未配置')}</span>}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="mt-3 p-2.5 rounded-lg bg-amber-50 border border-amber-200 text-xs text-amber-800 leading-relaxed">
+                  ⚠️ {t('需要桌面版在后台运行才生效；否则按下只会发出 Ctrl+Alt+Shift+F1~F12 组合键。')}
+                </div>
+              </div>
+            )}
             {/* 灯光（从左侧移到这里，避免在小屏上被挤到最底部看不到） */}
             {activeTab === LED_TAB && (
               <div>
