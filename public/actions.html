@@ -59,6 +59,15 @@
   .capture-sub{font-size:13px;font-weight:400;color:#64748b;margin-top:8px}
   .btn.rec{background:#fff1f2;border-color:#fecdd3;color:#be123c}
   .btn.rec:hover{background:#ffe4e6}
+  .chords{display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap}
+  .chipwrap{display:inline-flex;align-items:center;gap:2px}
+  .chipx{border:none;background:none;color:#94a3b8;cursor:pointer;font-size:15px;line-height:1;padding:0 3px}
+  .chipx:hover{color:#ef4444}
+  .arrow{color:#94a3b8;font-size:12px}
+  .hintSmall{font-size:11px;color:#94a3b8;margin-left:4px}
+  .banner{margin-bottom:12px;padding:10px 14px;border-radius:10px;font-size:13px;line-height:1.7}
+  .banner.warn2{background:#fef2f2;border:1px solid #fecaca;color:#991b1b}
+  .banner a{color:#b91c1c;font-weight:700;text-decoration:underline;margin-left:4px}
   .combo{font-family:ui-monospace,Menlo,monospace;font-size:12px;background:#eef2ff;border:1px solid #c7d2fe;color:#3730a3;border-radius:8px;padding:6px 10px;min-width:120px;text-align:center}
   footer{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid #e2e8f0;padding:10px 22px;display:flex;gap:10px;align-items:center;justify-content:flex-end}
   .status{font-size:12px;color:#64748b;margin-right:auto}
@@ -76,6 +85,7 @@
 
 <main>
   <div id="conflictBar"></div>
+  <div id="verBar"></div>
   <div class="hint">
     <b>怎么用：</b>给槽位配好动作 → 在「键盘配置」里把某个物理键设成对应的触发键 → 按下按键即执行。<br>
     槽位 1–12 对应 <code>F13 ~ F24</code>（<b>版本 2.0 新协议</b>直接可选）；槽位 13–24 对应 <code>Ctrl+Alt+Shift+F1 ~ F12</code>（<b>旧协议 / 蓝牙款</b>用「多键合一」组合）。<br>
@@ -151,6 +161,7 @@
   var bank = 0;
   var probeMap = {};     // 热键 → 是否可用（点「检测占用」后填充）
   var conflicts = [];    // 保存/注册后仍被占用的槽位
+  var appVersion = '';   // 桌面版版本（老版本不支持录制时提示用）
 
   function slotOf(n) { return state.actions.find(function (a) { return a.slot === n; }); }
   function ensureSlot(n) {
@@ -278,18 +289,52 @@
       });
       wrap.appendChild(img); wrap.appendChild(pickImg);
     } else if (step.type === 'keyPress') {
-      // 不再让用户手打（容易打错、符号也不认）：改成"按一下键盘"录入
-      var combo = el('span', 'combo', (step.keys || []).length ? step.keys.join(' + ') : '未录入');
-      var recBtn = el('button', 'btn', '⌨ 录入组合键');
-      recBtn.addEventListener('click', function () {
+      // 不再让用户手打（容易打错、符号也不认）：改成"按一下键盘"录入。
+      // 支持一组里存多个组合，执行时按顺序连发，比如 alt+x → enter。
+      var chordsOf = function () {
+        if (Array.isArray(step.chords) && step.chords.length) return step.chords.slice();
+        return (step.keys && step.keys.length) ? [step.keys.slice()] : [];
+      };
+      var chords = chordsOf();
+      var chips = el('div', 'chords');
+      chords.forEach(function (chord, idx) {
+        var wrapChip = el('span', 'chipwrap');
+        wrapChip.appendChild(el('span', 'combo', chord.join(' + ')));
+        if (chords.length > 1) {
+          var xBtn = el('button', 'chipx', '×');
+          xBtn.title = '删掉这一组';
+          xBtn.addEventListener('click', function () {
+            var left = chordsOf().filter(function (_, i) { return i !== idx; });
+            if (left.length === 1) { step.keys = left[0]; delete step.chords; }
+            else { step.chords = left; step.keys = left[0]; }
+            onChange(); render();
+          });
+          wrapChip.appendChild(xBtn);
+        }
+        chips.appendChild(wrapChip);
+        if (idx < chords.length - 1) chips.appendChild(el('span', 'arrow', '→'));
+      });
+      if (!chords.length) chips.appendChild(el('span', 'combo', '未录入'));
+
+      var addChord = el('button', 'btn', chords.length ? '+ 再加一组' : '⌨ 录入组合键');
+      addChord.title = '按一下键盘录入；可连续加多组，执行时按顺序发送';
+      addChord.addEventListener('click', function () {
         captureKeys(function (keys) {
-          step.keys = keys;
-          combo.textContent = keys.join(' + ');
-          onChange();
+          var all = chordsOf();
+          all.push(keys);
+          if (all.length === 1) {
+            step.keys = all[0];
+            delete step.chords;
+          } else {
+            step.chords = all;
+            step.keys = all[0]; // 留一份给旧版执行器
+          }
+          onChange(); render();
         });
       });
-      wrap.appendChild(combo);
-      wrap.appendChild(recBtn);
+      wrap.appendChild(chips);
+      wrap.appendChild(addChord);
+      if (chords.length > 1) wrap.appendChild(el('span', 'hintSmall', '按顺序依次发送'));
     } else if (step.type === 'mouseClick') {
       var xi = input({ type: 'number', placeholder: 'X', width: '90px' }, step.x, function (v) { step.x = Number(v); onChange(); });
       var yi = input({ type: 'number', placeholder: 'Y', width: '90px' }, step.y, function (v) { step.y = Number(v); onChange(); });
@@ -367,7 +412,7 @@
     var rec = el('button', 'btn rec', '⏺ 录制');
     rec.title = '录制一段键盘 + 鼠标操作（按 F10 提前结束）';
     rec.addEventListener('click', function () {
-      if (!api.record) { setStatus('当前版本不支持录制，请更新桌面版', true); return; }
+      if (!api.record) { setStatus('当前桌面版 v' + (appVersion || '?') + ' 不支持录制，请重新安装 1.2.0 及以上版本', true); return; }
       var target = ensureSlot(n);
       var startRec = function () {
         setStatus('录制中… 请执行你的操作，按 F10 结束');
@@ -469,6 +514,27 @@
   var dirty = false;
   function setDirty() { dirty = true; setStatus('有未保存的修改'); }
 
+  // 版本提示：录制依赖安装包里的能力，网页热更新带不动。
+  // 老版本装不上 api.record 时，这里明确告诉用户当前版本和该怎么做。
+  function renderVersionBanner() {
+    var bar = document.getElementById('verBar');
+    if (!bar) return;
+    if (api.record) { bar.style.display = 'none'; bar.textContent = ''; return; }
+    bar.style.display = 'block';
+    bar.className = 'banner warn2';
+    bar.innerHTML = '';
+    var b = document.createElement('b');
+    b.textContent = '当前桌面版 v' + (appVersion || '?') + ' 还不支持宏录制';
+    bar.appendChild(b);
+    bar.appendChild(document.createTextNode('（需要 1.2.0 及以上）。录制要用到安装包里的程序，光更新网页是拿不到的，请到下载页重新安装一次：'));
+    var link = document.createElement('a');
+    link.href = 'https://key.itytsoft.com/download.html';
+    link.target = '_blank';
+    link.rel = 'noreferrer';
+    link.textContent = '打开下载页';
+    bar.appendChild(link);
+    bar.appendChild(document.createTextNode('（装好后这个提示会自动消失）'));
+  }
   // 冲突提示：告诉用户哪几个槽位被占用，并给出可换的冷门组合
   function renderConflicts() {
     var bar = document.getElementById('conflictBar');
@@ -595,11 +661,13 @@
     info = res[1] || {};
     state = { enabled: loaded.enabled !== false, actions: loaded.actions || [] };
     conflicts = info.conflicts || [];
+    appVersion = info.appVersion || '';
     document.getElementById('enabled').checked = state.enabled;
     var name = { win32: 'Windows', darwin: 'macOS', linux: 'Linux' }[info.platform] || info.platform;
-    document.getElementById('platform').textContent = name + ' · 已注册 ' + (info.registered || []).length + ' 个热键';
+    document.getElementById('platform').textContent = name + (appVersion ? ' v' + appVersion : '') + ' · 已注册 ' + (info.registered || []).length + ' 个热键';
     render();
     renderConflicts();
+    renderVersionBanner();
     setStatus(conflicts.length
       ? ('注意：' + conflicts.length + ' 个热键被占用，请换一个')
       : ('就绪（配置文件：' + (info.file || '') + '）'), conflicts.length > 0);
