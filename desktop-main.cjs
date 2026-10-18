@@ -542,6 +542,12 @@ function setupActionsIpc() {
 
   // 逐个探测候选热键是否可用（用完即注销，不会长期占用）
   ipcMain.handle('actions:probe', () => (HOTKEY_CANDIDATES.slice(0, 60).map(probeHotkey)));
+
+  // 录制鼠标位置：读当前光标坐标填进 mouseClick 步骤
+  ipcMain.handle('actions:capture-mouse', async () => {
+    try { return { ok: true, ...(await executor.getMousePosition()) }; }
+    catch (e) { return { ok: false, error: e.message }; }
+  });
   ipcMain.handle('actions:open-help', () => {
     shell.openExternal(`${updateBase}tutorial.html`);
   });
