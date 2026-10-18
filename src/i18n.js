@@ -125,6 +125,14 @@ const en = {
   '也可以从顶部菜单「文件 → 扩展动作…」打开；配好动作后回到这里绑定按键。':
     'You can also open it from the menu: File → Extended Actions. Then come back here to bind the key.',
   '未配置': 'Not set',
+  '这些键由桌面版后台执行扩展动作': 'These keys run extended actions in the desktop app',
+  '扩展动作需要桌面版（网页版无法执行）': 'Extended actions require the desktop app (not available on the web)',
+  '键盘本身只能发标准按键；打开文件夹、开网址、粘贴文字/图片、鼠标点击，都要由桌面版在后台执行。这里只负责把按键绑定到某个动作。':
+    'A keyboard can only send standard keys. Opening folders or URLs, pasting text or images, and mouse clicks must be done by the desktop app running in the background. This page only binds a key to an action.',
+  '下载桌面版': 'Download desktop app',
+  '装好后在菜单「文件 → 扩展动作…」里配置，程序会在后台常驻':
+    'After installing, configure it via File → Extended Actions; the app stays in the background.',
+  '打开失败，请从菜单「文件 → 扩展动作…」进入': 'Failed to open; use the menu File → Extended Actions',
   '已设为扩展动作 {n}（F{k}）': 'Set as extended action {n} (F{k})',
   '扩展动作需要安装桌面版并让它在后台运行；网页版和未安装桌面版时，按下只会发出 F13-F24（大多数软件没有反应）。':
     'Extended actions require the desktop app running in the background. Without it, the key only sends F13-F24 (most apps ignore them).',
