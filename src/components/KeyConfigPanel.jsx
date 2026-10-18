@@ -408,9 +408,27 @@ export default function KeyConfigPanel({ config, onChange, multiKeyOnly, multiKe
       {/* 扩展：把按键设成扩展动作的触发键（Ctrl+Alt+Shift+F1..F12）*/}
       {currentMode === -2 && (
         <div>
-          <p className="text-sm text-gray-500 mb-3">
-            {t('扩展动作由桌面版后台执行。这里只需把按键设成触发键，具体动作在桌面版的「文件 → 扩展动作」里配置。')}
-          </p>
+          {/* 醒目提示：扩展动作依赖桌面版；网页版直接引导下载 */}
+          <div className="mb-3 rounded-xl border-2 border-indigo-200 bg-indigo-50/80 p-3">
+            <div className="flex items-start gap-2.5">
+              <span className="text-xl leading-none select-none">⚡</span>
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-bold text-indigo-800 mb-0.5">
+                  {isDesktopApp() ? t('这些键由桌面版后台执行扩展动作') : t('扩展动作需要桌面版（网页版无法执行）')}
+                </div>
+                <div className="text-xs text-indigo-900/80 leading-relaxed">
+                  {t('键盘本身只能发标准按键；打开文件夹、开网址、粘贴文字/图片、鼠标点击，都要由桌面版在后台执行。这里只负责把按键绑定到某个动作。')}
+                </div>
+                {!isDesktopApp() && (
+                  <a href={`${import.meta.env.BASE_URL}download.html`}
+                    className="inline-block mt-2 px-3 py-1.5 text-xs font-bold rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 transition-colors">
+                    ⬇ {t('下载桌面版')}
+                  </a>
+                )}
+              </div>
+            </div>
+          </div>
+
           <div className="grid grid-cols-4 gap-2">
             {Array.from({ length: 12 }, (_, i) => {
               const code = 0x3a + i; // F1..F12
