@@ -69,6 +69,57 @@
   .btn.amber { background: linear-gradient(135deg,#f59e0b,#d97706); box-shadow: 0 4px 12px rgba(245,158,11,0.3); }
   .btn.ghost { background: #fff; color: #4338ca; border: 1px solid #c7d2fe; box-shadow: none; }
 
+  /* ---- 动画演示 ---- */
+  .demo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 14px; }
+  @media (max-width: 760px) { .demo-grid { grid-template-columns: 1fr; } }
+  .demo { border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; background: #fff; }
+  .demo-head { font-size: .86rem; font-weight: 700; color: #334155; padding: 9px 12px; background: #f8fafc;
+               border-bottom: 1px solid #eef2f7; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .demo-head .replay { font-size: .72rem; color: #6366f1; cursor: pointer; user-select: none; white-space: nowrap; }
+  .demo-stage { position: relative; height: 196px; background: #f8fafc; overflow: hidden; }
+  .mock { position: absolute; inset: 10px; display: flex; gap: 8px; }
+  .mock-left { width: 62px; display: flex; flex-direction: column; gap: 6px; }
+  .mock-key { height: 34px; border: 1px solid #e2e8f0; border-radius: 8px; background: #fff; font-size: .72rem;
+              display: flex; align-items: center; justify-content: center; color: #475569; transition: all .25s; }
+  .mock-key.sel { background: #6366f1; border-color: #6366f1; color: #fff; }
+  .mock-main { flex: 1; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+  .mock-tabs { display: flex; gap: 4px; }
+  .mock-tab { flex: 1; text-align: center; font-size: .68rem; padding: 4px 0; border-radius: 6px;
+              color: #64748b; background: #fff; border: 1px solid #e2e8f0; transition: all .25s; }
+  .mock-tab.sel { background: #6366f1; border-color: #6366f1; color: #fff; }
+  .mock-grid { flex: 1; display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px;
+               align-content: start; overflow: hidden; }
+  .mock-fn { font-size: .62rem; text-align: center; padding: 5px 0; border-radius: 6px; background: #fff;
+             border: 1px solid #e2e8f0; color: #64748b; transition: all .25s; }
+  .mock-fn.sel { background: #c7d2fe; border-color: #818cf8; color: #3730a3; font-weight: 700; }
+  .mock-save { align-self: flex-end; font-size: .72rem; font-weight: 700; color: #fff; background: #6366f1;
+               padding: 5px 12px; border-radius: 8px; transition: all .25s; }
+  .mock-save.hit { transform: scale(.94); background: #4338ca; }
+  .mock-layer { display: flex; gap: 3px; align-self: flex-end; }
+  .mock-layer span { font-size: .62rem; padding: 2px 6px; border-radius: 5px; background: #fff; border: 1px solid #e2e8f0; color: #64748b; }
+  .mock-layer span.sel { background: #6366f1; border-color: #6366f1; color: #fff; }
+  .mock-input { font-size: .68rem; border: 1px solid #e2e8f0; border-radius: 6px; padding: 4px 6px;
+                background: #fff; color: #94a3b8; min-height: 22px; transition: all .2s; }
+  .mock-input.sel { border-color: #818cf8; box-shadow: 0 0 0 2px rgba(129,140,248,.18); }
+  .mock-input b { color: #334155; font-weight: 600; }
+  .mock-toast { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%) scale(.9); opacity: 0;
+                background: #111827; color: #f9fafb; font-size: .72rem; padding: 6px 12px; border-radius: 8px;
+                transition: all .3s; pointer-events: none; z-index: 6; }
+  .mock-toast.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  .cursor { position: absolute; left: 0; top: 0; width: 16px; height: 16px; pointer-events: none;
+            transition: transform .45s ease; z-index: 7; }
+  .cursor svg { display: block; filter: drop-shadow(0 1px 2px rgba(0,0,0,.35)); }
+  .cursor.click::after { content: ''; position: absolute; left: -5px; top: -5px; width: 22px; height: 22px;
+                         border-radius: 50%; border: 2px solid #6366f1; animation: curRipple .5s ease-out; }
+  @keyframes curRipple { from { transform: scale(.4); opacity: .9; } to { transform: scale(1.5); opacity: 0; } }
+  .demo-cap { font-size: .84rem; color: #475569; padding: 10px 12px; border-top: 1px solid #eef2f7;
+              min-height: 46px; display: flex; align-items: center; gap: 6px; }
+  .demo-cap b { color: #4338ca; }
+  @media (prefers-reduced-motion: reduce) {
+    .cursor { transition: none; }
+    .cursor.click::after { animation: none; }
+  }
+
   /* ---- 设备选择入口 ---- */
   .pick-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 14px; }
   @media (max-width: 640px) { .pick-grid { grid-template-columns: 1fr; } }
@@ -166,6 +217,7 @@
       <a href="#choose">0. 用网页版还是桌面版</a>
       <a href="#generation">1. 先分清你的键盘是哪一代</a>
       <a href="#connect">2. 连接键盘</a>
+      <a href="#demos">🎬 动画演示</a>
       <a href="#old">3. 旧协议款配置</a>
       <a href="#new">4. 版本 2.0 新协议款配置</a>
       <a href="#bt">5. 蓝牙无线款配置</a>
@@ -290,6 +342,41 @@
         <h3>连上之后</h3>
         <p>页面顶部会显示型号、按键数、层数等信息，然后自动跳到对应的配置页。若型号未识别，会出现<strong>手动选择型号</strong>的下拉框，选对即可。</p>
       </div>
+    </div>
+  </div>
+
+  <!-- 动画演示 -->
+  <div class="card" id="demos">
+    <h2><span class="emoji">🎬</span>四个常见操作，看动画就会</h2>
+    <p style="color:#475569;font-size:.92rem">
+      下面是<strong>模拟演示</strong>（不是录屏）：光标点哪里、标签怎么切、最后怎么保存，跟着看一遍就清楚了。
+      每段都会自动循环，也可以点右上角「↻ 重播」。
+    </p>
+    <div class="demo-grid">
+      <div class="demo" data-demo="basic">
+        <div class="demo-head"><span>① 把 K1 改成 F5</span><span class="replay">↻ 重播</span></div>
+        <div class="demo-stage"></div>
+        <div class="demo-cap">准备中…</div>
+      </div>
+      <div class="demo" data-demo="media">
+        <div class="demo-head"><span>② 把 K2 改成「音量+」</span><span class="replay">↻ 重播</span></div>
+        <div class="demo-stage"></div>
+        <div class="demo-cap">准备中…</div>
+      </div>
+      <div class="demo" data-demo="layer">
+        <div class="demo-head"><span>③ 新协议：切到第 2 层再改键</span><span class="replay">↻ 重播</span></div>
+        <div class="demo-stage"></div>
+        <div class="demo-cap">准备中…</div>
+      </div>
+      <div class="demo" data-demo="password">
+        <div class="demo-head"><span>④ 一键密码（新协议）</span><span class="replay">↻ 重播</span></div>
+        <div class="demo-stage"></div>
+        <div class="demo-cap">准备中…</div>
+      </div>
+    </div>
+    <div class="tip">
+      💡 动画只是示意界面布局，实际以工具界面为准。任何改动都必须点 <strong>保存到键盘</strong> 才会写进设备，
+      保存成功后建议拔插一次 USB 线让配置立即生效。
     </div>
   </div>
 
@@ -681,7 +768,7 @@
   var conf = TYPES[type];
   if (!conf) return; // 没有 type 参数 → 保持原来的完整说明
 
-  var ALWAYS = ['toc', 'choose', 'connect', 'desktop', 'faq'];
+  var ALWAYS = ['toc', 'choose', 'connect', 'desktop', 'faq', 'demos'];
   var showSet = ALWAYS.concat(conf.show);
 
   // 隐藏不需要的章节
@@ -717,6 +804,228 @@
   // 标题也改成针对性说法
   var sub = document.querySelector('.hero > p');
   if (sub) sub.textContent = '只显示「' + conf.label + '」的配置方法';
+})();
+</script>
+
+<script>
+/* ============================================================
+   配置动画演示
+   每个 .demo 读取 data-demo 对应的脚本, 用光标 + 高亮逐步演示操作。
+   纯 DOM/CSS, 无外部依赖, 循环播放, 进入视口后才开始。
+   ============================================================ */
+(function () {
+  var CURSOR = '<svg viewBox="0 0 24 24" width="16" height="16"><path d="M3 2l16 8-6.5 1.6L9 18z" fill="#111827" stroke="#fff" stroke-width="1.2" stroke-linejoin="round"/></svg>';
+
+  var DEMOS = {
+    basic: {
+      keys: ['K1', 'K2', 'K3'],
+      tabs: [{ id: 'keyboard', label: '键盘' }, { id: 'mouse', label: '鼠标' }, { id: 'media', label: '多媒体' }],
+      grid: {
+        keyboard: ['A', 'B', 'C', 'D', 'F5', 'F6', 'Enter', 'Space'],
+        mouse: ['左键', '右键', '中键', '滚轮上', '滚轮下'],
+        media: ['播放/暂停', '音量+', '音量-', '静音', '上一首', '下一首']
+      },
+      steps: [
+        { key: 0, cap: '① 先点一下要改的按键 <b>K1</b>' },
+        { tab: 'keyboard', cap: '② 切到 <b>键盘</b> 标签' },
+        { fn: 'F5', cap: '③ 点 <b>F5</b>，K1 就设成 F5 了' },
+        { save: true, cap: '④ 点 <b>保存到键盘</b> 写入设备' },
+        { toast: '保存成功', cap: '⑤ 保存成功，拔插一次线即生效' }
+      ]
+    },
+    media: {
+      keys: ['K1', 'K2', 'K3'],
+      tabs: [{ id: 'keyboard', label: '键盘' }, { id: 'mouse', label: '鼠标' }, { id: 'media', label: '多媒体' }],
+      grid: {
+        keyboard: ['A', 'B', 'C', 'D', 'F5', 'F6'],
+        mouse: ['左键', '右键', '中键', '滚轮上', '滚轮下'],
+        media: ['播放/暂停', '音量+', '音量-', '静音', '上一首', '下一首']
+      },
+      steps: [
+        { key: 1, cap: '① 点 <b>K2</b> 选中要改的按键' },
+        { tab: 'media', cap: '② 切到 <b>多媒体</b> 标签' },
+        { fn: '音量+', cap: '③ 点 <b>音量+</b>，K2 变成音量加' },
+        { save: true, cap: '④ 点 <b>保存到键盘</b>' },
+        { toast: '保存成功', cap: '⑤ 完成。多媒体键不用装驱动' }
+      ]
+    },
+    layer: {
+      keys: ['K1', 'K2', 'K3'],
+      layers: ['层 1', '层 2', '层 3'],
+      tabs: [{ id: 'keyboard', label: '键盘' }, { id: 'media', label: '多媒体' }, { id: 'macro', label: '宏' }],
+      grid: {
+        keyboard: ['A', 'B', 'C', 'F5', 'F6', 'Enter'],
+        media: ['音量+', '音量-', '静音', '播放/暂停'],
+        macro: ['录制宏', '按键序列', '延迟', '一键密码']
+      },
+      steps: [
+        { layer: 1, cap: '① 先切到 <b>层 2</b>（不影响层 1）' },
+        { key: 2, cap: '② 选 <b>K3</b>' },
+        { tab: 'macro', cap: '③ 切到 <b>宏</b> 标签' },
+        { fn: '按键序列', cap: '④ 选一个宏功能' },
+        { save: true, cap: '⑤ 保存 —— 只写入当前层' },
+        { toast: '已写入层 2', cap: '⑥ 不同层可以有完全不同的键位' }
+      ]
+    },
+    password: {
+      keys: ['K1', 'K2', 'K3'],
+      input: '输入密码',
+      tabs: [{ id: 'keyboard', label: '键盘' }, { id: 'macro', label: '宏' }],
+      grid: {
+        keyboard: ['A', 'B', 'C', 'F5', 'F6'],
+        macro: ['录制宏', '按键序列', '一键密码', '延迟']
+      },
+      steps: [
+        { key: 1, cap: '① 选中 <b>K2</b>（要当密码键的那个）' },
+        { tab: 'macro', cap: '② 切到 <b>宏</b> 标签' },
+        { fn: '一键密码', cap: '③ 选 <b>一键密码</b>' },
+        { input: 'abc123', cap: '④ 输入密码，工具会转成按键序列下发' },
+        { save: true, cap: '⑤ 保存到键盘' },
+        { toast: '保存成功', cap: '⑥ 按一下 K2 就自动输入整串密码' }
+      ]
+    }
+  };
+
+  function wait(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+
+  function build(stage, cfg) {
+    var html = '<div class="mock"><div class="mock-left">';
+    cfg.keys.forEach(function (k, i) {
+      html += '<div class="mock-key" data-role="key" data-i="' + i + '">' + k + '</div>';
+    });
+    html += '</div><div class="mock-main"><div class="mock-tabs">';
+    cfg.tabs.forEach(function (t) {
+      html += '<div class="mock-tab" data-role="tab" data-id="' + t.id + '">' + t.label + '</div>';
+    });
+    html += '</div>';
+    if (cfg.layers) {
+      html += '<div class="mock-layer">';
+      cfg.layers.forEach(function (l, i) {
+        html += '<span data-role="layer" data-i="' + i + '">' + l + '</span>';
+      });
+      html += '</div>';
+    }
+    html += '<div class="mock-grid" data-role="grid"></div>';
+    if (cfg.input) html += '<div class="mock-input" data-role="input">' + cfg.input + '…</div>';
+    html += '<div class="mock-save" data-role="save">保存到键盘</div></div></div>';
+    html += '<div class="mock-toast" data-role="toast"></div>';
+    html += '<div class="cursor" data-role="cursor">' + CURSOR + '</div>';
+    stage.innerHTML = html;
+    fillGrid(stage, cfg, cfg.tabs[0].id);
+    stage.querySelector('[data-role="cursor"]').style.transform = 'translate(6px, 6px)';
+  }
+
+  function fillGrid(stage, cfg, tabId) {
+    var list = cfg.grid[tabId] || [];
+    stage.querySelector('[data-role="grid"]').innerHTML = list.map(function (n) {
+      return '<div class="mock-fn" data-fn="' + n + '">' + n + '</div>';
+    }).join('');
+  }
+
+  function moveCursor(stage, cursor, el) {
+    var s = stage.getBoundingClientRect();
+    var r = el.getBoundingClientRect();
+    cursor.style.transform = 'translate(' + (r.left - s.left + r.width / 2 - 5) + 'px,' +
+      (r.top - s.top + r.height / 2 - 4) + 'px)';
+  }
+
+  function clear(stage, sel) {
+    Array.prototype.forEach.call(stage.querySelectorAll(sel), function (n) { n.classList.remove('sel'); });
+  }
+
+  async function play(demoEl, cfg) {
+    var stage = demoEl.querySelector('.demo-stage');
+    var capEl = demoEl.querySelector('.demo-cap');
+    build(stage, cfg);
+    var cursor = stage.querySelector('[data-role="cursor"]');
+    var toast = stage.querySelector('[data-role="toast"]');
+
+    for (var i = 0; i < cfg.steps.length; i++) {
+      var step = cfg.steps[i];
+      var target = null;
+
+      if (step.key !== undefined) target = stage.querySelector('[data-role="key"][data-i="' + step.key + '"]');
+      else if (step.tab) target = stage.querySelector('[data-role="tab"][data-id="' + step.tab + '"]');
+      else if (step.fn) target = stage.querySelector('[data-fn="' + step.fn + '"]');
+      else if (step.layer !== undefined) target = stage.querySelector('[data-role="layer"][data-i="' + step.layer + '"]');
+      else if (step.input) target = stage.querySelector('[data-role="input"]');
+      else if (step.save) target = stage.querySelector('[data-role="save"]');
+
+      if (target) {
+        moveCursor(stage, cursor, target);
+        await wait(430);
+        cursor.classList.add('click');
+        setTimeout(function (c) { return function () { c.classList.remove('click'); }; }(cursor), 520);
+      }
+
+      if (step.key !== undefined) {
+        clear(stage, '[data-role="key"]');
+        if (target) target.classList.add('sel');
+        clear(stage, '[data-fn]');
+      } else if (step.tab) {
+        clear(stage, '[data-role="tab"]');
+        if (target) target.classList.add('sel');
+        fillGrid(stage, cfg, step.tab);
+      } else if (step.fn) {
+        clear(stage, '[data-fn]');
+        var fnEl = stage.querySelector('[data-fn="' + step.fn + '"]');
+        if (fnEl) fnEl.classList.add('sel');
+      } else if (step.layer !== undefined) {
+        clear(stage, '[data-role="layer"]');
+        if (target) target.classList.add('sel');
+      } else if (step.input) {
+        if (target) {
+          target.classList.add('sel');
+          target.innerHTML = '';
+          for (var c = 0; c < step.input.length; c++) {
+            await wait(110);
+            target.innerHTML = '<b>' + step.input.slice(0, c + 1) + '</b>';
+          }
+        }
+      } else if (step.save) {
+        if (target) {
+          target.classList.add('hit');
+          setTimeout(function (t) { return function () { t.classList.remove('hit'); }; }(target), 400);
+        }
+      } else if (step.toast) {
+        toast.textContent = step.toast;
+        toast.classList.add('show');
+        setTimeout(function (t) { return function () { t.classList.remove('show'); }; }(toast), 1400);
+      }
+
+      capEl.innerHTML = step.cap;
+      await wait(step.hold || 1150);
+    }
+    await wait(1600);
+  }
+
+  function loop(demoEl, cfg) {
+    (async function () {
+      for (;;) { await play(demoEl, cfg); }
+    })();
+  }
+
+  function init() {
+    var demos = document.querySelectorAll('.demo');
+    if (!demos.length) return;
+    Array.prototype.forEach.call(demos, function (el) {
+      var cfg = DEMOS[el.getAttribute('data-demo')];
+      if (!cfg) return;
+      var replay = el.querySelector('.replay');
+      if (replay) replay.addEventListener('click', function () { loop(el, cfg); });
+      if (!('IntersectionObserver' in window)) { loop(el, cfg); return; }
+      var started = false;
+      var io = new IntersectionObserver(function (entries) {
+        entries.forEach(function (e) {
+          if (e.isIntersecting && !started) { started = true; loop(el, cfg); io.disconnect(); }
+        });
+      }, { threshold: 0.25 });
+      io.observe(el);
+    });
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else init();
 })();
 </script>
 
