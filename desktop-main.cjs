@@ -11,6 +11,7 @@
 // ============================================================
 const { app, BrowserWindow, session, shell, Menu, dialog, net, globalShortcut, clipboard, nativeImage, ipcMain, Tray, Notification } = require('electron');
 const http = require('http');
+const { execFile, spawn } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const { URL } = require('url');
@@ -45,6 +46,189 @@ let updateBase = 'https://key.itytsoft.com/';
 let updateInFlight = false;
 let appConfig = {};
 
+// ---------- 程序自身更新（安装包级别）----------
+// 网页内容能热更新，但主进程/Electron 本身换不了 —— 那些新功能（宏录制、托盘、
+// 窗口关闭保护）都在安装包里。这里做"下载 → 解压 → 启动新版"，
+// 让用户点一次就能升级，不用自己找下载页。
+
+function platformPackageId() {
+  if (process.platform === 'win32') return 'win-x64';
+  if (process.platform === 'darwin') return process.arch === 'arm64' ? 'mac-arm64' : 'mac-x64';
+  return 'linux-x64-domestic';
+}
+
+function downloadTo(url, destPath, onProgress) {
+  return new Promise((resolve, reject) => {
+    const req = net.request(url);
+    req.on('response', (res) => {
+      if (res.statusCode !== 200) { reject(new Error(`HTTP ${res.statusCode}`)); return; }
+      const total = Number(res.headers['content-length'] || 0);
+      let got = 0;
+      const ws = fs.createWriteStream(destPath);
+      res.on('data', (chunk) => { got += chunk.length; if (onProgress) onProgress(got, total); });
+      res.on('end', () => ws.end());
+      res.pipe(ws);
+      ws.on('finish', () => resolve({ bytes: got, total }));
+      ws.on('error', reject);
+    });
+    req.on('error', reject);
+    req.end();
+  });
+}
+
+function extractPackage(archive, outDir) {
+  fs.mkdirSync(outDir, { recursive: true });
+  const isWin = process.platform === 'win32';
+  const file = isWin ? 'powershell' : 'unzip';
+  const args = isWin
+    ? ['-NoProfile', '-NonInteractive', '-Command',
+      `Expand-Archive -LiteralPath "${archive}" -DestinationPath "${outDir}" -Force`]
+    : ['-q', '-o', archive, '-d', outDir];
+  return new Promise((resolve, reject) => {
+    execFile(file, args, { windowsHide: true, timeout: 300000 }, (err, _o, stderr) => {
+      if (err) reject(new Error(String(stderr || err.message).slice(0, 300)));
+      else resolve();
+    });
+  });
+}
+
+// 在解压目录里找可执行文件（绿色版是 <产品名>/xxx.exe）
+function findLauncher(dir) {
+  const queue = [{ p: dir, d: 0 }];
+  let seen = 0;
+  while (queue.length && seen < 3000) {
+    seen += 1;
+    const { p: cur, d } = queue.shift();
+    if (d > 4) continue;
+    let entries = [];
+    try { entries = fs.readdirSync(cur, { withFileTypes: true }); } catch { continue; }
+    for (const e of entries) {
+      const full = path.join(cur, e.name);
+      if (e.isDirectory()) {
+        if (process.platform === 'darwin' && e.name.endsWith('.app')) return full;
+        queue.push({ p: full, d: d + 1 });
+        continue;
+      }
+      if (process.platform === 'win32' && /\.exe$/i.test(e.name) && !/unins/i.test(e.name)) return full;
+      if (process.platform === 'linux' && /^(yywl|YYWL)/.test(e.name)) {
+        try { fs.chmodSync(full, 0o755); } catch { /* 忽略 */ }
+        return full;
+      }
+    }
+  }
+  return '';
+}
+
+async function checkPackageUpdate({ manual = false } = {}) {
+  let manifest;
+  try {
+    manifest = await updater.fetchJson(`${updateBase}download/manifest.json?t=${Date.now()}`, 15000);
+  } catch (e) {
+    if (manual) {
+      dialog.showMessageBox(mainWindow, {
+        type: 'warning', message: '检查程序更新失败',
+        detail: `${e.message}\n\n更新地址：${updateBase}`, buttons: ['知道了'],
+      });
+    }
+    return;
+  }
+  const latest = manifest && manifest.version;
+  const current = app.getVersion();
+  if (!latest) return;
+
+  if (compareVersions(latest, current) <= 0) {
+    if (manual) {
+      dialog.showMessageBox(mainWindow, {
+        type: 'info', message: '已是最新版本', detail: `当前版本：${current}`, buttons: ['知道了'],
+      });
+    }
+    return;
+  }
+
+  const wantId = platformPackageId();
+  const pkg = (manifest.packages || []).find((p) => p.id === wantId && p.available);
+  if (!pkg) {
+    if (manual) {
+      dialog.showMessageBox(mainWindow, {
+        type: 'info', message: `发现新版本 ${latest}`,
+        detail: `当前版本：${current}\n这个平台暂时没有可下载的安装包，请到下载页手动下载：\n${updateBase}download.html`,
+        buttons: ['打开下载页', '取消'], defaultId: 0, cancelId: 1,
+      }).then(({ response }) => { if (response === 0) shell.openExternal(`${updateBase}download.html`); });
+    }
+    return;
+  }
+
+  const sizeMb = Math.round((pkg.size || 0) / 1048576);
+  const { response } = await dialog.showMessageBox(mainWindow, {
+    type: 'info',
+    message: `发现新版本 ${latest}`,
+    detail: `当前版本：${current}\n新版本：${latest}（约 ${sizeMb} MB）\n\n`
+      + '这是程序本身的更新。宏录制、托盘、窗口关闭保护这些都在安装包里，\n'
+      + '光更新网页是拿不到的。\n\n'
+      + '点「下载并安装」会自动下载、解压并启动新版本，配置和动作都会保留。',
+    buttons: ['下载并安装', '稍后'],
+    defaultId: 0,
+    cancelId: 1,
+  });
+  if (response !== 0) return;
+
+  const dir = path.join(app.getPath('temp'), `yywl-update-${latest}`);
+  try { fs.mkdirSync(dir, { recursive: true }); } catch { /* 忽略 */ }
+  const file = path.join(dir, pkg.file);
+  if (mainWindow) mainWindow.setProgressBar(0.01);
+  try {
+    await downloadTo(`${updateBase}download/${encodeURIComponent(pkg.file)}`, file, (got, total) => {
+      if (mainWindow && total) mainWindow.setProgressBar(Math.min(0.98, got / total));
+    });
+  } catch (e) {
+    if (mainWindow) mainWindow.setProgressBar(-1);
+    dialog.showMessageBox(mainWindow, {
+      type: 'error', message: '下载失败',
+      detail: `${e.message}\n\n可以到 ${updateBase}download.html 手动下载。`, buttons: ['知道了'],
+    });
+    return;
+  }
+  if (mainWindow) mainWindow.setProgressBar(-1);
+
+  const out = path.join(dir, 'app');
+  try {
+    await extractPackage(file, out);
+  } catch (e) {
+    shell.showItemInFolder(file);
+    dialog.showMessageBox(mainWindow, {
+      type: 'warning', message: '已下载，但自动解压失败',
+      detail: `${e.message}\n\n安装包已保存：${file}\n请手动解压后运行。`, buttons: ['知道了'],
+    });
+    return;
+  }
+
+  const launcher = findLauncher(out);
+  if (!launcher) {
+    shell.openPath(out);
+    dialog.showMessageBox(mainWindow, {
+      type: 'info', message: '下载完成', detail: `已解压到：\n${out}\n\n请手动运行其中的程序。`, buttons: ['知道了'],
+    });
+    return;
+  }
+
+  const { response: r2 } = await dialog.showMessageBox(mainWindow, {
+    type: 'info', message: '新版本已就绪',
+    detail: `程序位置：\n${launcher}\n\n现在关闭当前程序并启动新版本？（配置和动作都会保留）`,
+    buttons: ['立即重启到新版本', '我自己打开'],
+    defaultId: 0,
+    cancelId: 1,
+  });
+  if (r2 === 0) {
+    try {
+      const child = spawn(launcher, [], { detached: true, stdio: 'ignore' });
+      child.unref();
+    } catch { /* 启动失败就退回打开目录 */ shell.showItemInFolder(launcher); return; }
+    app.isQuitting = true;
+    app.quit();
+  } else {
+    shell.showItemInFolder(launcher);
+  }
+}
 // ---------- 配置 ----------
 
 function loadConfig() {
@@ -412,7 +596,8 @@ function buildMenu() {
     {
       label: '帮助',
       submenu: [
-        { label: '检查更新…', click: () => checkForUpdates({ manual: true }) },
+        { label: '检查更新（网页内容）…', click: () => checkForUpdates({ manual: true }) },
+        { label: '检查程序更新（安装包）…', click: () => checkPackageUpdate({ manual: true }) },
         { label: '版本信息', click: showAbout },
       ],
     },
