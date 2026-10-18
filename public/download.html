@@ -168,7 +168,37 @@
     </div>
   </div>
 
-  <!-- 版本信息 -->
+  <!-- 扩展动作 -->
+  <div class="card" id="actionsCard" style="border:2px solid #c7d2fe;background:linear-gradient(180deg,#f5f3ff,#fff)">
+    <h2>⚡ 扩展动作（桌面版专属）</h2>
+    <p style="font-size:.9rem;color:#475569">
+      键盘本身只能发标准按键，<strong>做不到</strong>打开文件夹、开网址、粘贴一段文字或图片、按坐标点击鼠标。
+      这些由<strong>桌面版的后台程序</strong>监听一个"保留热键"来完成——所以<strong>桌面版必须在后台运行</strong>。
+    </p>
+
+    <table style="margin-top:12px">
+      <tr><th style="width:150px">能做什么</th><th>说明</th></tr>
+      <tr><td>打开文件夹 / 文件</td><td>一键打开报价单目录、模板文件等</td></tr>
+      <tr><td>打开网址</td><td>打开公司系统、常用网页</td></tr>
+      <tr><td>粘贴文字</td><td>地址、单号、整段话（<strong>支持中文</strong>，走剪贴板粘贴）</td></tr>
+      <tr><td>粘贴图片</td><td>把签名图、产品图直接粘到微信/Word 里</td></tr>
+      <tr><td>鼠标点击 + 组合键</td><td>按坐标点击后再按 Ctrl+Enter 等，可多步串联</td></tr>
+    </table>
+
+    <div class="tip" style="margin-top:14px">
+      🖥 <strong>网页版看不到这个功能</strong>——浏览器无法监听全局按键，也不能操作鼠标键盘。<br>
+      需要的话请下载桌面版：装好后在菜单 <strong>文件 → 扩展动作</strong> 里配置，程序会自动最小化到托盘常驻。
+    </div>
+
+    <div class="warn">
+      ⚠️ 首次使用注意：<strong>macOS</strong> 会要一次「辅助功能 / 输入监控」授权；<strong>国产 Linux</strong> 需要 X11 会话（Wayland 下模拟输入受限）；
+      部分安全软件可能拦截模拟输入，需加白名单。
+    </div>
+
+    <a class="dl" style="margin-top:16px" href="#" onclick="window.scrollTo({top:0,behavior:'smooth'});return false;">⬇ 去下载桌面版</a>
+  </div>
+
+
   <div class="card">
     <h2>🔐 版本与校验</h2>
     <div id="shaList" style="font-size:.86rem;color:#475569">加载中…</div>
