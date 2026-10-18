@@ -196,13 +196,16 @@ jobs:
             echo "✓ 一致: 桌面版首次启动不会触发无效更新"
           fi
 
-      - name: 上传 Artifact (备份用, 保留 30 天)
+      # 这些包已经传到 FTP 服务器并挂到 Release 上了，artifact 只是给下面
+      # 「生成下载清单」任务在同一轮流水线里取文件用，保留 1 天足够。
+      # 之前保留 30 天，每轮约 650MB × 6 个包，把 Actions 存储（免费 0.5GB）吃光了。
+      - name: 上传 Artifact (仅供清单任务使用, 保留 1 天)
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact }}
           path: release/download/*
           if-no-files-found: error
-          retention-days: 30
+          retention-days: 1
 
       - name: 附加到 Release (仅标签触发)
         if: startsWith(github.ref, 'refs/tags/v')
