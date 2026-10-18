@@ -9,7 +9,7 @@
 // 网页内容可在线更新 (见 desktop-updater.cjs):
 //   优先使用 userData/web/<buildId>/ (更新下来的), 没有则用安装包自带的 dist
 // ============================================================
-const { app, BrowserWindow, session, shell, Menu, dialog, net, globalShortcut, clipboard, nativeImage, ipcMain, Tray } = require('electron');
+const { app, BrowserWindow, session, shell, Menu, dialog, net, globalShortcut, clipboard, nativeImage, ipcMain, Tray, Notification } = require('electron');
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
@@ -159,6 +159,18 @@ function createWindow() {
 
   mainWindow.loadURL(`${localPrefix}/`);
   mainWindow.on('closed', () => { mainWindow = null; });
+
+  // 第一次"关窗口 → 缩到托盘"时提醒一句，否则用户会以为程序没关掉
+  mainWindow.on('close', () => {
+    if (app.isQuitting || !tray || trayHintShown) return;
+    trayHintShown = true;
+    const title = 'YYWL 键盘配置工具';
+    const content = '程序已最小化到托盘，仍在后台运行。右键托盘图标可以退出。';
+    try {
+      if (process.platform === 'win32') tray.displayBalloon({ title, content });
+      else new Notification({ title, body: content }).show();
+    } catch { /* 通知不可用就算了 */ }
+  });
 }
 
 function startApp() {
@@ -392,6 +404,7 @@ const ACTION_SLOTS = 24;
 let actionsWindow = null;
 let actionsConfig = { version: 1, enabled: true, actions: [] };
 let tray = null;
+let trayHintShown = false;
 let executor = null;
 const registeredShortcuts = [];
 
@@ -557,6 +570,20 @@ function openActionsWindow() {
   });
   actionsWindow.loadURL(`${localPrefix}/actions.html`);
   actionsWindow.on('closed', () => { actionsWindow = null; });
+
+  // 页面里有"未保存修改"时浏览器会阻止关闭（beforeunload），
+  // Electron 不会自动弹框 → 表现成"窗口关不掉"。这里补一个确认框。
+  actionsWindow.webContents.on('will-prevent-unload', (event) => {
+    const choice = dialog.showMessageBoxSync(actionsWindow, {
+      type: 'question',
+      buttons: ['放弃修改并关闭', '取消'],
+      defaultId: 1,
+      cancelId: 1,
+      message: '有未保存的修改',
+      detail: '关闭后这次的改动会丢失，确定要关闭吗？',
+    });
+    if (choice === 0) event.preventDefault(); // 允许关闭
+  });
 }
 
 function setupTray() {
@@ -606,12 +633,11 @@ if (!gotTheLock) {
     buildMenu();
     startApp();
 
-    // 有启用的动作时注册全局热键 + 建托盘, 让程序能在后台常驻
-    const hasActions = actionsConfig.enabled && actionsConfig.actions.some((a) => (a.steps || []).length);
-    if (hasActions) {
-      registerHotkeys();
-      setupTray();
-    }
+    // 托盘无条件创建：这样无论有没有配动作，关窗口都是"最小化到托盘"，
+    // 不会出现"关了就彻底没了、也找不到后台"的情况（用户反馈过）
+    setupTray();
+    // 有动作就顺带把热键注册上
+    registerHotkeys();
 
     app.on('activate', () => {
       if (BrowserWindow.getAllWindows().length === 0) startApp();
@@ -619,10 +645,15 @@ if (!gotTheLock) {
   });
 }
 
+// 从托盘菜单退出时才真正结束进程
+app.on('before-quit', () => {
+  app.isQuitting = true;
+  try { if (server) server.close(); } catch { /* 忽略 */ }
+});
+
 app.on('window-all-closed', () => {
-  // 有扩展动作在跑时，关窗口不退出，留在托盘里继续响应热键
-  const keepRunning = actionsConfig.enabled && actionsConfig.actions.some((a) => (a.steps || []).length);
-  if (keepRunning && !app.isQuitting && tray) return;
+  // 有托盘就留在后台（继续响应热键），只有明确"退出"才真的结束
+  if (!app.isQuitting && tray) return;
   if (server) { try { server.close(); } catch { /* 忽略 */ } }
   app.quit();
 });
