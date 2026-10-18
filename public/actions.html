@@ -387,7 +387,7 @@
     (info.conflicts || []).forEach(function (c) { conflictMap[c.slot] = c; });
     if (conflictMap[n]) hkSel.style.borderColor = '#f87171';
     opts.forEach(function (h) {
-      var o = el('option', null, h + (probeMap[h] === false ? '（被占用）' : ''));
+      var o = el('option', null, prettyHotkey(h) + (probeMap[h] === false ? '（被占用）' : ''));
       o.value = h;
       if (h === cur) o.selected = true;
       hkSel.appendChild(o);
@@ -535,6 +535,14 @@
     bar.appendChild(link);
     bar.appendChild(document.createTextNode('（装好后这个提示会自动消失）'));
   }
+  // Electron 的热键字符串是 "Control+Alt+Shift+F1"，但界面上应该显示 "Ctrl+Alt+Shift+F1"。
+  // 只在显示时转换，存进配置的仍然是 Electron 认的写法。
+  function prettyHotkey(h) {
+    return String(h || '')
+      .replace(/\bControl\b/g, 'Ctrl')
+      .replace(/\bCommand\b/g, 'Cmd')
+      .replace(/\bSuper\b/g, 'Win');
+  }
   // 冲突提示：告诉用户哪几个槽位被占用，并给出可换的冷门组合
   function renderConflicts() {
     var bar = document.getElementById('conflictBar');
@@ -549,7 +557,7 @@
     head.textContent = '有 ' + conflicts.length + ' 个热键被其它程序占用：';
     bar.appendChild(head);
     bar.appendChild(document.createTextNode(conflicts.map(function (c) {
-      return '槽位 #' + c.slot + '（' + c.hotkey + '）';
+      return '槽位 #' + c.slot + '（' + prettyHotkey(c.hotkey) + '）';
     }).join('、') + '。'));
 
     bar.appendChild(document.createElement('br'));
@@ -586,7 +594,7 @@
   document.getElementById('enabled').addEventListener('change', function (e) {
     state.enabled = e.target.checked;
     setDirty();
-    api.save(state).then(function (r) { setStatus('已保存，热键：' + (r.registered.join(', ') || '无')); dirty = false; });
+    api.save(state).then(function (r) { setStatus('已保存，热键：' + (r.registered.map(prettyHotkey).join(', ') || '无')); dirty = false; });
   });
 
   document.getElementById('btnSave').addEventListener('click', function () {
@@ -595,7 +603,7 @@
       dirty = false;
       conflicts = r.conflicts || [];
       renderConflicts();
-      setStatus('已保存，生效热键：' + (r.registered.join(', ') || '无') +
+      setStatus('已保存，生效热键：' + (r.registered.map(prettyHotkey).join(', ') || '无') +
         (conflicts.length ? '（有 ' + conflicts.length + ' 个被占用）' : ''), conflicts.length > 0);
       render();
     });
