@@ -152,8 +152,9 @@ function createWindow() {
       shell.openExternal(url);
     }
   });
+  // 任何"新窗口"请求都交给系统浏览器（包括本地说明页），不要顶掉应用界面
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    if (!url.startsWith(localPrefix)) shell.openExternal(url);
+    shell.openExternal(url);
     return { action: 'deny' };
   });
 
@@ -569,7 +570,9 @@ function setupActionsIpc() {
     catch (e) { return { ok: false, error: e.message }; }
   });
   ipcMain.handle('actions:open-help', () => {
-    shell.openExternal(`${updateBase}tutorial.html`);
+    // 优先打开本地那份说明（离线可用）；本地服务还没起时才退回线上地址
+    const local = localPrefix ? `${localPrefix}/actions-guide.html` : '';
+    shell.openExternal(local || `${updateBase}actions-guide.html`);
   });
 }
 
