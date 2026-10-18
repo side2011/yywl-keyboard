@@ -36,6 +36,32 @@ const SLOTS = [
 
 const dryRun = process.argv.includes('--dry-run')
 
+// --meta=<dir>：从"产物校验信息"里读大小和哈希（CI 用；不下载整个安装包）
+// 不传时退回扫描本地 release/download/（本地打包用）
+const metaArg = process.argv.find((a) => a.startsWith('--meta='))
+const metaDir = metaArg ? path.resolve(ROOT, metaArg.slice(7)) : ''
+let metaFiles = null
+if (metaDir && fs.existsSync(metaDir)) {
+  metaFiles = {}
+  // 递归找 json：CI 里每个平台的 artifact 会落在各自子目录
+  const walk = (dir, depth = 0) => {
+    if (depth > 3) return
+    for (const name of fs.readdirSync(dir)) {
+      const abs = path.join(dir, name)
+      if (fs.statSync(abs).isDirectory()) { walk(abs, depth + 1); continue }
+      if (!name.endsWith('.json')) continue
+      try {
+        const data = JSON.parse(fs.readFileSync(abs, 'utf8'))
+        Object.assign(metaFiles, data.files || {})
+      } catch (e) {
+        console.log(`  ! 跳过坏掉的 meta 文件 ${name}: ${e.message}`)
+      }
+    }
+  }
+  walk(metaDir)
+  console.log(`  从 meta 读到了 ${Object.keys(metaFiles).length} 个产物信息`)
+}
+
 function sha256(file) {
   const h = crypto.createHash('sha256')
   h.update(fs.readFileSync(file))
@@ -44,9 +70,11 @@ function sha256(file) {
 
 const packages = SLOTS.map((slot) => {
   const abs = path.join(SRC, slot.file)
-  if (fs.existsSync(abs) && fs.statSync(abs).size > 0) {
-    const size = fs.statSync(abs).size
-    const hash = sha256(abs)
+  const meta = metaFiles ? metaFiles[slot.file] : null
+  const fromDisk = !metaFiles && fs.existsSync(abs) && fs.statSync(abs).size > 0
+  if (meta || fromDisk) {
+    const size = meta ? meta.size : fs.statSync(abs).size
+    const hash = meta ? meta.sha256 : sha256(abs)
     console.log(`  ✓ ${slot.file}  ${(size / 1048576).toFixed(1)} MB  ${hash.slice(0, 12)}…`)
     return {
       id: slot.id,
