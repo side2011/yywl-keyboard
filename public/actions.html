@@ -47,6 +47,17 @@
   .result{font-size:12px;margin-top:8px}
   .result.ok{color:#15803d}
   .result.err{color:#dc2626}
+  /* 使用说明 */
+  .help{margin-bottom:14px;background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:10px 14px}
+  .help summary{cursor:pointer;font-weight:700;color:#4338ca;font-size:14px;outline:none}
+  .help-body{font-size:13px;color:#475569;line-height:1.85;margin-top:8px}
+  .help-body ol,.help-body ul{margin:6px 0 6px 20px}
+  .help-body b{color:#334155}
+  /* 录制遮罩 */
+  .capture-mask{position:fixed;inset:0;background:rgba(15,23,42,.55);display:flex;align-items:center;justify-content:center;z-index:100}
+  .capture-box{background:#fff;border-radius:14px;padding:26px 34px;font-size:16px;font-weight:700;color:#1e293b;box-shadow:0 20px 50px rgba(0,0,0,.3);text-align:center}
+  .capture-sub{font-size:13px;font-weight:400;color:#64748b;margin-top:8px}
+  .combo{font-family:ui-monospace,Menlo,monospace;font-size:12px;background:#eef2ff;border:1px solid #c7d2fe;color:#3730a3;border-radius:8px;padding:6px 10px;min-width:120px;text-align:center}
   footer{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid #e2e8f0;padding:10px 22px;display:flex;gap:10px;align-items:center;justify-content:flex-end}
   .status{font-size:12px;color:#64748b;margin-right:auto}
 </style>
@@ -68,6 +79,22 @@
     动作只存在这台电脑上，不会写入键盘；换电脑用右下角「导出 / 导入」。
   </div>
 
+  <details class="help" open>
+    <summary>❓ 怎么用（3 步）+ 注意事项</summary>
+    <div class="help-body">
+      <ol>
+        <li><b>配动作</b>：给槽位起个名字 → 点下方「常用模板」选一种动作 → 填参数（文件夹路径 / 网址 / 文字…）。</li>
+        <li><b>绑按键</b>：到「键盘配置」页选一个按键 → 切到「扩展」选项卡 → 点对应编号（动作 1 就是 F13）。</li>
+        <li><b>保存</b>：先在键盘配置里「保存到键盘」，再回这里点右下角「保存并生效」。</li>
+      </ol>
+      <ul>
+        <li>桌面版必须<b>在后台运行</b>（关窗口会缩到托盘）。没运行的话，按键只会发出 F13，绝大多数软件没反应。</li>
+        <li>配了动作的热键会被桌面版<b>接管</b>，不会再传给当前程序 —— 别和常用快捷键重复。</li>
+        <li>被别的软件占用时，顶部会出现红色提示；点右下角「检测占用」可以挑一个空闲组合。</li>
+        <li>动作只存在这台电脑的 <code>actions.json</code> 里，<b>不会写进键盘</b>；换电脑用「导出 / 导入」。</li>
+      </ul>
+    </div>
+  </details>
   <div class="tabs">
     <div class="tab on" data-bank="0">槽位 1–12（F13–F24）</div>
     <div class="tab" data-bank="1">槽位 13–24（Ctrl+Alt+Shift+F1–F12）</div>
@@ -130,6 +157,66 @@
   }
   function hk(n) { return info.hotkeys[n - 1] || ('槽位 ' + n); }
 
+  // ---- 录制辅助 ----
+  var KEY_MAP = {
+    Enter: 'enter', Tab: 'tab', Space: 'space', Backspace: 'backspace', Delete: 'delete',
+    ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right',
+    Home: 'home', End: 'end', PageUp: 'pgup', PageDown: 'pgdn', Escape: 'esc',
+  };
+  function normKey(e) {
+    var code = e.code || '';
+    if (/^Key[A-Z]$/.test(code)) return code.slice(3).toLowerCase();
+    if (/^Digit[0-9]$/.test(code)) return code.slice(5);
+    if (/^F\d{1,2}$/.test(code)) return code.toLowerCase();
+    return KEY_MAP[code] || null; // 修饰键/标点忽略
+  }
+
+  // 录入组合键：弹遮罩，按下什么就记什么（Esc 取消）
+  function captureKeys(done) {
+    var mask = document.createElement('div');
+    mask.className = 'capture-mask';
+    mask.innerHTML = '<div class="capture-box">请按下要发送的组合键<div class="capture-sub">例如 Ctrl+Shift+A；按 Esc 取消</div></div>';
+    document.body.appendChild(mask);
+    function cleanup() {
+      document.removeEventListener('keydown', onKey, true);
+      if (mask.parentNode) mask.parentNode.removeChild(mask);
+    }
+    function onKey(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      if (e.code === 'Escape' && !e.ctrlKey && !e.altKey && !e.shiftKey && !e.metaKey) { cleanup(); return; }
+      var mods = [];
+      if (e.ctrlKey) mods.push('ctrl');
+      if (e.altKey) mods.push('alt');
+      if (e.shiftKey) mods.push('shift');
+      if (e.metaKey) mods.push('win');
+      var k = normKey(e);
+      if (!k) return; // 只按了修饰键，继续等
+      cleanup();
+      done(mods.concat([k]));
+    }
+    document.addEventListener('keydown', onKey, true);
+  }
+
+  // 录制鼠标位置：3 秒倒计时后读取当前光标坐标
+  function captureMouse(done) {
+    var mask = document.createElement('div');
+    mask.className = 'capture-mask';
+    mask.innerHTML = '<div class="capture-box" id="cmBox">3 秒后记录鼠标位置…<div class="capture-sub">现在把鼠标移到要点击的地方</div></div>';
+    document.body.appendChild(mask);
+    var left = 3;
+    var timer = setInterval(function () {
+      left -= 1;
+      var box = document.getElementById('cmBox');
+      if (left > 0) { if (box) box.firstChild.textContent = left + ' 秒后记录鼠标位置…'; return; }
+      clearInterval(timer);
+      api.captureMouse().then(function (r) {
+        if (mask.parentNode) mask.parentNode.removeChild(mask);
+        if (r && r.ok) done(r);
+        else setStatus('取鼠标位置失败：' + ((r && r.error) || '未知错误'), true);
+      });
+    }, 1000);
+  }
   function el(tag, cls, text) {
     var e = document.createElement(tag);
     if (cls) e.className = cls;
@@ -188,15 +275,35 @@
       });
       wrap.appendChild(img); wrap.appendChild(pickImg);
     } else if (step.type === 'keyPress') {
-      var k = input({ placeholder: '如 ctrl+enter 或 cmd+v' }, (step.keys || []).join('+'), function (v) {
-        step.keys = v.split('+').map(function (s) { return s.trim(); }).filter(Boolean);
-        onChange();
+      // 不再让用户手打（容易打错、符号也不认）：改成"按一下键盘"录入
+      var combo = el('span', 'combo', (step.keys || []).length ? step.keys.join(' + ') : '未录入');
+      var recBtn = el('button', 'btn', '⌨ 录入组合键');
+      recBtn.addEventListener('click', function () {
+        captureKeys(function (keys) {
+          step.keys = keys;
+          combo.textContent = keys.join(' + ');
+          onChange();
+        });
       });
-      k.style.width = '100%';
-      wrap.appendChild(k);
+      wrap.appendChild(combo);
+      wrap.appendChild(recBtn);
     } else if (step.type === 'mouseClick') {
-      wrap.appendChild(input({ type: 'number', placeholder: 'X', width: '90px' }, step.x, function (v) { step.x = Number(v); onChange(); }));
-      wrap.appendChild(input({ type: 'number', placeholder: 'Y', width: '90px' }, step.y, function (v) { step.y = Number(v); onChange(); }));
+      var xi = input({ type: 'number', placeholder: 'X', width: '90px' }, step.x, function (v) { step.x = Number(v); onChange(); });
+      var yi = input({ type: 'number', placeholder: 'Y', width: '90px' }, step.y, function (v) { step.y = Number(v); onChange(); });
+      wrap.appendChild(xi);
+      wrap.appendChild(yi);
+      var pickPos = el('button', 'btn', '📍 取鼠标位置');
+      pickPos.addEventListener('click', function () {
+        captureMouse(function (pos) {
+          step.x = pos.x;
+          step.y = pos.y;
+          xi.value = pos.x;
+          yi.value = pos.y;
+          onChange();
+          setStatus('已记录鼠标位置：' + pos.x + ', ' + pos.y);
+        });
+      });
+      wrap.appendChild(pickPos);
       var sel = el('select');
       ['left', 'right', 'middle'].forEach(function (b) {
         var o = el('option', null, b === 'left' ? '左键' : b === 'right' ? '右键' : '中键');
