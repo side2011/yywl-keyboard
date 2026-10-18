@@ -72,8 +72,15 @@ const packages = SLOTS.map((slot) => {
   }
 })
 
+// 网页内容指纹（与桌面版的自动更新对应），方便排查"装的是哪一版"
+let webBuildId = ''
+try {
+  webBuildId = JSON.parse(fs.readFileSync(path.join(ROOT, 'dist', 'version.json'), 'utf8')).buildId || ''
+} catch { /* 没有 dist 也不影响清单生成 */ }
+
 const manifest = {
   version: VERSION,
+  webBuildId,
   updated: new Date().toISOString().slice(0, 10),
   packages,
 }
