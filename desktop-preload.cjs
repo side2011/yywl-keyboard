@@ -18,6 +18,9 @@ contextBridge.exposeInMainWorld('yywlActions', {
   pickFolder: () => ipcRenderer.invoke('actions:pick-folder'),
   pickFile: (kind) => ipcRenderer.invoke('actions:pick-file', kind),
 
+  // 录制宏：录一段键盘+鼠标操作，返回步骤序列
+  record: (opts) => ipcRenderer.invoke('actions:record', opts),
+
   // 录制鼠标位置（返回当前光标坐标）
   captureMouse: () => ipcRenderer.invoke('actions:capture-mouse'),
 
