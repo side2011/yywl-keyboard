@@ -778,6 +778,10 @@ export default function BtConfigurator() {
                       </div>
                       <div className="text-xs text-indigo-900/80 leading-relaxed">
                         {t('键盘本身只能发标准按键；打开文件夹、开网址、粘贴文字/图片、鼠标点击，都要由桌面版在后台执行。这里只负责把按键绑定到某个动作。')}
+            <a href="/actions-guide.html" target="_blank" rel="noreferrer"
+              className="inline-block mt-2 text-xs font-semibold text-indigo-700 underline underline-offset-2 hover:text-indigo-900">
+              📖 {t('图文使用说明')}
+            </a>
                       </div>
                       {!isDesktopApp() && (
                         <a href={`${import.meta.env.BASE_URL}download.html`}
