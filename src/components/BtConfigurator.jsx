@@ -80,8 +80,23 @@ export default function BtConfigurator() {
   const keyCount = Math.min(Math.max(deviceInfo?.keyCount || 1, 1), 24);
   const knobCount = Math.min(deviceInfo?.knobCount || 0, 3);
   const totalSlots = keyCount + knobCount * 3; // 每个旋钮占 3 个槽位 (左/中/右)
-  // 层数: V10 新协议=3层; 旧协议(版本<10)=1层 (2键/3键/4键/5键/4+1 等旧固件只有一层)
-  const btLayerCount = isV10 ? 3 : 1;
+  // 层数：由系统按型号自动决定，客户不需要判断。
+  //   固件版本号不可靠（实测 2/3/4/5 键报的版本号反而更高，6 键反而更低），
+  //   所以按「键数」查表：已知 6 键蓝牙款支持 3 层，其余 1 层。
+  //   只有极少数特殊情况才需要人工干预 —— 那个入口收在「固件信息」面板里。
+  const AUTO_LAYERS = { 6: 3 };
+  const autoLayerCount = AUTO_LAYERS[keyCount] || 1;
+
+  const layerKey = `bt-layer-mode:${modelId || `${keyCount}k${knobCount}r`}`;
+  const [layerOverride, setLayerOverride] = useState(null); // null=跟随自动, 1/3=人工指定
+  useEffect(() => {
+    try {
+      const v = Number(localStorage.getItem(layerKey));
+      setLayerOverride(v === 3 || v === 1 ? v : null);
+    } catch { setLayerOverride(null); }
+  }, [layerKey]);
+  const btLayerCount = layerOverride ?? autoLayerCount;
+  const [showLayerAdvanced, setShowLayerAdvanced] = useState(false);
 
   const [currentLayer, setCurrentLayer] = useState(0); // 0..2
   const [keyConfigs, setKeyConfigs] = useState(() => Array.from({ length: totalSlots }, createDefaultConfig));
@@ -97,6 +112,24 @@ export default function BtConfigurator() {
   const capturingRef = useRef(false);
   const readingRef = useRef(false);
 
+  // 切换层数 (1 / 3)：改完重建缓存，避免层数不符导致越界
+  // n = 1 | 3 | null(跟随自动)
+  const setLayerMode = (n) => {
+    if (n === btLayerCount) return;
+    setLayerOverride(n);
+    try {
+      if (n === null) localStorage.removeItem(layerKey);
+      else localStorage.setItem(layerKey, String(n));
+    } catch { /* 隐私模式忽略 */ }
+    const target = n ?? autoLayerCount;
+    layerConfigsRef.current = Array.from({ length: target }, () => Array.from({ length: totalSlots }, createDefaultConfig));
+    setLedCache(Array.from({ length: target }, () => ({ mode: 0, colors: null })));
+    setCurrentLayer(0);
+    setKeyConfigs(Array.from({ length: totalSlots }, createDefaultConfig));
+    toast.success(target === 3
+      ? t('已启用 3 层，请重新「读取键盘配置」')
+      : t('已切换为 1 层'), { id: 'layer-mode' });
+  };
   // 层缓存: 每层独立配置
   const layerConfigsRef = useRef(Array.from({ length: btLayerCount }, () => Array.from({ length: totalSlots }, createDefaultConfig)));
   const [ledCache, setLedCache] = useState(Array.from({ length: btLayerCount }, () => ({ mode: 0, colors: null })));
@@ -424,18 +457,55 @@ export default function BtConfigurator() {
         </div>
       </div>
 
-      {/* ---- 层选择 (旧协议只有1层, 不显示层切换) ---- */}
-      {btLayerCount > 1 && (
-        <div className="flex items-center gap-3 mb-4 px-2">
-          <span className="text-sm font-semibold text-gray-600">{t('层')}:</span>
-          {Array.from({ length: btLayerCount }, (_, i) => (
-            <button key={i} onClick={() => handleLayerChange(i)}
-              className={`px-5 py-2 rounded-lg font-semibold text-sm transition-all cursor-pointer ${
-                currentLayer === i ? 'bg-indigo-600 text-white shadow-sm' : 'bg-white text-gray-600 border border-gray-200 hover:border-indigo-300'
-              }`}>
-              {t('层')}{i + 1}
+      {/* ---- 层 ---- 
+          固件版本号并不能可靠反映"有没有多层"（实测 2/3/4/5 键报的版本号反而更高），
+          所以默认按 1 层处理，需要多层的型号由用户显式开启（按型号记住）。
+          注意：同一时间只出现一个控件 ——
+            多层时 = 层1/层2/层3 选择器 + 一个不起眼的"改回 1 层"
+            单层时 = 一句"当前 1 层" + 一个"支持三层？启用"链接 */}
+      <div className="flex items-center gap-3 mb-4 px-2 flex-wrap">
+        {btLayerCount > 1 ? (
+          <>
+            <span className="text-sm font-semibold text-gray-600">{t('层')}:</span>
+            {Array.from({ length: btLayerCount }, (_, i) => (
+              <button key={i} onClick={() => handleLayerChange(i)}
+                className={`px-5 py-2 rounded-lg font-semibold text-sm transition-all cursor-pointer ${
+                  currentLayer === i ? 'bg-indigo-600 text-white shadow-sm' : 'bg-white text-gray-600 border border-gray-200 hover:border-indigo-300'
+                }`}>
+                {t('层')}{i + 1}
+              </button>
+            ))}
+          </>
+        ) : null}
+        <button
+          className="ml-auto text-xs text-gray-300 hover:text-gray-500 cursor-pointer"
+          onClick={() => setShowLayerAdvanced((v) => !v)}
+        >
+          {t('固件信息')}
+        </button>
+      </div>
+
+      {/* 层数由系统按型号自动判定；这里只是给极少数特殊情况留的人工覆盖入口 */}
+      {showLayerAdvanced && (
+        <div className="mx-2 mb-4 p-3 rounded-lg bg-gray-50 border border-gray-200 text-xs text-gray-600">
+          <div>
+            {t('固件版本')} v{deviceInfo?.version ?? '?'} · {t('子型号')} {deviceInfo?.subModel ?? '?'} · {t('键数')} {keyCount} · {t('旋钮')} {knobCount}
+          </div>
+          <div className="flex items-center gap-2 mt-2 flex-wrap">
+            <span>{t('层数')}:</span>
+            <button onClick={() => setLayerMode(null)}
+              className={`px-2.5 py-1 rounded-md border cursor-pointer ${layerOverride === null ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white border-gray-200 hover:border-indigo-300'}`}>
+              {t('自动')}（{autoLayerCount} {t('层')}）
             </button>
-          ))}
+            <button onClick={() => setLayerMode(1)}
+              className={`px-2.5 py-1 rounded-md border cursor-pointer ${layerOverride === 1 ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white border-gray-200 hover:border-indigo-300'}`}>
+              1 {t('层')}
+            </button>
+            <button onClick={() => setLayerMode(3)}
+              className={`px-2.5 py-1 rounded-md border cursor-pointer ${layerOverride === 3 ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white border-gray-200 hover:border-indigo-300'}`}>
+              3 {t('层')}
+            </button>
+          </div>
         </div>
       )}
 
@@ -603,6 +673,13 @@ export default function BtConfigurator() {
                         </button>
                       );
                     })}
+                  </div>
+                  {/* Mac 用户经常问"怎么没有 Command 键"，这里明确说明对应关系 */}
+                  <div className="mt-2 inline-flex items-start gap-2 rounded-lg bg-indigo-50 border border-indigo-200 px-3 py-2">
+                    <span className="text-base leading-none select-none">🍎</span>
+                    <span className="text-xs leading-relaxed text-indigo-800">
+                      {t('Mac 用户：键盘上没有 Command 键是正常的 —— Win 就是 Command ⌘，Alt 就是 Option ⌥。')}
+                    </span>
                   </div>
                 </div>
                 <div className="mb-3">
