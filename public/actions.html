@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>扩展动作 · YYWL 键盘配置工具</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;background:#f1f5f9;color:#1e293b;font-size:14px}
+  header{background:#fff;border-bottom:1px solid #e2e8f0;padding:14px 22px;display:flex;align-items:center;gap:14px;position:sticky;top:0;z-index:10}
+  header h1{font-size:16px;font-weight:800}
+  .badge{font-size:12px;padding:2px 8px;border-radius:999px;background:#eef2ff;color:#4338ca;border:1px solid #c7d2fe}
+  .spacer{flex:1}
+  .switch{display:flex;align-items:center;gap:8px;font-size:13px;color:#475569;cursor:pointer;user-select:none}
+  .switch input{width:16px;height:16px;accent-color:#6366f1}
+  main{padding:18px 22px 60px;max-width:1060px;margin:0 auto}
+  .hint{background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af;border-radius:10px;padding:10px 14px;font-size:13px;line-height:1.7;margin-bottom:14px}
+  .hint b{color:#1d4ed8}
+  .tabs{display:flex;gap:8px;margin-bottom:12px}
+  .tab{padding:8px 16px;border-radius:9px;background:#fff;border:1px solid #e2e8f0;color:#64748b;font-weight:600;cursor:pointer;font-size:13px}
+  .tab.on{background:#6366f1;border-color:#6366f1;color:#fff}
+  .slot{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:12px 14px;margin-bottom:10px}
+  .slot-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .slot-no{font-weight:800;color:#fff;background:#6366f1;border-radius:8px;padding:3px 9px;font-size:13px}
+  .key{font-family:ui-monospace,Menlo,monospace;font-size:12px;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:6px;padding:2px 7px;color:#475569}
+  .slot input[type=text]{border:1px solid #e2e8f0;border-radius:8px;padding:6px 9px;font-size:13px;outline:none;min-width:180px}
+  .slot input[type=text]:focus{border-color:#818cf8}
+  .btn{font-size:12px;font-weight:700;padding:6px 12px;border-radius:8px;border:1px solid #e2e8f0;background:#fff;color:#475569;cursor:pointer}
+  .btn:hover{border-color:#a5b4fc;color:#4338ca}
+  .btn.primary{background:#6366f1;border-color:#6366f1;color:#fff}
+  .btn.primary:hover{background:#4f46e5;color:#fff}
+  .btn.danger{color:#dc2626;border-color:#fecaca}
+  .steps{margin-top:10px;border-top:1px dashed #e2e8f0;padding-top:10px}
+  .step{display:flex;gap:8px;align-items:flex-start;margin-bottom:8px;flex-wrap:wrap}
+  .step select{border:1px solid #e2e8f0;border-radius:8px;padding:6px 8px;font-size:13px;background:#fff;outline:none}
+  .step input,.step textarea{border:1px solid #e2e8f0;border-radius:8px;padding:6px 9px;font-size:13px;outline:none;font-family:inherit}
+  .step textarea{width:100%;min-height:52px;resize:vertical}
+  .step .grow{flex:1;min-width:160px}
+  .empty{color:#94a3b8;font-size:13px;padding:4px 0}
+  .quick{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+  .quick-label{font-size:12px;color:#94a3b8}
+  select.hk{font-family:ui-monospace,Menlo,monospace;font-size:12px;border:1px solid #e2e8f0;border-radius:6px;
+            padding:2px 6px;color:#475569;background:#f8fafc;outline:none}
+  #conflictBar{background:#fef2f2;border:1px solid #fecaca;color:#b91c1c;border-radius:10px;
+               padding:10px 14px;font-size:13px;line-height:1.7;margin-bottom:12px;display:none}
+  #conflictBar b{color:#991b1b}
+  .result{font-size:12px;margin-top:8px}
+  .result.ok{color:#15803d}
+  .result.err{color:#dc2626}
+  footer{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid #e2e8f0;padding:10px 22px;display:flex;gap:10px;align-items:center;justify-content:flex-end}
+  .status{font-size:12px;color:#64748b;margin-right:auto}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>扩展动作</h1>
+  <span class="badge" id="platform">—</span>
+  <span class="spacer"></span>
+  <label class="switch"><input type="checkbox" id="enabled" checked> 启用</label>
+</header>
+
+<main>
+  <div id="conflictBar"></div>
+  <div class="hint">
+    <b>怎么用：</b>给槽位配好动作 → 在「键盘配置」里把某个物理键设成对应的触发键 → 按下按键即执行。<br>
+    槽位 1–12 对应 <code>F13 ~ F24</code>（<b>版本 2.0 新协议</b>直接可选）；槽位 13–24 对应 <code>Ctrl+Alt+Shift+F1 ~ F12</code>（<b>旧协议 / 蓝牙款</b>用「多键合一」组合）。<br>
+    动作只存在这台电脑上，不会写入键盘；换电脑用右下角「导出 / 导入」。
+  </div>
+
+  <div class="tabs">
+    <div class="tab on" data-bank="0">槽位 1–12（F13–F24）</div>
+    <div class="tab" data-bank="1">槽位 13–24（Ctrl+Alt+Shift+F1–F12）</div>
+  </div>
+
+  <div id="slots"></div>
+</main>
+
+<footer>
+  <span class="status" id="status">就绪</span>
+  <button class="btn" id="btnExport">导出</button>
+  <button class="btn" id="btnImport">导入</button>
+  <button class="btn" id="btnProbe">检测占用</button>
+  <button class="btn primary" id="btnSave">保存并生效</button>
+</footer>
+
+<script>
+(function () {
+  var api = window.yywlActions;
+  if (!api) {
+    document.body.innerHTML = '<div style="padding:40px;font-family:sans-serif">' +
+      '<h2>需要在桌面版中使用</h2><p style="margin-top:10px;color:#64748b">本页面只在内置的桌面程序里可用。</p></div>';
+    return;
+  }
+
+  var TYPES = [
+    { v: 'openPath', label: '打开文件夹/文件' },
+    { v: 'openUrl', label: '打开网址' },
+    { v: 'runApp', label: '启动程序' },
+    { v: 'pasteText', label: '粘贴文字' },
+    { v: 'pasteImage', label: '粘贴图片' },
+    { v: 'keyPress', label: '发送组合键' },
+    { v: 'mouseClick', label: '鼠标点击' },
+    { v: 'delay', label: '等待' }
+  ];
+
+  // 常用模板：点一下就填好一步，客户只需要改路径/文字
+  var PRESETS = [
+    { label: '打开文件夹', step: { type: 'openPath', path: '' } },
+    { label: '打开网址', step: { type: 'openUrl', url: 'https://' } },
+    { label: '启动程序', step: { type: 'runApp', path: '' } },
+    { label: '粘贴文字', step: { type: 'pasteText', text: '' } },
+    { label: '粘贴图片', step: { type: 'pasteImage', image: '' } },
+    { label: '组合键', step: { type: 'keyPress', keys: ['ctrl', 'v'] } },
+    { label: '鼠标点击', step: { type: 'mouseClick', x: 0, y: 0, button: 'left' } },
+    { label: '等待', step: { type: 'delay', ms: 300 } }
+  ];
+
+  var state = { enabled: true, actions: [] };
+  var info = { hotkeys: [] };
+  var bank = 0;
+  var probeMap = {};     // 热键 → 是否可用（点「检测占用」后填充）
+  var conflicts = [];    // 保存/注册后仍被占用的槽位
+
+  function slotOf(n) { return state.actions.find(function (a) { return a.slot === n; }); }
+  function ensureSlot(n) {
+    var a = slotOf(n);
+    if (!a) { a = { slot: n, name: '', enabled: true, steps: [] }; state.actions.push(a); }
+    return a;
+  }
+  function hk(n) { return info.hotkeys[n - 1] || ('槽位 ' + n); }
+
+  function el(tag, cls, text) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    return e;
+  }
+
+  function stepParams(step, onChange) {
+    var wrap = el('div', 'grow');
+    wrap.style.display = 'flex';
+    wrap.style.gap = '8px';
+    wrap.style.flexWrap = 'wrap';
+
+    function input(attrs, val, onInput) {
+      var i = el('input');
+      i.type = attrs.type || 'text';
+      if (attrs.placeholder) i.placeholder = attrs.placeholder;
+      if (attrs.width) i.style.width = attrs.width;
+      i.value = val == null ? '' : val;
+      i.addEventListener('input', function () { onInput(i.value); });
+      return i;
+    }
+
+    if (step.type === 'openPath') {
+      var p = input({ placeholder: '例如 D:\\报价单 或 /home/user/文档' }, step.path, function (v) { step.path = v; onChange(); });
+      p.style.width = '100%';
+      var pick = el('button', 'btn', '选择…');
+      pick.addEventListener('click', function () {
+        api.pickFolder().then(function (dir) { if (dir) { step.path = dir; p.value = dir; onChange(); } });
+      });
+      wrap.appendChild(p); wrap.appendChild(pick);
+    } else if (step.type === 'runApp') {
+      var ap = input({ placeholder: '程序路径，如 C:\\Program Files\\…\\WeChat.exe' }, step.path, function (v) { step.path = v; onChange(); });
+      ap.style.width = '100%';
+      var pickApp = el('button', 'btn', '选择程序…');
+      pickApp.addEventListener('click', function () {
+        api.pickFile('app').then(function (f) { if (f) { step.path = f; ap.value = f; onChange(); } });
+      });
+      wrap.appendChild(ap); wrap.appendChild(pickApp);
+    } else if (step.type === 'openUrl') {
+      var u = input({ placeholder: 'https://…' }, step.url, function (v) { step.url = v; onChange(); });
+      u.style.width = '100%';
+      wrap.appendChild(u);
+    } else if (step.type === 'pasteText') {
+      var t = el('textarea');
+      t.placeholder = '要粘贴的文字（支持多行、中文）';
+      t.value = step.text || '';
+      t.addEventListener('input', function () { step.text = t.value; onChange(); });
+      wrap.appendChild(t);
+    } else if (step.type === 'pasteImage') {
+      var img = input({ placeholder: '图片路径' }, step.image, function (v) { step.image = v; onChange(); });
+      img.style.width = '100%';
+      var pickImg = el('button', 'btn', '选择图片…');
+      pickImg.addEventListener('click', function () {
+        api.pickFile('image').then(function (f) { if (f) { step.image = f; img.value = f; onChange(); } });
+      });
+      wrap.appendChild(img); wrap.appendChild(pickImg);
+    } else if (step.type === 'keyPress') {
+      var k = input({ placeholder: '如 ctrl+enter 或 cmd+v' }, (step.keys || []).join('+'), function (v) {
+        step.keys = v.split('+').map(function (s) { return s.trim(); }).filter(Boolean);
+        onChange();
+      });
+      k.style.width = '100%';
+      wrap.appendChild(k);
+    } else if (step.type === 'mouseClick') {
+      wrap.appendChild(input({ type: 'number', placeholder: 'X', width: '90px' }, step.x, function (v) { step.x = Number(v); onChange(); }));
+      wrap.appendChild(input({ type: 'number', placeholder: 'Y', width: '90px' }, step.y, function (v) { step.y = Number(v); onChange(); }));
+      var sel = el('select');
+      ['left', 'right', 'middle'].forEach(function (b) {
+        var o = el('option', null, b === 'left' ? '左键' : b === 'right' ? '右键' : '中键');
+        o.value = b;
+        if ((step.button || 'left') === b) o.selected = true;
+        sel.appendChild(o);
+      });
+      sel.addEventListener('change', function () { step.button = sel.value; onChange(); });
+      wrap.appendChild(sel);
+    } else if (step.type === 'delay') {
+      wrap.appendChild(input({ type: 'number', placeholder: '毫秒', width: '110px' }, step.ms, function (v) { step.ms = Number(v); onChange(); }));
+    }
+    return wrap;
+  }
+
+  function renderSlot(n) {
+    var a = slotOf(n);
+    var card = el('div', 'slot');
+    if (a && a.name) { /* 有配置的排前面视觉上更明显 */ card.style.borderColor = '#c7d2fe'; }
+
+    var head = el('div', 'slot-head');
+    head.appendChild(el('span', 'slot-no', '#' + n));
+
+    // 热键下拉：默认按槽位，占用时可换成清单里的冷门组合
+    var hkSel = el('select');
+    hkSel.className = 'hk';
+    hkSel.title = '触发这个动作的热键（被其它程序占用时换一个）';
+    var cur = (a && a.hotkey) || (info.hotkeys[n - 1] || '');
+    var opts = (info.candidates && info.candidates.length ? info.candidates : []).slice();
+    if (cur && opts.indexOf(cur) < 0) opts.unshift(cur);
+    if (!opts.length) opts = [cur];
+    var conflictMap = {};
+    (info.conflicts || []).forEach(function (c) { conflictMap[c.slot] = c; });
+    if (conflictMap[n]) hkSel.style.borderColor = '#f87171';
+    opts.forEach(function (h) {
+      var o = el('option', null, h + (probeMap[h] === false ? '（被占用）' : ''));
+      o.value = h;
+      if (h === cur) o.selected = true;
+      hkSel.appendChild(o);
+    });
+    hkSel.addEventListener('change', function () {
+      ensureSlot(n).hotkey = hkSel.value;
+      setDirty();
+    });
+    head.appendChild(hkSel);
+
+    var name = el('input');
+    name.type = 'text';
+    name.placeholder = '动作名称，如「打开报价单」';
+    name.value = a ? (a.name || '') : '';
+    name.addEventListener('input', function () {
+      ensureSlot(n).name = name.value;
+      setDirty();
+    });
+    head.appendChild(name);
+
+    var test = el('button', 'btn', '测试');
+    test.addEventListener('click', function () {
+      var act = slotOf(n);
+      if (!act || !act.steps.length) { setStatus('该槽位还没有步骤', true); return; }
+      setStatus('执行中…');
+      api.test(act).then(function (r) {
+        setStatus(r.ok ? ('执行成功（' + r.ms + 'ms）') : ('失败：' + r.error), !r.ok);
+      });
+    });
+    head.appendChild(test);
+
+    var add = el('button', 'btn', '+ 步骤');
+    add.addEventListener('click', function () {
+      var act = ensureSlot(n);
+      act.steps.push({ type: 'openPath', path: '' });
+      setDirty(); render();
+    });
+    head.appendChild(add);
+    card.appendChild(head);
+
+    var steps = el('div', 'steps');
+    var act = slotOf(n);
+    if (!act || !act.steps.length) {
+      var quick = el('div', 'quick');
+      quick.appendChild(el('span', 'quick-label', '常用模板：'));
+      PRESETS.forEach(function (p) {
+        var b = el('button', 'btn', p.label);
+        b.addEventListener('click', function () {
+          var target = ensureSlot(n);
+          target.steps.push(JSON.parse(JSON.stringify(p.step)));
+          setDirty(); render();
+        });
+        quick.appendChild(b);
+      });
+      steps.appendChild(quick);
+    } else {
+      act.steps.forEach(function (step, idx) {
+        var row = el('div', 'step');
+
+        var sel = el('select');
+        TYPES.forEach(function (t) {
+          var o = el('option', null, t.label);
+          o.value = t.v;
+          if (step.type === t.v) o.selected = true;
+          sel.appendChild(o);
+        });
+        sel.addEventListener('change', function () {
+          var fresh = { type: sel.value };
+          if (sel.value === 'delay') fresh.ms = 300;
+          if (sel.value === 'keyPress') fresh.keys = ['ctrl', 'v'];
+          if (sel.value === 'mouseClick') { fresh.x = 0; fresh.y = 0; fresh.button = 'left'; }
+          act.steps[idx] = fresh;
+          setDirty(); render();
+        });
+        row.appendChild(sel);
+
+        row.appendChild(stepParams(step, function () { setDirty(); }));
+
+        var del = el('button', 'btn danger', '删除');
+        del.addEventListener('click', function () {
+          act.steps.splice(idx, 1);
+          setDirty(); render();
+        });
+        row.appendChild(del);
+        steps.appendChild(row);
+      });
+    }
+    card.appendChild(steps);
+    return card;
+  }
+
+  function render() {
+    var host = document.getElementById('slots');
+    host.innerHTML = '';
+    var start = bank * 12 + 1;
+    for (var n = start; n < start + 12; n++) host.appendChild(renderSlot(n));
+  }
+
+  var dirty = false;
+  function setDirty() { dirty = true; setStatus('有未保存的修改'); }
+
+  // 冲突提示：告诉用户哪几个槽位被占用，并给出可换的冷门组合
+  function renderConflicts() {
+    var bar = document.getElementById('conflictBar');
+    if (!bar) return;
+    bar.innerHTML = '';
+    if (!conflicts.length) { bar.style.display = 'none'; return; }
+    var used = {};
+    conflicts.forEach(function (c) { used[c.hotkey] = 1; });
+    var alt = (info.candidates || []).filter(function (h) { return !used[h] && probeMap[h] !== false; }).slice(0, 6);
+
+    var head = document.createElement('b');
+    head.textContent = '有 ' + conflicts.length + ' 个热键被其它程序占用：';
+    bar.appendChild(head);
+    bar.appendChild(document.createTextNode(conflicts.map(function (c) {
+      return '槽位 #' + c.slot + '（' + c.hotkey + '）';
+    }).join('、') + '。'));
+
+    bar.appendChild(document.createElement('br'));
+    bar.appendChild(document.createTextNode('请在对应槽位右边把热键换成不冲突的组合（例如 '));
+    var strong = document.createElement('b');
+    strong.textContent = alt.join('、') || 'Ctrl+Alt+Shift+Q';
+    bar.appendChild(strong);
+    bar.appendChild(document.createTextNode('），然后点「保存并生效」。'));
+
+    bar.appendChild(document.createElement('br'));
+    var tip = document.createElement('span');
+    tip.style.color = '#7f1d1d';
+    tip.textContent = '也可以点右下角「检测占用」一次性看哪些组合可用。';
+    bar.appendChild(tip);
+
+    bar.style.display = 'block';
+  }
+  function setStatus(msg, isErr) {
+    var s = document.getElementById('status');
+    s.textContent = msg;
+    s.style.color = isErr ? '#dc2626' : '#64748b';
+  }
+
+  // ---- 绑定 ----
+  document.querySelectorAll('.tab').forEach(function (t) {
+    t.addEventListener('click', function () {
+      document.querySelectorAll('.tab').forEach(function (x) { x.classList.remove('on'); });
+      t.classList.add('on');
+      bank = Number(t.dataset.bank);
+      render();
+    });
+  });
+
+  document.getElementById('enabled').addEventListener('change', function (e) {
+    state.enabled = e.target.checked;
+    setDirty();
+    api.save(state).then(function (r) { setStatus('已保存，热键：' + (r.registered.join(', ') || '无')); dirty = false; });
+  });
+
+  document.getElementById('btnSave').addEventListener('click', function () {
+    state.actions = state.actions.filter(function (a) { return (a.steps || []).length > 0 || a.name; });
+    api.save(state).then(function (r) {
+      dirty = false;
+      conflicts = r.conflicts || [];
+      renderConflicts();
+      setStatus('已保存，生效热键：' + (r.registered.join(', ') || '无') +
+        (conflicts.length ? '（有 ' + conflicts.length + ' 个被占用）' : ''), conflicts.length > 0);
+      render();
+    });
+  });
+
+  document.getElementById('btnProbe').addEventListener('click', function () {
+    setStatus('检测中…');
+    api.probe().then(function (list) {
+      probeMap = {};
+      var bad = 0;
+      (list || []).forEach(function (r) { probeMap[r.hotkey] = r.available; if (!r.available) bad++; });
+      render();
+      renderConflicts();
+      setStatus('检测完成：' + ((list || []).length - bad) + ' 个可用，' + bad + ' 个被其他程序占用', bad > 0);
+    });
+  });
+
+  document.getElementById('btnExport').addEventListener('click', function () {
+    var blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'yywl-actions.json';
+    a.click();
+    setStatus('已导出 yywl-actions.json');
+  });
+
+  document.getElementById('btnImport').addEventListener('click', function () {
+    var input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json,application/json';
+    input.addEventListener('change', function () {
+      var f = input.files[0];
+      if (!f) return;
+      var reader = new FileReader();
+      reader.onload = function () {
+        try {
+          var data = JSON.parse(reader.result);
+          if (!data || !Array.isArray(data.actions)) throw new Error('格式不正确');
+          state = { enabled: data.enabled !== false, actions: data.actions };
+          document.getElementById('enabled').checked = state.enabled;
+          dirty = true;
+          render();
+          setStatus('已导入 ' + state.actions.length + ' 个动作，记得点「保存并生效」');
+        } catch (e) { setStatus('导入失败：' + e.message, true); }
+      };
+      reader.readAsText(f);
+    });
+    input.click();
+  });
+
+  // ---- 初始化 ----
+  Promise.all([api.load(), api.info()]).then(function (res) {
+    var loaded = res[0] || {};
+    info = res[1] || {};
+    state = { enabled: loaded.enabled !== false, actions: loaded.actions || [] };
+    conflicts = info.conflicts || [];
+    document.getElementById('enabled').checked = state.enabled;
+    var name = { win32: 'Windows', darwin: 'macOS', linux: 'Linux' }[info.platform] || info.platform;
+    document.getElementById('platform').textContent = name + ' · 已注册 ' + (info.registered || []).length + ' 个热键';
+    render();
+    renderConflicts();
+    setStatus(conflicts.length
+      ? ('注意：' + conflicts.length + ' 个热键被占用，请换一个')
+      : ('就绪（配置文件：' + (info.file || '') + '）'), conflicts.length > 0);
+  });
+
+  window.addEventListener('beforeunload', function (e) {
+    if (dirty) { e.preventDefault(); e.returnValue = ''; }
+  });
+})();
+</script>
+</body>
+</html>
