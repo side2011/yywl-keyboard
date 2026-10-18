@@ -2,7 +2,7 @@
 // 蓝牙无线款配置页 — QT KEY_PRO 协议 (0xFB读信息/0xFA读配置/0xFD写键/0xFE 0xB0写灯光)
 // 支持 V10 (版本>=10) 与旧协议两种记录格式 (由 BtProtocolHandler 内部处理)
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { isDesktopApp } from '../services/env';
+import { isDesktopApp, guideUrl } from '../services/env';
 import { fetchActionSummary, toSlotMap } from '../services/action-slots';
 import { useNavigate } from 'react-router-dom';
 import { useDevice } from '../context/DeviceContext.jsx';
@@ -778,7 +778,7 @@ export default function BtConfigurator() {
                       </div>
                       <div className="text-xs text-indigo-900/80 leading-relaxed">
                         {t('键盘本身只能发标准按键；打开文件夹、开网址、粘贴文字/图片、鼠标点击，都要由桌面版在后台执行。这里只负责把按键绑定到某个动作。')}
-            <a href="/actions-guide.html" target="_blank" rel="noreferrer"
+            <a href={guideUrl(lang)} target="_blank" rel="noreferrer"
               className="inline-block mt-2 text-xs font-semibold text-indigo-700 underline underline-offset-2 hover:text-indigo-900">
               📖 {t('图文使用说明')}
             </a>
