@@ -57,6 +57,8 @@
   .capture-mask{position:fixed;inset:0;background:rgba(15,23,42,.55);display:flex;align-items:center;justify-content:center;z-index:100}
   .capture-box{background:#fff;border-radius:14px;padding:26px 34px;font-size:16px;font-weight:700;color:#1e293b;box-shadow:0 20px 50px rgba(0,0,0,.3);text-align:center}
   .capture-sub{font-size:13px;font-weight:400;color:#64748b;margin-top:8px}
+  .btn.rec{background:#fff1f2;border-color:#fecdd3;color:#be123c}
+  .btn.rec:hover{background:#ffe4e6}
   .combo{font-family:ui-monospace,Menlo,monospace;font-size:12px;background:#eef2ff;border:1px solid #c7d2fe;color:#3730a3;border-radius:8px;padding:6px 10px;min-width:120px;text-align:center}
   footer{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid #e2e8f0;padding:10px 22px;display:flex;gap:10px;align-items:center;justify-content:flex-end}
   .status{font-size:12px;color:#64748b;margin-right:auto}
@@ -91,7 +93,7 @@
         <li>桌面版必须<b>在后台运行</b>（关窗口会缩到托盘）。没运行的话，按键只会发出 F13，绝大多数软件没反应。</li>
         <li>配了动作的热键会被桌面版<b>接管</b>，不会再传给当前程序 —— 别和常用快捷键重复。</li>
         <li>被别的软件占用时，顶部会出现红色提示；点右下角「检测占用」可以挑一个空闲组合。</li>
-        <li>动作只存在这台电脑的 <code>actions.json</code> 里，<b>不会写进键盘</b>；换电脑用「导出 / 导入」。</li>
+        <li>懒得一步步配？点槽位右边的 <b>「⏺ 录制」</b>，然后正常操作一遍（点哪里、按什么键），15 秒内自动生成步骤；按 <b>F10</b> 可提前结束。</li>        <li>动作只存在这台电脑的 <code>actions.json</code> 里，<b>不会写进键盘</b>；换电脑用「导出 / 导入」。</li>
       </ul>
     </div>
   </details>
@@ -359,6 +361,31 @@
       setDirty();
     });
     head.appendChild(name);
+
+    // 录制宏：窗口会自动最小化，录完把步骤填进这个槽位
+    var rec = el('button', 'btn rec', '⏺ 录制');
+    rec.title = '录制一段键盘 + 鼠标操作（按 F10 提前结束）';
+    rec.addEventListener('click', function () {
+      if (!api.record) { setStatus('当前版本不支持录制，请更新桌面版', true); return; }
+      var target = ensureSlot(n);
+      var startRec = function () {
+        setStatus('录制中… 请执行你的操作，按 F10 结束');
+        api.record({ durationMs: 15000 }).then(function (r) {
+          if (!r || !r.ok) { setStatus('录制失败：' + ((r && r.error) || '未知错误'), true); return; }
+          if (!r.steps || !r.steps.length) { setStatus('没有录到任何操作（窗口可能没切过去）', true); return; }
+          target.steps = r.steps;
+          setDirty();
+          render();
+          setStatus('已录制 ' + r.steps.length + ' 个步骤，记得点「保存并生效」');
+        });
+      };
+      if ((target.steps || []).length) {
+        if (confirm('这个槽位已经有 ' + target.steps.length + ' 个步骤，录制会全部替换，继续吗？')) startRec();
+      } else {
+        startRec();
+      }
+    });
+    head.appendChild(rec);
 
     var test = el('button', 'btn', '测试');
     test.addEventListener('click', function () {
