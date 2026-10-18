@@ -196,19 +196,29 @@ jobs:
             echo "✓ 一致: 桌面版首次启动不会触发无效更新"
           fi
 
-      # 只上传几 KB 的校验信息（体积 + SHA256），不再上传 100MB+ 的安装包。
-      # 安装包本身已经传到 FTP 服务器并挂到 GitHub Release；
-      # 把大文件当 artifact 会吃光 Actions 免费存储（0.5GB），实测堆到 9GB。
+      # 完全不用 GitHub artifact：大文件曾经把 Actions 免费存储（0.5GB）吃光，
+      # 而且超额后连几 KB 都传不上去（配额每 6-12 小时才重算一次）。
+      # 这里只把几 KB 的校验信息（体积 + SHA256）传到自己的 FTP，
+      # 由下面的「生成下载清单」任务取回。
       - name: 生成产物校验信息
         run: node scripts/make-meta.mjs
 
-      - name: 上传校验信息 (几 KB)
-        uses: actions/upload-artifact@v4
-        with:
-          name: meta-${{ matrix.artifact }}
-          path: release/download/meta.json
-          if-no-files-found: error
-          retention-days: 1
+      - name: 上传校验信息到服务器 (几 KB)
+        shell: bash
+        env:
+          FTP_HOST: ${{ secrets.FTP_HOST }}
+          FTP_USER: ${{ secrets.FTP_USER }}
+          FTP_PASS: ${{ secrets.FTP_PASS }}
+        run: |
+          set -e
+          if [ -z "$FTP_HOST" ] || [ -z "$FTP_USER" ]; then
+            echo "::warning::未配置 FTP, 跳过校验信息上传"
+            exit 0
+          fi
+          curl -sS --fail --max-time 120 --connect-timeout 30 --retry 5 --retry-delay 5 --retry-all-errors \
+            -T release/download/meta.json "ftp://$FTP_HOST/download/meta-${{ matrix.artifact }}.json" \
+            --user "$FTP_USER:$FTP_PASS"
+          echo "  ✓ meta-${{ matrix.artifact }}.json"
 
       - name: 附加到 Release (仅标签触发)
         if: startsWith(github.ref, 'refs/tags/v')
@@ -232,10 +242,21 @@ jobs:
         with:
           node-version: 22
 
-      - name: 收集各平台的校验信息
-        uses: actions/download-artifact@v4
-        with:
-          path: meta
+      - name: 从服务器取回各平台的校验信息
+        env:
+          FTP_HOST: ${{ secrets.FTP_HOST }}
+          FTP_USER: ${{ secrets.FTP_USER }}
+          FTP_PASS: ${{ secrets.FTP_PASS }}
+        run: |
+          set -e
+          mkdir -p meta
+          for a in yywl-keyboard-windows-x64 yywl-keyboard-macos yywl-keyboard-linux-x64; do
+            echo "取回 meta-$a.json"
+            curl -sS --fail --max-time 120 --connect-timeout 30 --retry 5 --retry-delay 5 --retry-all-errors \
+              "ftp://$FTP_HOST/download/meta-$a.json" --user "$FTP_USER:$FTP_PASS" \
+              -o "meta/meta-$a.json" || echo "::warning::meta-$a.json 取回失败（该平台可能没有产物）"
+          done
+          ls -l meta || true
 
       - name: 生成 manifest.json
         run: node scripts/update-manifest.mjs --meta=meta
