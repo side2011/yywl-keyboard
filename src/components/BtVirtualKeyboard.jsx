@@ -104,10 +104,21 @@ export default function BtVirtualKeyboard({ onSelect, selectedCode, t }) {
               </div>
             </div>
           </div>
-          <div className="grid grid-cols-4 gap-1.5 -mt-[100px]">
-            {numpadKeys.map((key, idx) => (
-              <button key={idx} className={selectedCode === key.value ? keyActive : keyNormal}
-                style={{ gridRow: key.rowspan ? `span ${key.rowspan}` : 'auto', gridColumn: key.colspan ? `span ${key.colspan}` : 'auto', height: key.rowspan ? '5.75rem' : undefined }}
+          {/* 数字区：显式网格坐标定位（4 列 × 5 行），行高与主键盘一致（h-11 = 2.75rem）
+              跨行键用 height:100% 自动填满「行 + 间距」；不再用 -mt 挪位置、也不写死高度
+              （蓝牙款曾漏改，导致 +/Enter 错位、第一行被顶出可视区） */}
+          <div
+            className="grid gap-1.5 content-start self-start"
+            style={{ gridTemplateColumns: 'repeat(4, 3.5rem)', gridAutoRows: '2.75rem' }}
+          >
+            {numpadKeys.map((key) => (
+              <button key={key.value} className={selectedCode === key.value ? keyActive : keyNormal}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  gridColumn: `${key.col + 1} / span ${key.colspan || 1}`,
+                  gridRow: `${key.row + 1} / span ${key.rowspan || 1}`,
+                }}
                 onClick={() => handleKeyClick(key.label, key.value)}>
                 <span>{key.label}</span>
               </button>
