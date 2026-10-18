@@ -15,7 +15,6 @@ const en = {
   '无法连接设备接口，请尝试：1.关闭其他配置软件或浏览器标签 2.拔插键盘USB线后重试': 'Cannot open device interface. Please try: 1. Close other config apps or browser tabs  2. Unplug and replug the keyboard USB cable',
   '检测到 Linux 系统，需配置 udev 权限才能访问键盘。请打开终端执行：sudo tee /etc/udev/rules.d/99-yywl-keyboard.rules 写入规则后重载（详见使用说明）': 'Linux detected: udev permission required. Open terminal and run: sudo tee /etc/udev/rules.d/99-yywl-keyboard.rules (see tutorial for details)',
   '已连接: {name}': 'Connected: {name}',
-  '键盘': 'Keyboard',
   '设备已连接': 'Device connected',
   '连接失败: {msg}': 'Connection failed: {msg}',
   '设备已断开': 'Device disconnected',
@@ -158,7 +157,6 @@ const en = {
   '点击左侧按键选择要配置的物理按键，在下方设置功能。支持键盘、鼠标、多媒体和多键合一四种模式。':
     'Click a key on the left to select it, then configure its function below. Supports Keyboard, Mouse, Media, and Multi-Key modes.',
   '灯光设置': 'Light Settings',
-  '灯光模式': 'Light Mode',
   '灯光模式 1': 'Light Mode 1',
   '灯光模式 2': 'Light Mode 2',
   '自定义颜色': 'Custom Color',
@@ -333,7 +331,6 @@ const en = {
   '空': 'None',
 
   // KEY_MODE_LABELS
-  '多键合一': 'Multi-Key',
   '宏': 'Macro',
   '宏(多键合一)': 'Macro (Multi-key)',
 
