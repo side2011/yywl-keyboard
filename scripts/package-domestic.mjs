@@ -31,7 +31,8 @@ if (!fs.existsSync(dir)) {
   process.exit(1)
 }
 
-const stage = path.join(ROOT, 'release', `stage-linux-${arch}`)
+// 解压后的目录名对用户可见, 用产品名而不是内部构建名
+const stage = path.join(ROOT, 'release', `yywlkey-config-${pkg.version}-linux-${arch}`)
 fs.rmSync(stage, { recursive: true, force: true })
 fs.mkdirSync(stage, { recursive: true })
 
