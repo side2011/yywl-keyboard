@@ -79,6 +79,10 @@ jobs:
       - name: 安装依赖
         run: npm ci
 
+      # 少写一个 import 时 vite build 不会报错, 只有用户点到那页才白屏 —— 这里拦住
+      - name: 检查未定义变量
+        run: node scripts/check-undef.mjs
+
       - name: 构建网页产物
         run: npm run build
 
