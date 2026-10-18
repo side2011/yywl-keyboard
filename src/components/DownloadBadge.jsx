@@ -14,8 +14,10 @@ import { useLocation } from 'react-router-dom';
 import { useLang } from '../context/LanguageContext.jsx';
 
 const DOWNLOAD_PAGE = 'download.html';
-// 这些路由的顶栏自带下载按钮
-const ROUTES_WITH_INLINE_ENTRY = ['/customize', '/bt'];
+// 只在"连接页"显示下载入口：
+//   /customize /bt 顶栏本来就有「软件下载」
+//   /keytest /mic 是工具页，放个下载按钮会挡住标题（用户反馈过）
+const SHOW_ON_ROUTES = ['/'];
 
 export default function DownloadBadge() {
   const { t } = useLang();
@@ -25,8 +27,8 @@ export default function DownloadBadge() {
   if (typeof navigator !== 'undefined' && /YYWLDesktop/i.test(navigator.userAgent || '')) {
     return null;
   }
-  // 配置页顶栏已有入口 → 不重复显示
-  if (ROUTES_WITH_INLINE_ENTRY.some((p) => pathname.startsWith(p))) {
+  // 非连接页一律不显示，避免和页面标题/工具栏重叠
+  if (!SHOW_ON_ROUTES.includes(pathname)) {
     return null;
   }
 
