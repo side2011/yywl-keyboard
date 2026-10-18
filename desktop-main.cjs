@@ -532,6 +532,7 @@ function setupActionsIpc() {
   });
   ipcMain.handle('actions:info', () => ({
     platform: process.platform,
+    appVersion: app.getVersion(),
     registered: registeredShortcuts.slice(),
     enabled: actionsConfig.enabled,
     slots: ACTION_SLOTS,
