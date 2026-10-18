@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>扩展动作使用说明 - 多功能小键盘配置工具 | 颖昱物联</title>
+<link rel="icon" type="image/png" href="/favicon.png">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; background: #f8fafc; color: #1e293b; line-height: 1.75; }
+  .hero { background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); color: #fff; padding: 46px 20px 40px; }
+  .hero .wrap { max-width: 880px; margin: 0 auto; }
+  .hero h1 { font-size: 1.9rem; font-weight: 800; margin-bottom: 8px; }
+  .hero p { font-size: 1rem; opacity: .93; max-width: 680px; }
+  .hero .badge { display: inline-block; background: rgba(255,255,255,.18); padding: 4px 12px; border-radius: 20px; font-size: .78rem; margin: 10px 6px 0 0; }
+  .hero .lang { float: right; font-size: .85rem; color: #fff; opacity: .85; text-decoration: none; border: 1px solid rgba(255,255,255,.45); border-radius: 8px; padding: 4px 10px; }
+  .hero .lang:hover { opacity: 1; background: rgba(255,255,255,.12); }
+  .container { max-width: 880px; margin: 24px auto 60px; padding: 0 20px; }
+  .card { background: #fff; border-radius: 16px; box-shadow: 0 4px 24px rgba(0,0,0,.06); padding: 26px 26px 22px; margin-bottom: 18px; border: 1px solid #e2e8f0; }
+  .card h2 { font-size: 1.16rem; font-weight: 800; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; scroll-margin-top: 12px; }
+  .card h3 { font-size: .98rem; font-weight: 700; margin: 16px 0 6px; color: #334155; }
+  .card p { font-size: .92rem; color: #334155; margin-bottom: 8px; }
+  .toc { position: sticky; top: 0; z-index: 10; background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 10px 14px; margin-bottom: 18px; font-size: .86rem; display: flex; flex-wrap: wrap; gap: 6px 14px; box-shadow: 0 2px 10px rgba(0,0,0,.04); }
+  .toc a { color: #4338ca; text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+  .step { display: flex; gap: 14px; padding: 14px 0; border-bottom: 1px dashed #e2e8f0; }
+  .step:last-child { border-bottom: none; }
+  .step .num { flex: 0 0 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg,#4f46e5,#7c3aed); color: #fff; font-weight: 800; display: flex; align-items: center; justify-content: center; font-size: .95rem; }
+  .step .body { flex: 1; }
+  .step .body strong { display: block; font-size: .95rem; margin-bottom: 2px; }
+  .step .body span { font-size: .89rem; color: #475569; }
+  table { width: 100%; border-collapse: collapse; font-size: .86rem; margin-top: 10px; }
+  th, td { padding: 8px 10px; border-bottom: 1px solid #f1f5f9; text-align: left; vertical-align: top; }
+  th { color: #334155; background: #f8fafc; font-weight: 600; }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .84em; background: #f1f5f9; padding: 2px 6px; border-radius: 4px; }
+  .tip { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 11px 15px; margin: 12px 0; font-size: .88rem; color: #1e40af; }
+  .warn { background: #fff7ed; border: 1px solid #fed7aa; border-radius: 10px; padding: 11px 15px; margin: 12px 0; font-size: .88rem; color: #9a3412; }
+  .ok { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; padding: 11px 15px; margin: 12px 0; font-size: .88rem; color: #166534; }
+  .ui { display: inline-block; background: #eef2ff; border: 1px solid #c7d2fe; color: #3730a3; border-radius: 6px; padding: 1px 7px; font-size: .85em; font-weight: 600; }
+  .kbd { display: inline-block; background: #fff; border: 1px solid #cbd5e1; border-bottom-width: 2px; border-radius: 5px; padding: 1px 7px; font-size: .82em; font-family: ui-monospace, Menlo, monospace; color: #334155; }
+  .faq { border-left: 3px solid #c7d2fe; padding-left: 14px; margin: 14px 0; }
+  .faq strong { display: block; font-size: .93rem; color: #1e293b; margin-bottom: 3px; }
+  .faq span { font-size: .89rem; color: #475569; }
+  .footer { text-align: center; padding: 10px 20px 50px; color: #94a3b8; font-size: .84rem; }
+  .footer a { color: #6366f1; text-decoration: none; }
+  @media (max-width: 640px) { .hero h1 { font-size: 1.5rem; } .card { padding: 20px 18px; } }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="wrap">
+    <a class="lang" href="/actions-guide-en.html">English</a>
+    <h1>⚡ 扩展动作使用说明</h1>
+    <p>让键盘上的一个键，帮你打开文件夹、打开网址、粘贴一段文字、点击某个位置，甚至回放一段操作。</p>
+    <span class="badge">桌面版专属</span>
+    <span class="badge">Windows / macOS / Linux</span>
+    <span class="badge">1.2.0 及以上</span>
+  </div>
+</div>
+
+<div class="container">
+
+  <div class="toc">
+    <a href="#what">① 它能做什么</a>
+    <a href="#step1">② 第一步：配动作</a>
+    <a href="#step2">③ 第二步：绑按键</a>
+    <a href="#step3">④ 第三步：两个保存</a>
+    <a href="#record">⑤ 录制宏</a>
+    <a href="#hotkey">⑥ 触发键与冲突</a>
+    <a href="#platform">⑦ 各平台差异</a>
+    <a href="#faq">⑧ 常见问题</a>
+    <a href="#privacy">⑨ 数据与安全</a>
+  </div>
+
+  <div class="card">
+    <h2>先看这个：三步就能用起来</h2>
+    <div class="step">
+      <div class="num">1</div>
+      <div class="body">
+        <strong>在「扩展动作」窗口里配好动作</strong>
+        <span>菜单 <span class="ui">文件</span> → <span class="ui">扩展动作…</span> 打开，给某个槽位起名字、选一种动作、填参数。</span>
+      </div>
+    </div>
+    <div class="step">
+      <div class="num">2</div>
+      <div class="body">
+        <strong>把这个动作绑到键盘上的某个键</strong>
+        <span>到键盘配置页选一个键 → 切到 <span class="ui">扩展</span> 选项卡 → 点对应编号（动作 1 就是 F13）。</span>
+      </div>
+    </div>
+    <div class="step">
+      <div class="num">3</div>
+      <div class="body">
+        <strong>两处都要保存</strong>
+        <span>键盘配置页点 <span class="ui">保存到键盘</span>；扩展动作窗口点 <span class="ui">保存并生效</span>。</span>
+      </div>
+    </div>
+    <div class="tip">💡 记不住也没关系：扩展动作窗口里每个槽位的「常用模板」按钮，点一下就是一条现成的动作，你只要改改路径或文字。</div>
+  </div>
+
+  <div class="card">
+    <h2 id="what">① 它能做什么</h2>
+    <p>扩展动作是<b>电脑上的桌面版</b>在后台执行的动作。键盘本身只会发按键，真正的"打开、粘贴、点击"都是桌面版帮你做的。</p>
+    <table>
+      <tr><th>动作</th><th>参数</th><th>典型用法</th></tr>
+      <tr><td>打开文件夹</td><td>文件夹路径</td><td>一键打开「报价单」目录</td></tr>
+      <tr><td>打开网址</td><td>网址</td><td>打开公司官网、后台系统</td></tr>
+      <tr><td>启动程序</td><td>程序 exe 路径（可带启动参数）</td><td>启动 ERP 客户端、远程桌面</td></tr>
+      <tr><td>粘贴文字</td><td>一段文字（支持换行）</td><td>一键粘贴收货信息、话术</td></tr>
+      <tr><td>粘贴图片</td><td>图片文件路径</td><td>粘贴签名、印章、产品图</td></tr>
+      <tr><td>组合键</td><td>按一下键盘录入，如 <code>Ctrl+Shift+A</code></td><td>触发别的软件的快捷键</td></tr>
+      <tr><td>鼠标点击</td><td>坐标 + 左/右/中键</td><td>点固定位置的按钮</td></tr>
+      <tr><td>等待</td><td>毫秒数</td><td>等软件反应过来，再执行下一步</td></tr>
+    </table>
+    <p style="margin-top:10px">一个槽位可以放<b>多个步骤</b>，按顺序执行。比如：粘贴图片 → 等待 300ms → 鼠标点击 → 组合键 <code>Ctrl+Enter</code>。</p>
+  </div>
+
+  <div class="card">
+    <h2 id="step1">② 第一步：配置动作</h2>
+    <p>打开方式有两个：顶部菜单 <span class="ui">文件</span> → <span class="ui">扩展动作…</span>，或者键盘配置页「扩展」选项卡里的 <span class="ui">⚙ 配置扩展动作</span> 按钮。</p>
+
+    <h3>槽位编号是什么意思</h3>
+    <p>一个槽位 = 一个动作 = 一个触发键。窗口里分两栏：</p>
+    <table>
+      <tr><th>槽位</th><th>触发键</th><th>适用硬件</th></tr>
+      <tr><td>1 – 12</td><td><span class="kbd">F13</span> ~ <span class="kbd">F24</span></td><td>版本 2.0 新协议键盘</td></tr>
+      <tr><td>13 – 24</td><td><span class="kbd">Ctrl</span>+<span class="kbd">Alt</span>+<span class="kbd">Shift</span>+<span class="kbd">F1</span> ~ <span class="kbd">F12</span></td><td>旧协议、蓝牙无线款</td></tr>
+    </table>
+
+    <h3>动手做一个：打开报价单文件夹</h3>
+    <div class="step">
+      <div class="num">1</div>
+      <div class="body"><strong>点「打开文件夹」模板</strong><span>在槽位下方那排模板按钮里，第一个就是。</span></div>
+    </div>
+    <div class="step">
+      <div class="num">2</div>
+      <div class="body"><strong>点「选择…」挑文件夹</strong><span>选好之后路径会自动填进去，也可以手动改。</span></div>
+    </div>
+    <div class="step">
+      <div class="num">3</div>
+      <div class="body"><strong>给槽位起名字</strong><span>中间那个输入框，比如写「打开报价单」。这个名字会显示在键盘配置页上，方便你认。</span></div>
+    </div>
+    <div class="ok">✅ 名称不是必填，但强烈建议填 —— 不填的话，键盘配置页只会显示「未配置」或空白，自己都分不清哪个是哪个。</div>
+
+    <h3>「测试」按钮</h3>
+    <p>配好后先点 <span class="ui">测试</span>，它会立刻执行一遍。没问题再继续。</p>
+  </div>
+
+  <div class="card">
+    <h2 id="step2">③ 第二步：把按键绑成触发键</h2>
+    <p>动作配好了，还要告诉键盘「按哪个键触发它」。</p>
+    <div class="step">
+      <div class="num">1</div>
+      <div class="body"><strong>回到键盘配置页</strong><span>选你要用的那个物理按键（K1、K2…）。</span></div>
+    </div>
+    <div class="step">
+      <div class="num">2</div>
+      <div class="body"><strong>切到「扩展」选项卡</strong><span>里面是一排编号按钮：动作 1、动作 2……</span></div>
+    </div>
+    <div class="step">
+      <div class="num">3</div>
+      <div class="body"><strong>点一下对应编号</strong><span>比如刚才配在槽位 1，就点「动作 1」。页面上会提示「已设为扩展动作 1（F13）」。</span></div>
+    </div>
+    <div class="tip">💡 按钮上会显示 <b>⚡ 动作名</b>（绿色）表示这个槽位已经配了动作；显示「未配置」则说明这个键按下会没反应。</div>
+    <div class="warn">⚠️ 扩展动作<b>必须让桌面版在后台运行</b>。没运行的话，这个键只会发出 F13（或 Ctrl+Alt+Shift+F1），绝大多数软件都不认识，看起来就像"没反应"。</div>
+  </div>
+
+  <div class="card">
+    <h2 id="step3">④ 第三步：两个保存（最容易漏的一步）</h2>
+    <p>这里有<b>两个独立</b>的保存，很多人只做了一个，结果发现不生效：</p>
+    <table>
+      <tr><th>在哪</th><th>保存的是什么</th><th>点哪个按钮</th></tr>
+      <tr><td>键盘配置页</td><td>「这个键发什么」，写进<b>键盘硬件</b></td><td><span class="ui">保存到键盘</span></td></tr>
+      <tr><td>扩展动作窗口</td><td>「动作做什么」，存在<b>电脑上</b></td><td><span class="ui">保存并生效</span></td></tr>
+    </table>
+    <div class="warn">⚠️ 少做任何一个都不生效：<br>· 只存了键盘 → 按下有反应，但不知道要做什么<br>· 只存了动作 → 键盘那个键还是原来的功能</div>
+    <p>保存到键盘之后，有些型号需要<b>拔插一次</b>（或断电重连）才让新配置生效。蓝牙款建议重新连一次。</p>
+  </div>
+
+  <div class="card">
+    <h2 id="record">⑤ 录制宏：不用一步步配</h2>
+    <p>嫌麻烦？直接录一遍就行。槽位右边有个粉色的 <span class="ui">⏺ 录制</span>：</p>
+    <div class="step">
+      <div class="num">1</div>
+      <div class="body"><strong>点「⏺ 录制」</strong><span>扩展动作窗口会自动最小化（不然会把你点在自己界面上的操作也录进去）。</span></div>
+    </div>
+    <div class="step">
+      <div class="num">2</div>
+      <div class="body"><strong>正常操作一遍</strong><span>点哪里、按什么键都行，最多录 15 秒。</span></div>
+    </div>
+    <div class="step">
+      <div class="num">3</div>
+      <div class="body"><strong>按 F10 提前结束</strong><span>或者等 15 秒自动结束，窗口会自己弹回来。</span></div>
+    </div>
+    <p>录制结果会变成标准步骤，你可以继续改：删掉多余的、改等待时间、改坐标。</p>
+    <table>
+      <tr><th>能录到</th><th>录不到 / 有限制</th></tr>
+      <tr><td>鼠标点击（含坐标、左右中键）</td><td>按住不放的拖拽（录成两次点击）</td></tr>
+      <tr><td>组合键（Ctrl+A、Shift+B…）</td><td>中文输入法的候选词选择</td></tr>
+      <tr><td>字母、数字、F1–F12、方向键、Enter/Tab/空格等</td><td>鼠标滚轮</td></tr>
+      <tr><td>操作之间的停顿（≥80ms 记成等待）</td><td>比 15ms 还快的极速连点（会合并）</td></tr>
+    </table>
+    <div class="warn">⚠️ 录制目前<b>只支持 Windows</b>。macOS / Linux 上点录制会提示不支持，需要手动加步骤。</div>
+  </div>
+
+  <div class="card">
+    <h2 id="hotkey">⑥ 触发键与冲突</h2>
+    <p>桌面版要"接管"这些触发键才能执行动作，所以有个副作用：</p>
+    <div class="warn">⚠️ <b>一旦某个触发键被桌面版接管，按下它就不会再传给当前软件。</b>所以不要把动作配到一个你还要当快捷键用的组合上。</div>
+    <h3>被别的软件占用了怎么办</h3>
+    <p>如果这个键已经被其它程序（输入法、截图工具、QQ、微信…）注册过，桌面版就抢不到。表现是按下没反应，窗口顶部会出现<b>红色提示</b>。</p>
+    <p>解决办法：</p>
+    <div class="step">
+      <div class="num">1</div>
+      <div class="body"><strong>点右下角「检测占用」</strong><span>它会挨个试一遍，告诉你哪些组合是空闲的。</span></div>
+    </div>
+    <div class="step">
+      <div class="num">2</div>
+      <div class="body"><strong>在槽位右边换成空闲的组合</strong><span>下拉框里带「（被占用）」的别选，换一个没标记的。</span></div>
+    </div>
+    <div class="step">
+      <div class="num">3</div>
+      <div class="body"><strong>点「保存并生效」</strong><span>然后重新在上面三步里绑一次按键（因为键盘发的键也变了）。</span></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2 id="platform">⑦ 各平台差异</h2>
+    <table>
+      <tr><th></th><th>Windows</th><th>macOS</th><th>国产 Linux</th></tr>
+      <tr><td>打开/粘贴/组合键</td><td>✅</td><td>✅</td><td>✅</td></tr>
+      <tr><td>鼠标点击</td><td>✅ 原生</td><td>需要 <code>cliclick</code></td><td>需要 <code>xdotool</code></td></tr>
+      <tr><td>宏录制</td><td>✅</td><td>❌</td><td>❌</td></tr>
+      <tr><td>额外要求</td><td>杀毒软件可能拦模拟输入</td><td>需授权「辅助功能」</td><td>需 X11，Wayland 有限制</td></tr>
+    </table>
+    <div class="tip">💡 macOS 首次运行会提示授权：<b>系统设置 → 隐私与安全性 → 辅助功能</b>，把「YYWL 键盘配置工具」勾上。鼠标点击还需要终端执行 <code>brew install cliclick</code>。</div>
+    <div class="tip">💡 国产系统（麒麟 / UOS）如果点击无效，先确认当前是 <b>X11</b> 会话（<code>echo $XDG_SESSION_TYPE</code>），Wayland 下模拟输入受限制。</div>
+    <div class="tip">💡 键盘上<b>没有 Command 键</b>是正常的：<b>Win 就是 Command ⌘</b>，<b>Alt 就是 Option ⌥</b>。</div>
+  </div>
+
+  <div class="card">
+    <h2 id="faq">⑧ 常见问题</h2>
+
+    <div class="faq"><strong>按了没反应</strong><span>按顺序排查：① 桌面版在没在运行（看托盘有没有图标）② 键盘配置页有没有「保存到键盘」③ 扩展动作窗口有没有「保存并生效」④ 槽位名称是不是空的、步骤是不是空的 ⑤ 顶部有没有红色"被占用"提示。</span></div>
+
+    <div class="faq"><strong>动作执行了，但粘贴的内容跑到别的窗口去了</strong><span>粘贴类动作会粘到"当前前台窗口"。执行前先点一下目标窗口的输入框。也可以在前面加一个「鼠标点击」步骤，先点住输入框再粘贴。</span></div>
+
+    <div class="faq"><strong>鼠标点击的位置偏了</strong><span>多半是显示器缩放（125% / 150%）造成的。用「📍 取鼠标位置」重新录一次坐标，它和真正点击用的是同一套坐标，能自动对上。</span></div>
+
+    <div class="faq"><strong>关掉窗口后动作就不灵了</strong><span>关闭主窗口后程序会缩到<b>托盘</b>继续运行，这是正常的。要彻底退出：右键托盘图标 → 退出。如果不小心退出了，重新打开程序即可。</span></div>
+
+    <div class="faq"><strong>能不能开机自动启动</strong><span>可以：把程序的快捷方式放进「启动」文件夹（<span class="kbd">Win</span>+<span class="kbd">R</span> 输入 <code>shell:startup</code>）。</span></div>
+
+    <div class="faq"><strong>换电脑了，动作要重配吗</strong><span>动作存在 <code>actions.json</code> 里，用窗口右下角的 <span class="ui">导出</span> / <span class="ui">导入</span> 搬过去就行。注意导入的文件来自别人时要小心 —— 里面可能包含"启动程序"这类动作。</span></div>
+
+    <div class="faq"><strong>杀毒软件报警了</strong><span>扩展动作会模拟键盘鼠标，部分杀软会敏感。把安装目录加入白名单即可。程序不联网、不上传任何内容。</span></div>
+
+    <div class="faq"><strong>键鼠宏录出来不准</strong><span>录制是每 15ms 采样一次，特别快的连点可能被合并。复杂操作建议：先录个大概，再手动微调等待时间。</span></div>
+  </div>
+
+  <div class="card">
+    <h2 id="privacy">⑨ 数据与安全</h2>
+    <table>
+      <tr><th>项目</th><th>说明</th></tr>
+      <tr><td>动作存在哪</td><td>本机 <code>%APPDATA%\YYWL键盘配置工具\actions.json</code>（macOS/Linux 在用户配置目录）</td></tr>
+      <tr><td>会不会写进键盘</td><td><b>不会</b>。键盘里只存"这个键发 F13"，动作本身永远在电脑上</td></tr>
+      <tr><td>会不会联网</td><td><b>不会</b>。扩展动作完全离线执行</td></tr>
+      <tr><td>换电脑</td><td>用「导出 / 导入」搬走 json 文件</td></tr>
+      <tr><td>删除</td><td>槽位右边「删除」清空步骤；或直接删掉 json 文件</td></tr>
+    </table>
+  </div>
+
+  <div class="footer">
+    <p><a href="/">← 返回配置工具</a> · <a href="/tutorial.html">完整使用说明书</a> · <a href="/download.html">下载桌面版</a></p>
+    <p style="margin-top:8px">颖昱物联 · 多功能小键盘配置工具</p>
+  </div>
+</div>
+</body>
+</html>
