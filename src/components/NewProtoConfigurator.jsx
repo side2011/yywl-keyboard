@@ -1,6 +1,7 @@
 // src/components/NewProtoConfigurator.jsx
 // 新协议 (AC104/AC632N) 专用配置界面 — 支持宏录制、多层管理、丰富鼠标动作
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { isDesktopApp, openActionsWindow } from '../services/env';
 import { fetchActionSummary, toSlotMap } from '../services/action-slots';
 import { useNavigate } from 'react-router-dom';
 import { useDevice } from '../context/DeviceContext.jsx';
@@ -780,11 +781,12 @@ export default function NewProtoConfigurator() {
           <a href={`${import.meta.env.BASE_URL}tutorial.html?type=new`} target="_blank" rel="noopener noreferrer"
             className="px-3 py-1 text-sm font-semibold border-2 border-gray-300 rounded-lg text-gray-600 hover:border-indigo-400 hover:text-indigo-600 transition-colors cursor-pointer bg-white">
             {lang === 'en' ? '📖 Config Guide' : '📖 配置说明'}
-          </a>
+          </a>{!isDesktopApp() && (
           <a href={`${import.meta.env.BASE_URL}download.html`}
             className="px-3 py-1 text-sm font-semibold border-2 border-indigo-200 rounded-lg text-indigo-600 hover:border-indigo-400 hover:text-indigo-700 hover:bg-indigo-50 transition-colors cursor-pointer bg-white">
             {lang === 'en' ? '⬇ Download App' : '⬇ 软件下载'}
           </a>
+          )}
           <button onClick={() => navigate('/keytest')}
             className="px-3 py-1 text-sm font-semibold border-2 border-emerald-200 rounded-lg text-emerald-600 hover:border-emerald-400 hover:text-emerald-700 hover:bg-emerald-50 transition-colors cursor-pointer bg-white">
             {lang === 'en' ? '🎯 Key Test' : '🎯 按键测试'}
@@ -1159,6 +1161,27 @@ export default function NewProtoConfigurator() {
                 <p className="text-sm text-gray-500 mb-4">
                   {t('扩展动作由桌面版后台执行（打开文件夹、开网址、粘贴文字/图片、鼠标点击等）。这里只需把按键设成对应的触发键。')}
                 </p>
+
+                {/* 动作本身在另一个窗口里配置，这里给个直达入口，避免客户找不到 */}
+                <div className="flex items-center gap-3 mb-4 flex-wrap">
+                  <button
+                    onClick={async () => {
+                      const ok = await openActionsWindow();
+                      if (ok) {
+                        toast.success(t('已打开「扩展动作」窗口，去那边配置动作'), { id: 'open-actions' });
+                        setTimeout(() => { fetchActionSummary().then((s) => setActionNames(toSlotMap(s))); }, 900);
+                      } else {
+                        toast.error(t('网页版打不开，请用桌面版（需在后台运行）'), { id: 'open-actions' });
+                      }
+                    }}
+                    className="px-4 py-2 text-sm font-bold rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 transition-colors cursor-pointer">
+                    ⚙ {t('配置扩展动作')}
+                  </button>
+                  <span className="text-xs text-gray-400">
+                    {t('也可以从顶部菜单「文件 → 扩展动作…」打开；配好动作后回到这里绑定按键。')}
+                  </span>
+                </div>
+
                 <div className="grid grid-cols-4 gap-2.5">
                   {Array.from({ length: 12 }, (_, i) => {
                     const hk = 0x68 + i; // F13..F24
