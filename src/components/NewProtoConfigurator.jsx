@@ -1158,28 +1158,49 @@ export default function NewProtoConfigurator() {
             {/* ---- 扩展动作 Tab ---- */}
             {activeTab === extTabIndex && (
               <div>
-                <p className="text-sm text-gray-500 mb-4">
-                  {t('扩展动作由桌面版后台执行（打开文件夹、开网址、粘贴文字/图片、鼠标点击等）。这里只需把按键设成对应的触发键。')}
-                </p>
-
-                {/* 动作本身在另一个窗口里配置，这里给个直达入口，避免客户找不到 */}
-                <div className="flex items-center gap-3 mb-4 flex-wrap">
-                  <button
-                    onClick={async () => {
-                      const ok = await openActionsWindow();
-                      if (ok) {
-                        toast.success(t('已打开「扩展动作」窗口，去那边配置动作'), { id: 'open-actions' });
-                        setTimeout(() => { fetchActionSummary().then((s) => setActionNames(toSlotMap(s))); }, 900);
-                      } else {
-                        toast.error(t('网页版打不开，请用桌面版（需在后台运行）'), { id: 'open-actions' });
-                      }
-                    }}
-                    className="px-4 py-2 text-sm font-bold rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 transition-colors cursor-pointer">
-                    ⚙ {t('配置扩展动作')}
-                  </button>
-                  <span className="text-xs text-gray-400">
-                    {t('也可以从顶部菜单「文件 → 扩展动作…」打开；配好动作后回到这里绑定按键。')}
-                  </span>
+                {/* 醒目提示：扩展动作依赖桌面版；网页版直接引导下载 */}
+                <div className="mb-4 rounded-xl border-2 border-indigo-200 bg-indigo-50/80 p-4">
+                  <div className="flex items-start gap-3">
+                    <span className="text-2xl leading-none select-none">⚡</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-base font-bold text-indigo-800 mb-1">
+                        {isDesktopApp()
+                          ? t('这些键由桌面版后台执行扩展动作')
+                          : t('扩展动作需要桌面版（网页版无法执行）')}
+                      </div>
+                      <div className="text-sm text-indigo-900/80 leading-relaxed">
+                        {t('键盘本身只能发标准按键；打开文件夹、开网址、粘贴文字/图片、鼠标点击，都要由桌面版在后台执行。这里只负责把按键绑定到某个动作。')}
+                      </div>
+                      <div className="flex items-center gap-3 mt-3 flex-wrap">
+                        {isDesktopApp() ? (
+                          <>
+                            <button
+                              onClick={async () => {
+                                const ok = await openActionsWindow();
+                                if (ok) {
+                                  toast.success(t('已打开「扩展动作」窗口，去那边配置动作'), { id: 'open-actions' });
+                                  setTimeout(() => { fetchActionSummary().then((s) => setActionNames(toSlotMap(s))); }, 900);
+                                } else {
+                                  toast.error(t('打开失败，请从菜单「文件 → 扩展动作…」进入'), { id: 'open-actions' });
+                                }
+                              }}
+                              className="px-4 py-2 text-sm font-bold rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 transition-colors cursor-pointer">
+                              ⚙ {t('配置扩展动作')}
+                            </button>
+                            <span className="text-xs text-indigo-700/70">{t('也可以从顶部菜单「文件 → 扩展动作…」打开')}</span>
+                          </>
+                        ) : (
+                          <>
+                            <a href={`${import.meta.env.BASE_URL}download.html`}
+                              className="px-4 py-2 text-sm font-bold rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 transition-colors">
+                              ⬇ {t('下载桌面版')}
+                            </a>
+                            <span className="text-xs text-indigo-700/70">{t('装好后在菜单「文件 → 扩展动作…」里配置，程序会在后台常驻')}</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-4 gap-2.5">
