@@ -114,6 +114,22 @@ jobs:
           node scripts/package-domestic.mjs --dir dist-desktop-arm64/linux-arm64-unpacked --arch arm64
           ls -lh release/download/
 
+      # ---- 关键校验: 主进程依赖的模块必须真的打进包, 否则安装后一启动就崩 ----
+      - name: 校验主进程模块已打包
+        shell: bash
+        run: |
+          set -e
+          ASAR=$(find dist-desktop -name app.asar | head -n 1)
+          echo "asar: $ASAR"
+          if [ -z "$ASAR" ]; then echo "找不到 app.asar"; exit 1; fi
+          for f in desktop-main.cjs desktop-updater.cjs desktop-actions.cjs desktop-preload.cjs; do
+            if grep -aq "$f" "$ASAR"; then
+              echo "  ✓ $f"
+            else
+              echo "::error::主进程模块 $f 没有打进 app.asar, 安装后会启动失败"
+              exit 1
+            fi
+          done
       - name: 按约定命名归档
         shell: bash
         run: |
