@@ -1,6 +1,7 @@
 // src/components/NewProtoConfigurator.jsx
 // 新协议 (AC104/AC632N) 专用配置界面 — 支持宏录制、多层管理、丰富鼠标动作
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { fetchActionSummary, toSlotMap } from '../services/action-slots';
 import { useNavigate } from 'react-router-dom';
 import { useDevice } from '../context/DeviceContext.jsx';
 import { useLang } from '../context/LanguageContext.jsx';
@@ -211,6 +212,9 @@ export default function NewProtoConfigurator() {
   // ---- 核心状态 ----
   const [keyConfigs, setKeyConfigs] = useState(() => createDefaultConfig(keyCount));
   const [selectedKey, setSelectedKey] = useState(0);
+  // 桌面版里已配置的扩展动作（网页版拿不到 → 空对象）
+  const [actionNames, setActionNames] = useState({});
+  useEffect(() => { fetchActionSummary().then((s) => setActionNames(toSlotMap(s))); }, []);
   const [activeTab, setActiveTab] = useState(0); // 0=键盘 1=鼠标 2=多媒体 3=宏 4=组合键
   const [currentLayer, setCurrentLayer] = useState(0);
   const [isConnected, setIsConnected] = useState(false);
@@ -1170,6 +1174,11 @@ export default function NewProtoConfigurator() {
                         }`}>
                         <div className={`text-base font-bold ${isSel ? 'text-indigo-700' : 'text-gray-700'}`}>{t('动作')} {i + 1}</div>
                         <div className="text-xs text-gray-400 mt-1 font-mono">F{i + 13}</div>
+                        <div className="text-[10px] mt-1 truncate px-1">
+                          {actionNames[i + 1]
+                            ? <span className="text-emerald-600 font-semibold" title={actionNames[i + 1]}>⚡ {actionNames[i + 1]}</span>
+                            : <span className="text-gray-300">{t('未配置')}</span>}
+                        </div>
                       </button>
                     );
                   })}
