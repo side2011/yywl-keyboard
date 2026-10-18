@@ -1,7 +1,7 @@
 // src/components/NewProtoConfigurator.jsx
 // 新协议 (AC104/AC632N) 专用配置界面 — 支持宏录制、多层管理、丰富鼠标动作
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { isDesktopApp, openActionsWindow } from '../services/env';
+import { isDesktopApp, openActionsWindow, guideUrl } from '../services/env';
 import { fetchActionSummary, toSlotMap } from '../services/action-slots';
 import { useNavigate } from 'react-router-dom';
 import { useDevice } from '../context/DeviceContext.jsx';
@@ -1194,7 +1194,7 @@ export default function NewProtoConfigurator() {
                               ⚙ {t('配置扩展动作')}
                             </button>
                             <span className="text-xs text-indigo-700/70">{t('也可以从顶部菜单「文件 → 扩展动作…」打开')}</span>
-                            <a href="/actions-guide.html" target="_blank" rel="noreferrer"
+                            <a href={guideUrl(lang)} target="_blank" rel="noreferrer"
                               className="text-xs font-semibold text-indigo-700 underline underline-offset-2 hover:text-indigo-900">
                               📖 {t('图文使用说明')}
                             </a>
@@ -1206,7 +1206,7 @@ export default function NewProtoConfigurator() {
                               ⬇ {t('下载桌面版')}
                             </a>
                             <span className="text-xs text-indigo-700/70">{t('装好后在菜单「文件 → 扩展动作…」里配置，程序会在后台常驻')}</span>
-                            <a href="/actions-guide.html" target="_blank" rel="noreferrer"
+                            <a href={guideUrl(lang)} target="_blank" rel="noreferrer"
                               className="text-xs font-semibold text-indigo-700 underline underline-offset-2 hover:text-indigo-900">
                               📖 {t('图文使用说明')}
                             </a>
