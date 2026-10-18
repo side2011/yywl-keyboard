@@ -931,7 +931,13 @@ export default function NewProtoConfigurator() {
                         onClick={() => toggleModifier(mod.bit)}>{t(mod.label)}</button>
                     ))}
                   </div>
-                  <p className="text-sm text-gray-400 mt-1.5">Mac: Win = Command · Alt = Option</p>
+                  {/* Mac 用户经常问"怎么没有 Command 键"，这里明确说明对应关系 */}
+                  <div className="mt-2 inline-flex items-start gap-2 rounded-lg bg-indigo-50 border border-indigo-200 px-3 py-2">
+                    <span className="text-base leading-none select-none">🍎</span>
+                    <span className="text-xs leading-relaxed text-indigo-800">
+                      {t('Mac 用户：键盘上没有 Command 键是正常的 —— Win 就是 Command ⌘，Alt 就是 Option ⌥。')}
+                    </span>
+                  </div>
                 </div>
                 <div className="mb-4">
                   <div className="flex items-center gap-4 mb-3">
