@@ -155,8 +155,8 @@
       <p style="font-size:.86rem;color:#64748b;margin-top:4px">
         通用 Linux 版仍提供 AppImage，但它依赖系统有 FUSE；缺 FUSE 时加参数绕过：
       </p>
-      <code class="cmd">chmod +x yywlkey-config-1.0.0-linux-x64.AppImage
-./yywlkey-config-1.0.0-linux-x64.AppImage --appimage-extract-and-run</code>
+      <code class="cmd">chmod +x yywlkey-config-<版本>-linux-x64.AppImage
+./yywlkey-config-<版本>-linux-x64.AppImage --appimage-extract-and-run</code>
     </div>
 
     <div class="warn">
@@ -220,13 +220,13 @@
 (function () {
   // 兜底数据：即使 manifest.json 拉取失败，页面依然可用
   var FALLBACK = {
-    version: '1.0.0',
+    version: '1.1.0',
     updated: '',
     packages: [
-      { id: 'win-x64', platform: 'windows', arch: 'x64', label: 'Windows 10 / 11（64 位）', file: 'yywlkey-config-1.0.0-win-x64.zip', available: true, note: '免安装绿色版' },
-      { id: 'mac-x64', platform: 'macos', arch: 'x64', label: 'macOS · Intel 芯片', file: 'yywlkey-config-1.0.0-mac-x64.zip', available: false, note: '尚未发布' },
-      { id: 'mac-arm64', platform: 'macos', arch: 'arm64', label: 'macOS · Apple 芯片（M 系列）', file: 'yywlkey-config-1.0.0-mac-arm64.zip', available: false, note: '尚未发布' },
-      { id: 'linux-x64', platform: 'linux', arch: 'x64', label: 'Linux（AppImage）', file: 'yywlkey-config-1.0.0-linux-x64.AppImage', available: false, note: '尚未发布' }
+      { id: 'win-x64', platform: 'windows', arch: 'x64', label: 'Windows 10 / 11（64 位）', file: 'yywlkey-config-1.1.0-win-x64.zip', available: true, note: '免安装绿色版' },
+      { id: 'mac-x64', platform: 'macos', arch: 'x64', label: 'macOS · Intel 芯片', file: 'yywlkey-config-1.1.0-mac-x64.zip', available: false, note: '尚未发布' },
+      { id: 'mac-arm64', platform: 'macos', arch: 'arm64', label: 'macOS · Apple 芯片（M 系列）', file: 'yywlkey-config-1.1.0-mac-arm64.zip', available: false, note: '尚未发布' },
+      { id: 'linux-x64', platform: 'linux', arch: 'x64', label: 'Linux（AppImage）', file: 'yywlkey-config-1.1.0-linux-x64.AppImage', available: false, note: '尚未发布' }
     ]
   };
 
@@ -322,7 +322,7 @@
     var mf = await loadManifest();
     var det = await detect();
 
-    $('verBadge').textContent = '版本 ' + mf.version + (mf.updated ? ' · ' + mf.updated : '');
+    $('verBadge').textContent = '版本 ' + mf.version + (mf.webBuildId ? ' · 构建 ' + mf.webBuildId : '') + (mf.updated ? ' · ' + mf.updated : '');
 
     // 国产系统: 高亮下方说明卡片, 并在推荐区标注品牌
     if (det.domestic) {
