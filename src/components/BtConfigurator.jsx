@@ -2,6 +2,7 @@
 // 蓝牙无线款配置页 — QT KEY_PRO 协议 (0xFB读信息/0xFA读配置/0xFD写键/0xFE 0xB0写灯光)
 // 支持 V10 (版本>=10) 与旧协议两种记录格式 (由 BtProtocolHandler 内部处理)
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { isDesktopApp } from '../services/env';
 import { fetchActionSummary, toSlotMap } from '../services/action-slots';
 import { useNavigate } from 'react-router-dom';
 import { useDevice } from '../context/DeviceContext.jsx';
@@ -406,11 +407,12 @@ export default function BtConfigurator() {
           <a href={`${import.meta.env.BASE_URL}tutorial.html?type=bt`} target="_blank" rel="noopener noreferrer"
             className="px-3 py-1 text-sm font-semibold border-2 border-gray-300 rounded-lg text-gray-600 hover:border-indigo-400 hover:text-indigo-600 transition-colors cursor-pointer bg-white">
             {lang === 'en' ? '📖 Config Guide' : '📖 配置说明'}
-          </a>
+          </a>{!isDesktopApp() && (
           <a href={`${import.meta.env.BASE_URL}download.html`}
             className="px-3 py-1 text-sm font-semibold border-2 border-indigo-200 rounded-lg text-indigo-600 hover:border-indigo-400 hover:text-indigo-700 hover:bg-indigo-50 transition-colors cursor-pointer bg-white">
             {lang === 'en' ? '⬇ Download App' : '⬇ 软件下载'}
           </a>
+          )}
           <button onClick={() => navigate('/keytest')}
             className="px-3 py-1 text-sm font-semibold border-2 border-emerald-200 rounded-lg text-emerald-600 hover:border-emerald-400 hover:text-emerald-700 hover:bg-emerald-50 transition-colors cursor-pointer bg-white">
             {lang === 'en' ? '🎯 Key Test' : '🎯 按键测试'}
