@@ -28,6 +28,10 @@ const SLOTS = [
   { id: 'mac-x64', platform: 'macos', arch: 'x64', file: `yywlkey-config-${VERSION}-mac-x64.zip`, label: 'macOS · Intel 芯片', note: '右键 → 打开' },
   { id: 'mac-arm64', platform: 'macos', arch: 'arm64', file: `yywlkey-config-${VERSION}-mac-arm64.zip`, label: 'macOS · Apple 芯片（M 系列）', note: '右键 → 打开' },
   { id: 'linux-x64', platform: 'linux', arch: 'x64', file: `yywlkey-config-${VERSION}-linux-x64.AppImage`, label: 'Linux（AppImage）', note: 'chmod +x 后运行' },
+  // 国产系统（麒麟 / UOS / deepin）专用便携版：不用 AppImage，
+  // 避开 FUSE 缺失、noexec 挂载、user namespace 被禁（沙箱起不来）三个坑
+  { id: 'linux-x64-domestic', platform: 'linux', arch: 'x64', file: `yywlkey-config-${VERSION}-linux-x64-domestic.tar.gz`, label: '国产系统 · x86_64（麒麟 / UOS 便携版）', note: '解压即用，无需安装' },
+  { id: 'linux-arm64-domestic', platform: 'linux', arch: 'arm64', file: `yywlkey-config-${VERSION}-linux-arm64-domestic.tar.gz`, label: '国产系统 · ARM64（飞腾 / 鲲鹏）', note: '解压即用，无需安装' },
 ]
 
 const dryRun = process.argv.includes('--dry-run')
