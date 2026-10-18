@@ -153,7 +153,8 @@ jobs:
           for f in release/download/*; do
             name=$(basename "$f")
             echo "上传 $name ($(du -h "$f" | cut -f1))"
-            curl -sS --fail --max-time 1800 --ftp-create-dirs \
+            # --retry-all-errors: 大文件上传偶尔会被服务器断开, 重试比整轮重打好得多
+            curl -sS --fail --max-time 3600 --connect-timeout 30 --retry 5 --retry-delay 15 --retry-all-errors --ftp-create-dirs \
               -T "$f" "ftp://$FTP_HOST/download/$name" \
               --user "$FTP_USER:$FTP_PASS"
             echo "  ✓ $name"
