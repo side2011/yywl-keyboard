@@ -81,6 +81,14 @@ function createLocalServer() {
           res.end(JSON.stringify(payload));
           return;
         }
+
+        // 配置页里的「配置扩展动作」按钮：让主进程打开扩展动作窗口
+        if (urlPath === '/__actions/open') {
+          try { openActionsWindow(); } catch (e) { console.warn('[action] 打开窗口失败:', e.message); }
+          res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
+          res.end(JSON.stringify({ ok: true }));
+          return;
+        }
         let rel = urlPath.replace(/^\/+/, '');
         if (!rel) rel = 'index.html';
         let filePath = path.join(webRoot, rel);
