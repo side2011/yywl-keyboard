@@ -51,7 +51,13 @@
         "AppImage"
       ],
       "category": "Utility",
-      "icon": "build/icon.png"
+      "icon": "build/icon.png",
+      "executableName": "yywl-config",
+      "desktop": {
+        "Name": "YYWL 键盘配置工具",
+        "Comment": "多功能小键盘配置工具",
+        "Categories": "Utility;"
+      }
     },
     "compression": "normal",
     "npmRebuild": false,
