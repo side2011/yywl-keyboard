@@ -543,6 +543,26 @@ function setupActionsIpc() {
   // 逐个探测候选热键是否可用（用完即注销，不会长期占用）
   ipcMain.handle('actions:probe', () => (HOTKEY_CANDIDATES.slice(0, 60).map(probeHotkey)));
 
+  // 宏录制：录制期间把扩展动作窗口最小化，录完还原
+  ipcMain.handle('actions:record', async (_e, opts = {}) => {
+    if (process.platform !== 'win32') {
+      return { ok: false, error: '宏录制目前只支持 Windows' };
+    }
+    const durationMs = Math.min(Math.max(Number(opts.durationMs) || 15000, 2000), 60000);
+    const win = actionsWindow;
+    try { if (win) win.minimize(); } catch { /* 忽略 */ }
+    await new Promise((r) => setTimeout(r, 800)); // 等窗口让开，别把点击录到自己身上
+    try {
+      const events = await executor.record(durationMs);
+      const steps = executor.eventsToSteps(events);
+      return { ok: true, steps, events: events.length };
+    } catch (e) {
+      return { ok: false, error: e.message };
+    } finally {
+      try { if (win) { win.restore(); win.focus(); } } catch { /* 忽略 */ }
+    }
+  });
+
   // 录制鼠标位置：读当前光标坐标填进 mouseClick 步骤
   ipcMain.handle('actions:capture-mouse', async () => {
     try { return { ok: true, ...(await executor.getMousePosition()) }; }
