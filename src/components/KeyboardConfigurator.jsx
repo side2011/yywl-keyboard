@@ -201,20 +201,20 @@ const KeyboardConfigurator = () => {
   const currentConfig = keyConfigs[selectedKey] || { mode: 0 };
   const getKeyDisplay = (idx) => configToDisplay(keyConfigs[idx], keyCodeToLabel, t);
 
-  const renderKeyButton = (i) => {
+  const renderKeyButton = (i, compact = false) => {
     const isSel = selectedKey === i;
     const display = getKeyDisplay(i);
     return (
       <button key={i}
-        className={`relative p-4 rounded-xl border-2 transition-all text-left cursor-pointer ${
+        className={`relative ${compact ? 'p-2.5' : 'p-4'} rounded-xl border-2 transition-all text-left cursor-pointer ${
           isSel ? 'border-indigo-500 bg-indigo-50 shadow-md shadow-indigo-100' : 'border-gray-200 bg-white hover:border-indigo-300 hover:shadow-sm'
         }`}
         onClick={() => setSelectedKey(i)}>
-        <div className="flex items-center justify-between mb-2">
-          <span className={`text-sm font-bold px-2.5 py-0.5 rounded-full ${isSel ? 'bg-indigo-500 text-white' : 'bg-gray-100 text-gray-500'}`}>K{i + 1}</span>
-          {hasDelay && delays[i] > 0 && <span className="text-xs text-gray-400 font-mono">{delays[i]}ms</span>}
+        <div className={`flex items-center justify-between ${compact ? 'mb-1' : 'mb-2'}`}>
+          <span className={`${compact ? 'text-xs px-2 py-0.5' : 'text-sm px-2.5 py-0.5'} font-bold rounded-full ${isSel ? 'bg-indigo-500 text-white' : 'bg-gray-100 text-gray-500'}`}>K{i + 1}</span>
+          {!compact && hasDelay && delays[i] > 0 && <span className="text-xs text-gray-400 font-mono">{delays[i]}ms</span>}
         </div>
-        <div className="text-sm text-gray-700 font-semibold line-clamp-2 min-h-[2.5rem] leading-tight" title={display}>{display}</div>
+        <div className={`${compact ? 'text-xs min-h-[2rem]' : 'text-sm min-h-[2.5rem]'} text-gray-700 font-semibold line-clamp-2 leading-tight`} title={display}>{display}</div>
       </button>
     );
   };
@@ -303,11 +303,13 @@ const KeyboardConfigurator = () => {
       );
     }
 
-    // 普通网格布局 (12键为3×4布局，其余≤3键按实际数量，>3键统一3列)
-    const cols = keyCount <= 3 ? keyCount : 3;
+    // 普通网格布局
+    //   ≤4 键: 单排(N 个) —— 4 键款实物就是一排 4 个
+    //   >4 键: 每行 3 个 (12 键即 3×4)
+    const cols = keyCount <= 4 ? keyCount : 3;
     return (
       <div className="grid gap-2.5" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
-        {Array.from({ length: keyCount }, (_, i) => renderKeyButton(i))}
+        {Array.from({ length: keyCount }, (_, i) => renderKeyButton(i, cols === 4))}
       </div>
     );
   };
