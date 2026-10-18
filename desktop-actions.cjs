@@ -106,10 +106,10 @@ function createExecutor(deps, opts = {}) {
   const dryRun = !!opts.dryRun;
   const commands = [];   // dryRun 模式下记录将要执行的命令, 便于测试
 
-  const run = (file, args) => new Promise((resolve, reject) => {
+  const run = (file, args, timeoutMs = 15000) => new Promise((resolve, reject) => {
     commands.push({ file, args });
     if (dryRun) return resolve({ stdout: '', stderr: '', dryRun: true });
-    execFile(file, args, { windowsHide: true, timeout: 15000 }, (err, stdout, stderr) => {
+    execFile(file, args, { windowsHide: true, timeout: timeoutMs, maxBuffer: 8 * 1024 * 1024 }, (err, stdout, stderr) => {
       if (err) return reject(new Error(`${file} 执行失败: ${stderr || err.message}`));
       resolve({ stdout, stderr });
     });
@@ -230,6 +230,163 @@ Write-Output ("{0},{1}" -f $p.X, $p.Y)`;
     if (m) return { x: Number(m[1]), y: Number(m[2]) };
     throw new Error('读取鼠标位置失败（需要 xdotool）');
   }
+  // ---------- 宏录制（Windows）----------
+  // 不用全局钩子(SetWindowsHookEx)，改为轮询 GetAsyncKeyState + GetCursorPos：
+  // 效果一样，但不会像键盘记录器那样被杀软重点盯防。
+  const VK_MODS = { 0x10: 'shift', 0x11: 'ctrl', 0x12: 'alt', 0x5B: 'win', 0x5C: 'win' };
+  const VK_MOUSE = { 0x01: 'left', 0x02: 'right', 0x04: 'middle' };
+  const VK_KEYS = {
+    0x08: 'backspace', 0x09: 'tab', 0x0D: 'enter', 0x1B: 'esc', 0x20: 'space',
+    0x21: 'pgup', 0x22: 'pgdn', 0x23: 'end', 0x24: 'home',
+    0x25: 'left', 0x26: 'up', 0x27: 'right', 0x28: 'down',
+    0x2D: 'insert', 0x2E: 'delete',
+  };
+  const VK_STOP = 0x79; // F10 结束录制
+
+  function recordVkList() {
+    const vks = new Set([...Object.keys(VK_MODS), ...Object.keys(VK_MOUSE), ...Object.keys(VK_KEYS), VK_STOP]
+      .map((v) => Number(v)));
+    for (let v = 0x30; v <= 0x39; v += 1) vks.add(v); // 0-9
+    for (let v = 0x41; v <= 0x5A; v += 1) vks.add(v); // A-Z
+    for (let v = 0x70; v <= 0x7B; v += 1) vks.add(v); // F1-F12
+    return [...vks].sort((a, b) => a - b);
+  }
+
+  function vkToKey(vk) {
+    if (VK_MODS[vk] || VK_MOUSE[vk]) return null;
+    if (VK_KEYS[vk]) return VK_KEYS[vk];
+    if (vk >= 0x30 && vk <= 0x39) return String.fromCharCode(vk);
+    if (vk >= 0x41 && vk <= 0x5A) return String.fromCharCode(vk).toLowerCase();
+    if (vk >= 0x70 && vk <= 0x7B) return `f${vk - 0x6F}`;
+    return null;
+  }
+
+  function recordScript(durationMs) {
+    const vks = recordVkList().join(',');
+    return [
+      '$ErrorActionPreference = "Stop"',
+      'Add-Type -TypeDefinition @\"',
+      'using System;',
+      'using System.Runtime.InteropServices;',
+      'public class YywlRec {',
+      '  [StructLayout(LayoutKind.Sequential)] public struct POINT { public int X; public int Y; }',
+      '  [DllImport("user32.dll")] public static extern short GetAsyncKeyState(int vKey);',
+      '  [DllImport("user32.dll")] public static extern bool GetCursorPos(out POINT p);',
+      '}',
+      '\"@',
+      `$vks = @(${vks})`,
+      `$duration = ${Math.round(durationMs)}`,
+      '$sw = [System.Diagnostics.Stopwatch]::StartNew()',
+      '$prev = @{}',
+      '# Pre-fill with false; otherwise null comparison marks every key as down on the first poll',
+      'foreach ($vk in $vks) { $prev[$vk] = $false }',
+      '$lines = New-Object System.Collections.ArrayList',
+      '$stop = $false',
+      'while (-not $stop -and $sw.ElapsedMilliseconds -lt $duration) {',
+      '  $pt = New-Object YywlRec+POINT',
+      '  [void][YywlRec]::GetCursorPos([ref]$pt)',
+      '  foreach ($vk in $vks) {',
+      '    $st = [YywlRec]::GetAsyncKeyState($vk)',
+      '    $isDown = ($st -band 0x8000) -ne 0',
+      '    # 低位 = "自上次调用以来按下过"，用来兜住比轮询间隔还快的点击/按键',
+      '    $since = ($st -band 0x0001) -ne 0',
+      '    if ($isDown -ne $prev[$vk]) {',
+      '      $prev[$vk] = $isDown',
+      '      [void]$lines.Add(("{0}`t{1}`t{2}`t{3}`t{4}" -f $sw.ElapsedMilliseconds, $vk, [int]$isDown, $pt.X, $pt.Y))',
+      `      if ($vk -eq ${VK_STOP} -and $isDown) { $stop = $true }`,
+      '    } elseif ($since -and (-not $isDown) -and (-not $prev[$vk])) {',
+      '      # 整个按下-抬起都发生在两次轮询之间：补一对 down/up',
+      '      [void]$lines.Add(("{0}`t{1}`t{2}`t{3}`t{4}" -f $sw.ElapsedMilliseconds, $vk, 1, $pt.X, $pt.Y))',
+      '      [void]$lines.Add(("{0}`t{1}`t{2}`t{3}`t{4}" -f $sw.ElapsedMilliseconds, $vk, 0, $pt.X, $pt.Y))',
+      '    }',
+      '  }',
+      '  Start-Sleep -Milliseconds 15',
+      '}',
+      '$lines -join "`n"',
+    ].join('\n');
+  }
+
+  // 录制：返回原始事件 [{t, vk, down, x, y}]
+  async function record(durationMs = 15000) {
+    if (platform !== 'win32') throw new Error('宏录制目前只支持 Windows');
+    const file = path.join(os.tmpdir(), `yywl-record-${process.pid}.ps1`);
+    const script = recordScript(durationMs);
+    // 带 BOM 写入：PowerShell 5.1 读无 BOM 的 UTF-8 会按 ANSI 解析，注释里的中文会拆坏后续行
+    fs.writeFileSync(file, '\uFEFF' + script, 'utf8');
+    try { fs.writeFileSync(path.join(os.tmpdir(), 'yywl-record-last.ps1'), script, 'utf8'); } catch { /* 调试用副本，失败无所谓 */ }
+    try {
+      const { stdout } = await run('powershell', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', file], durationMs + 20000);
+      return String(stdout || '').split(/\r?\n/).filter(Boolean).map((line) => {
+        const [t, vk, down, x, y] = line.split('\t');
+        return { t: Number(t), vk: Number(vk), down: Number(down) === 1, x: Number(x), y: Number(y) };
+      }).filter((e) => Number.isFinite(e.vk));
+    } finally {
+      try { fs.unlinkSync(file); } catch { /* 忽略 */ }
+    }
+  }
+
+  // 把原始事件压成步骤序列
+  function eventsToSteps(events, { maxSteps = 80 } = {}) {
+    const steps = [];
+    const held = Object.create(null);
+    let lastT = 0;
+    const pushDelay = (gap) => {
+      if (gap >= 80 && steps.length) {
+        steps.push({ type: 'delay', ms: Math.min(Math.round(gap), 3000) });
+      }
+    };
+
+    // 先把修饰键配成"按住区间"。轮询可能在同一个周期里看到按下+抬起
+    // （瞬时组合，比如程序模拟的 Ctrl+A），这时 start==end，
+    // 后面判断时给这类瞬时按下留 150ms 的容差，否则组合键会丢修饰键。
+    const modIntervals = [];
+    const openMods = Object.create(null);
+    for (const ev of events) {
+      const name = VK_MODS[ev.vk];
+      if (!name) continue;
+      if (ev.down) {
+        openMods[name] = ev.t;
+      } else if (openMods[name] != null) {
+        modIntervals.push({ name, start: openMods[name], end: ev.t });
+        delete openMods[name];
+      }
+    }
+    Object.keys(openMods).forEach((name) => modIntervals.push({ name, start: openMods[name], end: Infinity }));
+    const modsAt = (t) => {
+      const out = new Set();
+      for (const m of modIntervals) {
+        const effEnd = m.end === Infinity ? Infinity : Math.max(m.end, m.start + 150);
+        if (t >= m.start && t <= effEnd) out.add(m.name);
+      }
+      return [...out];
+    };
+
+    for (const ev of events) {
+      if (steps.length >= maxSteps) break;
+      const { t, vk, down, x, y } = ev;
+      if (VK_MOUSE[vk]) {
+        if (!down || steps.length >= maxSteps) continue;
+        pushDelay(t - lastT);
+        steps.push({ type: 'mouseClick', x, y, button: VK_MOUSE[vk] });
+        lastT = t;
+        continue;
+      }
+      if (VK_MODS[vk]) continue; // 修饰键只参与组合，不单独成步
+      const key = vkToKey(vk);
+      if (!key) continue;
+      if (!down) { delete held[key]; continue; }
+      if (held[key]) continue; // 长按的自动重复，只记一次
+      held[key] = true;
+      pushDelay(t - lastT);
+      steps.push({ type: 'keyPress', keys: [...modsAt(t), key] });
+      lastT = t;
+    }
+    // 去掉结尾的 F10（那是"结束录制"用的）和结尾多余的等待
+    const last = steps[steps.length - 1];
+    if (last && last.type === 'keyPress' && last.keys.length === 1 && last.keys[0] === 'f10') steps.pop();
+    while (steps.length && steps[steps.length - 1].type === 'delay') steps.pop();
+    return steps;
+  }
   // ---- 步骤调度 ----
 
   async function executeStep(step) {
@@ -288,7 +445,7 @@ Write-Output ("{0},{1}" -f $p.X, $p.Y)`;
     return { ok: true, ms: Date.now() - started, commands: dryRun ? commands : undefined };
   }
 
-  return { runAction, executeStep, commands, sendKeys, mouseClick, pasteText, pasteImage, getMousePosition };
+  return { runAction, executeStep, commands, sendKeys, mouseClick, pasteText, pasteImage, getMousePosition, record, eventsToSteps };
 }
 
 module.exports = {
