@@ -303,6 +303,8 @@ module.exports = {
   writePointer,
   install,
   checkRemote,
+  fetchJson,
+  fetchBinary,
   installFromUrl,
   installFromDir,
   pruneOldVersions,
