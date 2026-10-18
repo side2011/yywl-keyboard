@@ -119,6 +119,12 @@ const en = {
     'Extended actions run in the desktop app. Here you only assign the trigger key; the actual action is configured in the desktop app (File → Extended Actions).',
   '需要桌面版在后台运行才生效；否则按下只会发出 Ctrl+Alt+Shift+F1~F12 组合键。':
     'Requires the desktop app running in the background; otherwise the key only sends Ctrl+Alt+Shift+F1-F12.',
+  '配置扩展动作': 'Configure Actions',
+  '已打开「扩展动作」窗口，去那边配置动作': 'Actions window opened - configure the actions there',
+  '网页版打不开，请用桌面版（需在后台运行）': 'Only available in the desktop app (must be running)',
+  '也可以从顶部菜单「文件 → 扩展动作…」打开；配好动作后回到这里绑定按键。':
+    'You can also open it from the menu: File → Extended Actions. Then come back here to bind the key.',
+  '未配置': 'Not set',
   '已设为扩展动作 {n}（F{k}）': 'Set as extended action {n} (F{k})',
   '扩展动作需要安装桌面版并让它在后台运行；网页版和未安装桌面版时，按下只会发出 F13-F24（大多数软件没有反应）。':
     'Extended actions require the desktop app running in the background. Without it, the key only sends F13-F24 (most apps ignore them).',
