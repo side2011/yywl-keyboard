@@ -46,7 +46,13 @@ jobs:
           - name: Linux x64
             os: ubuntu-latest
             artifact: yywl-keyboard-linux-x64
-            package_cmd: npx electron-builder --linux AppImage --x64 --publish never
+            # 三个产物:
+            #   AppImage      —— 通用 Linux
+            #   dir(x64/arm64) —— 打「国产系统便携版」tar.gz 的原料 (不用 FUSE)
+            package_cmd: |
+              npx electron-builder --linux AppImage --x64 --publish never &&
+              npx electron-builder --linux dir --x64 --publish never --config.directories.output=dist-desktop-x64 &&
+              npx electron-builder --linux dir --arm64 --publish never --config.directories.output=dist-desktop-arm64
 
     steps:
       - name: 检出代码
@@ -98,6 +104,16 @@ jobs:
           }
 
       # ---- 改名为下载页约定的文件名 ----
+      # ---- 国产系统便携版: 不用 AppImage, 避开 FUSE 缺失 / noexec / 沙箱起不来 三个坑 ----
+      - name: 打包国产系统便携版
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          set -e
+          node scripts/package-domestic.mjs --dir dist-desktop-x64/linux-unpacked --arch x64
+          node scripts/package-domestic.mjs --dir dist-desktop-arm64/linux-arm64-unpacked --arch arm64
+          ls -lh release/download/
+
       - name: 按约定命名归档
         shell: bash
         run: |
