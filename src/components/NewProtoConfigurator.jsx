@@ -246,8 +246,11 @@ export default function NewProtoConfigurator() {
     { label: t('鼠标'), mode: KEY_MODE.MOUSE },
     { label: t('多媒体'), mode: KEY_MODE.MEDIA },
     { label: t('宏(多键合一)'), mode: KEY_MODE.MACRO },
+    { label: t('扩展'), mode: -2 },
     ...(hasBacklight ? [{ label: t('灯光'), mode: -1 }] : []),
   ];
+  const extTabIndex = tabs.findIndex((x) => x.mode === -2);
+  const ledTabIndex = tabs.findIndex((x) => x.mode === -1);
 
   // ---- 初始化 / 自动读取 ----
   useEffect(() => {
@@ -797,21 +800,21 @@ export default function NewProtoConfigurator() {
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
             <h3 className="text-base font-bold text-gray-600 uppercase tracking-wider mb-4">{t('物理按键')}</h3>
             {(() => {
-              const renderKeyCard = (i, extraCls = '') => {
+              const renderKeyCard = (i, extraCls = '', compact = false) => {
                 const isSel = selectedKey === i;
                 const display = getConfigDisplay(keyConfigs[i]);
                 return (
                   <button key={i}
                     disabled={loading}
-                    className={`relative p-5 rounded-xl border-2 transition-all text-left ${extraCls} ${
+                    className={`relative ${compact ? 'p-2.5' : 'p-5'} rounded-xl border-2 transition-all text-left ${extraCls} ${
                       loading ? 'cursor-not-allowed opacity-60 border-gray-200 bg-gray-50' : 'cursor-pointer'
                     } ${
                       !loading && isSel ? 'border-indigo-500 bg-indigo-50 shadow-md shadow-indigo-100' : !loading ? 'border-gray-200 bg-white hover:border-indigo-300 hover:shadow-sm' : ''
                     }`}
                     onClick={() => !loading && setSelectedKey(i)}>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className={`text-base font-bold px-3 py-1 rounded-full ${isSel ? 'bg-indigo-500 text-white' : 'bg-gray-100 text-gray-500'}`}>K{i + 1}</span>
-                      {keyConfigs[i]?.mode > 0 && (
+                    <div className={`flex items-center justify-between ${compact ? 'mb-1' : 'mb-2'}`}>
+                      <span className={`${compact ? 'text-xs px-2 py-0.5' : 'text-base px-3 py-1'} font-bold rounded-full ${isSel ? 'bg-indigo-500 text-white' : 'bg-gray-100 text-gray-500'}`}>K{i + 1}</span>
+                      {!compact && keyConfigs[i]?.mode > 0 && (
                         <span className={`text-sm px-2 py-0.5 rounded-full font-medium ${
                           keyConfigs[i].mode === KEY_MODE.MACRO ? 'bg-amber-100 text-amber-700' :
                           keyConfigs[i].mode === KEY_MODE.MOUSE ? 'bg-blue-100 text-blue-700' :
@@ -823,7 +826,7 @@ export default function NewProtoConfigurator() {
                         </span>
                       )}
                     </div>
-                    <div className="text-base text-gray-700 font-semibold line-clamp-2 min-h-[3rem] leading-snug" title={display}>{display}</div>
+                    <div className={`${compact ? 'text-xs min-h-[2rem]' : 'text-base min-h-[3rem]'} text-gray-700 font-semibold line-clamp-2 leading-snug`} title={display}>{display}</div>
                   </button>
                 );
               };
@@ -837,6 +840,14 @@ export default function NewProtoConfigurator() {
                     {renderKeyCard(1, 'w-[106px]')}
                     {renderKeyCard(2, 'w-[106px]')}
                     {renderKeyCard(3, 'w-[106px]')}
+                  </div>
+                );
+              }
+              // 4 键款(非方向键)是单排 4 个 —— 与实物一致；其余每行最多 3 个
+              if (keyCount === 4) {
+                return (
+                  <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' }}>
+                    {Array.from({ length: keyCount }, (_, i) => renderKeyCard(i, '', true))}
                   </div>
                 );
               }
@@ -1138,8 +1149,39 @@ export default function NewProtoConfigurator() {
               </div>
             )}
 
+            {/* ---- 扩展动作 Tab ---- */}
+            {activeTab === extTabIndex && (
+              <div>
+                <p className="text-sm text-gray-500 mb-4">
+                  {t('扩展动作由桌面版后台执行（打开文件夹、开网址、粘贴文字/图片、鼠标点击等）。这里只需把按键设成对应的触发键。')}
+                </p>
+                <div className="grid grid-cols-4 gap-2.5">
+                  {Array.from({ length: 12 }, (_, i) => {
+                    const hk = 0x68 + i; // F13..F24
+                    const isSel = currentConfig.mode === KEY_MODE.KEYBOARD && currentConfig.keyCode === hk;
+                    return (
+                      <button key={i}
+                        onClick={() => {
+                          updateConfig({ mode: KEY_MODE.KEYBOARD, keyCode: hk, modifier: 0 });
+                          toast.success(t('已设为扩展动作 {n}（F{k}）', { n: i + 1, k: i + 13 }), { id: 'ext-set' });
+                        }}
+                        className={`py-4 rounded-xl border-2 transition-all cursor-pointer ${
+                          isSel ? 'border-indigo-500 bg-indigo-50 shadow-sm' : 'border-gray-200 bg-white hover:border-indigo-300'
+                        }`}>
+                        <div className={`text-base font-bold ${isSel ? 'text-indigo-700' : 'text-gray-700'}`}>{t('动作')} {i + 1}</div>
+                        <div className="text-xs text-gray-400 mt-1 font-mono">F{i + 13}</div>
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="mt-4 p-3 rounded-lg bg-amber-50 border border-amber-200 text-xs text-amber-800 leading-relaxed">
+                  ⚠️ {t('扩展动作需要安装桌面版并让它在后台运行；网页版和未安装桌面版时，按下只会发出 F13-F24（大多数软件没有反应）。')}
+                </div>
+              </div>
+            )}
+
             {/* ---- 灯光 Tab ---- */}
-            {hasBacklight && activeTab === tabs.length - 1 && (
+            {hasBacklight && activeTab === ledTabIndex && (
               <div>
                 <p className="text-sm text-gray-500 mb-4">{t('选择灯光效果，保存时会应用到所有层。部分灯效使用基础颜色，其他灯效使用内置色盘。')}</p>
 
