@@ -344,16 +344,38 @@ async function importOfflinePackage() {
 
 function showAbout() {
   const web = updater.readVersion(webRoot) || {};
-  const lines = [
-    `程序版本：${app.getVersion()}`,
-    `网页版本：${friendlyVersion(web)}`,
-    `网页目录：${webRoot}`,
-    `更新地址：${updateBase}`,
-    `离线更新：文件 → 导入离线更新包`,
-  ];
+  const appVer = app.getVersion();
+  const webVer = web.appVersion || '';
+  const build = web.buildId || '';
+  // 只给用户看"一个版本号"：取程序版本与网页版本里较高的那个（网页通常是热更新后最新的）。
+  // 两者不一致时不要并排显示两个数字（客户会懵），改成一句可执行的提示。
+  const shown = compareVersions(webVer, appVer) > 0 ? webVer : appVer;
+  const lines = [`版本：${shown}${build ? `（构建 ${build}）` : ''}`];
+  if (webVer && compareVersions(appVer, webVer) < 0) {
+    lines.push('');
+    lines.push(`⚠ 安装包为 ${appVer}，宏录制等新功能需要重新安装一次`);
+    lines.push(`  下载地址：${updateBase}download.html`);
+  }
+  lines.push('');
+  lines.push(`网页目录：${webRoot}`);
+  lines.push(`更新地址：${updateBase}`);
+  lines.push(`离线更新：文件 → 导入离线更新包`);
   dialog.showMessageBox(mainWindow, {
     type: 'info', message: 'YYWL 键盘配置工具', detail: lines.join('\n'), buttons: ['知道了'],
   });
+}
+
+// 比较 x.y.z（缺位按 0 处理）；返回 1 / -1 / 0
+function compareVersions(a, b) {
+  const pa = String(a || '0').split('.').map((n) => parseInt(n, 10) || 0);
+  const pb = String(b || '0').split('.').map((n) => parseInt(n, 10) || 0);
+  for (let i = 0; i < Math.max(pa.length, pb.length); i += 1) {
+    const x = pa[i] || 0;
+    const y = pb[i] || 0;
+    if (x > y) return 1;
+    if (x < y) return -1;
+  }
+  return 0;
 }
 
 function relaunch() {
