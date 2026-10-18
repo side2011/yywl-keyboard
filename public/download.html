@@ -108,9 +108,12 @@
     <h2>🀄 国产操作系统（信创）用户</h2>
     <p id="domesticBrand" style="display:none;font-size:.88rem;color:#b45309;font-weight:700;margin-bottom:6px"></p>
     <p style="font-size:.9rem;color:#475569">
-      麒麟、统信 UOS、深度等国产系统本质上是 Linux，<strong>用 Linux 版（AppImage）即可</strong>，
-      但<strong>能否运行取决于 CPU 架构</strong>——请先确认架构再下载。
+      麒麟、统信 UOS、深度等国产系统本质上是 Linux，但<strong>直接跑 AppImage 经常起不来</strong>
+      （缺 FUSE、/home 被设成 noexec、系统禁用了 user namespace 导致沙箱报错）。
+      所以这里单独做了 <strong>国产系统便携版</strong>：解压即用，不用安装、不用 FUSE、不依赖沙箱。
     </p>
+
+    <div class="grid" id="domesticPkgs" style="margin-top:14px"></div>
 
     <div class="oslist">
       <span>银河麒麟 V10</span><span>中标麒麟 NeoKylin</span><span>openKylin</span>
@@ -132,23 +135,36 @@
     </div>
 
     <div style="margin-top:16px">
-      <strong style="font-size:.92rem;color:#334155">② 运行 AppImage（x86_64 机器）</strong>
-      <p style="font-size:.86rem;color:#64748b;margin-top:4px">下载后放进任意目录，在终端执行下面三行（文件名按实际替换）：</p>
-      <code class="cmd">chmod +x yywlkey-config-1.0.0-linux-x64.AppImage
-./yywlkey-config-1.0.0-linux-x64.AppImage
-# 若提示 FUSE 相关错误，改用：
-./yywlkey-config-1.0.0-linux-x64.AppImage --appimage-extract-and-run</code>
-      <p style="font-size:.84rem;color:#64748b;margin-top:8px">
-        也可以图形界面操作：右键 AppImage →「属性」→「权限」→ 勾选「允许作为程序执行」，再双击运行。
+      <strong style="font-size:.92rem;color:#334155">② 运行国产系统便携版（推荐）</strong>
+      <p style="font-size:.86rem;color:#64748b;margin-top:4px">
+        解压后进目录，执行下面两步（第一步只需做一次，会要一次管理员密码）：
       </p>
+      <code class="cmd"># 1) 配置键盘访问权限（只需一次）
+./install-hid.sh
+
+# 2) 启动
+./run.sh</code>
+      <p style="font-size:.84rem;color:#64748b;margin-top:8px">
+        双击 <code>run.sh</code> 选「在终端中运行」也可以。包内附 <code>README-国产系统.txt</code>，
+        含 noexec / 闪退 / 连不上键盘等问题的处理办法。
+      </p>
+    </div>
+
+    <div style="margin-top:16px">
+      <strong style="font-size:.92rem;color:#334155">③ 如果你更习惯 AppImage</strong>
+      <p style="font-size:.86rem;color:#64748b;margin-top:4px">
+        通用 Linux 版仍提供 AppImage，但它依赖系统有 FUSE；缺 FUSE 时加参数绕过：
+      </p>
+      <code class="cmd">chmod +x yywlkey-config-1.0.0-linux-x64.AppImage
+./yywlkey-config-1.0.0-linux-x64.AppImage --appimage-extract-and-run</code>
     </div>
 
     <div class="warn">
       ⚠️ <strong>国产系统上的常见问题</strong><br>
-      · <strong>权限被拦</strong>：麒麟/UOS 的「安全中心」或「应用防护」可能拦截未知程序，需在弹窗里选择「允许」或在安全中心加白名单。<br>
-      · <strong>没装 FUSE</strong>：部分精简版系统没有 libfuse2，用上面的 <code>--appimage-extract-and-run</code> 参数即可绕过。<br>
-      · <strong>USB 设备读不到</strong>：Linux 需要给 hidraw 加 udev 权限，配置工具里会直接给出可复制的命令；执行后拔插一次键盘。<br>
-      · <strong>ARM64 / 龙芯机器</strong>：请把 <code>uname -m</code> 的结果发给我们，可单独编译对应版本。
+      · <strong>安全中心拦截</strong>：麒麟/UOS 的「安全中心」「应用防护」可能拦截未知程序，需在弹窗里选「允许」或加白名单。<br>
+      · <strong>提示 noexec</strong>：/home 被设成禁止执行程序（等保加固常见），按 <code>run.sh</code> 的提示把目录拷到 <code>/opt</code> 即可，只需一次管理员密码。<br>
+      · <strong>连不上键盘</strong>：先跑 <code>./install-hid.sh</code>（写 udev 规则），再拔插一次键盘。<br>
+      · <strong>龙芯（loongarch64）</strong>：Electron 暂无官方支持，请把 <code>uname -m</code> 结果发给我们。
     </div>
   </div>
 
@@ -245,6 +261,13 @@
     var list = mf.packages;
     var byOs = list.filter(function (p) { return p.platform === det.os; });
     if (!byOs.length) return null;
+    // 国产系统优先推荐「便携版」(不用 AppImage, 不依赖 FUSE)
+    if (det.domestic) {
+      var domestic = byOs.filter(function (p) {
+        return /-domestic$/.test(p.id) && p.arch === det.arch;
+      });
+      if (domestic.length) return domestic[0];
+    }
     // 精确匹配架构；否则取该平台第一个（mac 上 Intel 机器可能被识别成 x64，正好命中）
     var exact = byOs.filter(function (p) { return p.arch === det.arch; });
     return (exact.length ? exact : byOs)[0];
@@ -321,6 +344,27 @@
       }
     }
 
+    // 国产系统专用包（单独一栏展示）
+    (function () {
+      var wrap = $('domesticPkgs');
+      if (!wrap) return;
+      var list = mf.packages.filter(function (p) { return /-domestic$/.test(p.id); });
+      if (!list.length) return;
+      list.forEach(function (p) {
+        var el = document.createElement('div');
+        el.className = 'pkg' + (p.available ? ' on' : '');
+        var size = p.available && p.size ? mb(p.size) : (p.note || '尚未发布');
+        el.innerHTML =
+          '<div class="name">' + p.label + '</div>' +
+          '<div class="sub">' + (p.arch === 'arm64' ? 'ARM64' : 'x86_64') + ' · ' + size + '</div>' +
+          '<div class="row">' +
+            (p.available
+              ? '<a class="mini" href="' + fileUrl(p) + '" download>下载</a>'
+              : '<span class="mini off">尚未发布</span>') +
+          '</div>';
+        wrap.appendChild(el);
+      });
+    })();
     // 全部平台
     var grid = $('grid');
     mf.packages.forEach(function (p) { grid.appendChild(pkgCard(p)); });
