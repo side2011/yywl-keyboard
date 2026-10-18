@@ -9,12 +9,13 @@
 // 网页内容可在线更新 (见 desktop-updater.cjs):
 //   优先使用 userData/web/<buildId>/ (更新下来的), 没有则用安装包自带的 dist
 // ============================================================
-const { app, BrowserWindow, session, shell, Menu, dialog, net } = require('electron');
+const { app, BrowserWindow, session, shell, Menu, dialog, net, globalShortcut, clipboard, nativeImage, ipcMain, Tray } = require('electron');
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const { URL } = require('url');
 const updater = require('./desktop-updater.cjs');
+const { createExecutor } = require('./desktop-actions.cjs');
 
 // 安装包内置的网页 (只读, 位于 app.asar 内)
 const BUNDLED_DIST = path.join(__dirname, 'dist');
@@ -136,6 +137,12 @@ function createWindow() {
 }
 
 function startApp() {
+  // 已经起过服务（例如从托盘重新打开窗口）就复用，避免重复监听端口
+  if (server && localPrefix) {
+    if (!mainWindow) createWindow();
+    else { mainWindow.show(); mainWindow.focus(); }
+    return;
+  }
   createLocalServer().then((srv) => {
     server = srv;
     localPrefix = `http://127.0.0.1:${srv.address().port}`;
@@ -323,6 +330,7 @@ function buildMenu() {
     {
       label: '文件',
       submenu: [
+        { label: '扩展动作…', click: openActionsWindow },
         { label: '导入离线更新包…', click: importOfflinePackage },
         { type: 'separator' },
         isMac ? { role: 'close', label: '关闭窗口' } : { role: 'quit', label: '退出' },
@@ -352,6 +360,198 @@ function buildMenu() {
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }
 
+// ---------- 扩展动作（键盘只发 HID 码，扩展能力靠这里监听保留热键实现）----------
+
+const ACTION_FILE_NAME = 'actions.json';
+const ACTION_SLOTS = 24;
+let actionsWindow = null;
+let actionsConfig = { version: 1, enabled: true, actions: [] };
+let tray = null;
+let executor = null;
+const registeredShortcuts = [];
+
+function actionsFile() {
+  return path.join(app.getPath('userData'), ACTION_FILE_NAME);
+}
+
+function loadActions() {
+  try {
+    const data = JSON.parse(fs.readFileSync(actionsFile(), 'utf8'));
+    if (data && Array.isArray(data.actions)) {
+      actionsConfig = { version: 1, enabled: data.enabled !== false, actions: data.actions };
+    }
+  } catch {
+    // 首次运行没有文件很正常
+  }
+  console.log('[action] 已加载动作:', actionsConfig.actions.length, '启用:', actionsConfig.enabled);
+}
+
+function saveActions(data) {
+  actionsConfig = {
+    version: 1,
+    enabled: data.enabled !== false,
+    actions: Array.isArray(data.actions) ? data.actions : [],
+  };
+  fs.mkdirSync(path.dirname(actionsFile()), { recursive: true });
+  fs.writeFileSync(actionsFile(), JSON.stringify(actionsConfig, null, 2));
+  registerHotkeys();
+  // 第一次配置动作时把托盘建起来，这样关窗口后还能继续响应热键
+  const hasActions = actionsConfig.enabled && actionsConfig.actions.some((a) => (a.steps || []).length);
+  if (hasActions && !tray) setupTray();
+  return { ok: true, registered: registeredShortcuts.slice(), conflicts: hotkeyConflicts.slice() };
+}
+
+// 槽位 → 默认热键：1-12 = F13..F24；13-24 = Ctrl+Alt+Shift+F1..F12
+// 允许动作自带 hotkey 覆盖（热键被占用时用户可换一个冷门组合）
+function slotHotkey(slot, act) {
+  if (act && typeof act.hotkey === 'string' && act.hotkey.trim()) return act.hotkey.trim();
+  if (slot >= 1 && slot <= 12) return `F${slot + 12}`;
+  if (slot >= 13 && slot <= 24) return `Control+Alt+Shift+F${slot - 12}`;
+  return null;
+}
+
+// 可选热键清单：优先"没人用"的组合，占用率高的一律不放前面
+const HOTKEY_CANDIDATES = (() => {
+  const list = [];
+  for (let i = 13; i <= 24; i++) list.push(`F${i}`);
+  for (let i = 1; i <= 12; i++) list.push(`Control+Alt+Shift+F${i}`);
+  for (let i = 0; i <= 9; i++) list.push(`Control+Alt+Shift+${i}`);
+  for (const ch of 'QWERTYUIOPASDFGHJKLZXCVBNM') list.push(`Control+Alt+Shift+${ch}`);
+  for (let i = 1; i <= 12; i++) list.push(`Control+Shift+F${i}`);
+  return list;
+})();
+
+let hotkeyConflicts = [];
+
+function registerHotkeys() {
+  for (const acc of registeredShortcuts) {
+    try { globalShortcut.unregister(acc); } catch { /* 忽略 */ }
+  }
+  registeredShortcuts.length = 0;
+  hotkeyConflicts = [];
+  if (!actionsConfig.enabled) return;
+
+  for (const act of actionsConfig.actions) {
+    const acc = slotHotkey(act.slot, act);
+    if (!acc || act.enabled === false || !(act.steps || []).length) continue;
+    try {
+      const ok = globalShortcut.register(acc, () => {
+        executor.runAction(act)
+          .then((r) => { if (!r.ok) console.warn('[action] 执行失败:', act.name || act.slot, r.error); })
+          .catch((e) => console.warn('[action] 执行异常:', e.message));
+      });
+      if (ok) registeredShortcuts.push(acc);
+      else {
+        // 被别的程序占了：记下来，交由界面提示用户换一个
+        hotkeyConflicts.push({ slot: act.slot, hotkey: acc, name: act.name || '' });
+        console.warn('[action] 热键被占用:', acc);
+      }
+    } catch (e) {
+      hotkeyConflicts.push({ slot: act.slot, hotkey: acc, name: act.name || '', error: e.message });
+      console.warn('[action] 注册失败:', acc, e.message);
+    }
+  }
+  console.log('[action] 已注册热键:', registeredShortcuts.join(', ') || '(无)');
+  if (hotkeyConflicts.length) console.warn('[action] 冲突:', JSON.stringify(hotkeyConflicts));
+}
+
+// 探测某个组合是否可用：尝试注册再立刻注销（不会长期占用）
+function probeHotkey(acc) {
+  try {
+    if (globalShortcut.isRegistered(acc)) return { hotkey: acc, available: true, note: '本程序已占用' };
+    const ok = globalShortcut.register(acc, () => {});
+    if (ok) { globalShortcut.unregister(acc); return { hotkey: acc, available: true }; }
+    return { hotkey: acc, available: false };
+  } catch (e) {
+    return { hotkey: acc, available: false, error: e.message };
+  }
+}
+
+function setupActionsIpc() {
+  executor = createExecutor({ clipboard, nativeImage, shell });
+
+  ipcMain.handle('actions:load', () => actionsConfig);
+  ipcMain.handle('actions:save', (_e, data) => saveActions(data || {}));
+  ipcMain.handle('actions:test', async (_e, action) => {
+    // 窗口失焦后动作作用在用户当前的窗口上，所以测试时先把编辑窗口最小化
+    try { if (actionsWindow) actionsWindow.minimize(); } catch { /* 忽略 */ }
+    await new Promise((r) => setTimeout(r, 400));
+    const result = await executor.runAction(action || {});
+    setTimeout(() => { try { if (actionsWindow) actionsWindow.restore(); } catch { /* 忽略 */ } }, 300);
+    return result;
+  });
+  ipcMain.handle('actions:pick-folder', async () => {
+    const r = await dialog.showOpenDialog(actionsWindow || mainWindow || undefined, { properties: ['openDirectory'] });
+    return r.canceled ? null : r.filePaths[0];
+  });
+  ipcMain.handle('actions:pick-file', async (_e, kind) => {
+    const filters = kind === 'image'
+      ? [{ name: '图片', extensions: ['png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp'] }]
+      : [];
+    const r = await dialog.showOpenDialog(actionsWindow || mainWindow || undefined, { properties: ['openFile'], filters });
+    return r.canceled ? null : r.filePaths[0];
+  });
+  ipcMain.handle('actions:info', () => ({
+    platform: process.platform,
+    registered: registeredShortcuts.slice(),
+    enabled: actionsConfig.enabled,
+    slots: ACTION_SLOTS,
+    hotkeys: Array.from({ length: ACTION_SLOTS }, (_, i) => slotHotkey(i + 1)),
+    conflicts: hotkeyConflicts.slice(),
+    candidates: HOTKEY_CANDIDATES.slice(),
+    file: actionsFile(),
+  }));
+
+  // 逐个探测候选热键是否可用（用完即注销，不会长期占用）
+  ipcMain.handle('actions:probe', () => (HOTKEY_CANDIDATES.slice(0, 60).map(probeHotkey)));
+  ipcMain.handle('actions:open-help', () => {
+    shell.openExternal(`${updateBase}tutorial.html`);
+  });
+}
+
+function openActionsWindow() {
+  if (actionsWindow) {
+    if (actionsWindow.isMinimized()) actionsWindow.restore();
+    actionsWindow.focus();
+    return;
+  }
+  actionsWindow = new BrowserWindow({
+    width: 1000,
+    height: 760,
+    minWidth: 820,
+    minHeight: 560,
+    title: '扩展动作 · YYWL 键盘配置工具',
+    autoHideMenuBar: true,
+    backgroundColor: '#f8fafc',
+    webPreferences: {
+      preload: path.join(__dirname, 'desktop-preload.cjs'),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true,
+    },
+  });
+  actionsWindow.loadURL(`${localPrefix}/actions.html`);
+  actionsWindow.on('closed', () => { actionsWindow = null; });
+}
+
+function setupTray() {
+  try {
+    const iconPath = path.join(webRoot, 'favicon-32.png');
+    const icon = fs.existsSync(iconPath) ? nativeImage.createFromPath(iconPath) : nativeImage.createEmpty();
+    tray = new Tray(icon);
+    tray.setToolTip('YYWL 键盘配置工具（扩展动作运行中）');
+    tray.setContextMenu(Menu.buildFromTemplate([
+      { label: '打开配置工具', click: () => { if (mainWindow) { mainWindow.show(); mainWindow.focus(); } else startApp(); } },
+      { label: '扩展动作…', click: openActionsWindow },
+      { type: 'separator' },
+      { label: '退出', click: () => { app.isQuitting = true; app.quit(); } },
+    ]));
+    tray.on('double-click', () => { if (mainWindow) { mainWindow.show(); mainWindow.focus(); } });
+  } catch (e) {
+    console.warn('托盘创建失败:', e.message);
+  }
+}
+
 // ---------- 生命周期 ----------
 
 const gotTheLock = app.requestSingleInstanceLock();
@@ -376,8 +576,17 @@ if (!gotTheLock) {
     webRoot = pointer ? pointer.dir : BUNDLED_DIST;
     console.log('[web] 使用目录:', webRoot, '版本:', (updater.readVersion(webRoot) || {}).buildId || 'embedded');
 
+    loadActions();
+    setupActionsIpc();
     buildMenu();
     startApp();
+
+    // 有启用的动作时注册全局热键 + 建托盘, 让程序能在后台常驻
+    const hasActions = actionsConfig.enabled && actionsConfig.actions.some((a) => (a.steps || []).length);
+    if (hasActions) {
+      registerHotkeys();
+      setupTray();
+    }
 
     app.on('activate', () => {
       if (BrowserWindow.getAllWindows().length === 0) startApp();
@@ -386,6 +595,9 @@ if (!gotTheLock) {
 }
 
 app.on('window-all-closed', () => {
+  // 有扩展动作在跑时，关窗口不退出，留在托盘里继续响应热键
+  const keepRunning = actionsConfig.enabled && actionsConfig.actions.some((a) => (a.steps || []).length);
+  if (keepRunning && !app.isQuitting && tray) return;
   if (server) { try { server.close(); } catch { /* 忽略 */ } }
   app.quit();
 });
