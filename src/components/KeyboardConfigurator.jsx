@@ -1,5 +1,6 @@
 // src/components/KeyboardConfigurator.jsx
 import React, { useState, useEffect, useRef } from 'react';
+import { isDesktopApp } from '../services/env';
 import { useNavigate } from 'react-router-dom';
 import { useDevice } from '../context/DeviceContext.jsx';
 import { useLang } from '../context/LanguageContext.jsx';
@@ -346,11 +347,12 @@ const KeyboardConfigurator = () => {
           <a href={`${import.meta.env.BASE_URL}tutorial.html?type=old`} target="_blank" rel="noopener noreferrer"
             className="px-3 py-1 text-sm font-semibold border-2 border-gray-300 rounded-lg text-gray-600 hover:border-indigo-400 hover:text-indigo-600 transition-colors cursor-pointer bg-white">
             {lang === 'en' ? '📖 Config Guide' : '📖 配置说明'}
-          </a>
+          </a>{!isDesktopApp() && (
           <a href={`${import.meta.env.BASE_URL}download.html`}
             className="px-3 py-1 text-sm font-semibold border-2 border-indigo-200 rounded-lg text-indigo-600 hover:border-indigo-400 hover:text-indigo-700 hover:bg-indigo-50 transition-colors cursor-pointer bg-white">
             {lang === 'en' ? '⬇ Download App' : '⬇ 软件下载'}
           </a>
+          )}
           <button onClick={() => navigate('/keytest')}
             className="px-3 py-1 text-sm font-semibold border-2 border-emerald-200 rounded-lg text-emerald-600 hover:border-emerald-400 hover:text-emerald-700 hover:bg-emerald-50 transition-colors cursor-pointer bg-white">
             {lang === 'en' ? '🎯 Key Test' : '🎯 按键测试'}
