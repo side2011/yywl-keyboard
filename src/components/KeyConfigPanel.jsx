@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { fetchActionSummary, toSlotMap } from '../services/action-slots';
 import { useLang } from '../context/LanguageContext.jsx';
+import { isDesktopApp } from '../services/env';
 import { KEY_MODE, KEYCODE_LABELS, MEDIA_KEYS, MOUSE_BUTTONS, mouseIndexToDevice, mouseDeviceToIndex, MODIFIERS, BROWSER_CODE_TO_HID, BROWSER_MOD_TO_BIT, HID_TO_CS_SHIFTED, CS_SHIFTED_CODES } from '../services/hid-constants';
 
 // ---- styles ----
