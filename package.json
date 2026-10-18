@@ -31,6 +31,8 @@
       "dist/**/*",
       "desktop-main.cjs",
       "desktop-updater.cjs",
+      "desktop-actions.cjs",
+      "desktop-preload.cjs",
       "package.json"
     ],
     "win": {
