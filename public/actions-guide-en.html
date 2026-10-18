@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Extended Actions Guide - Keypad Config Tool | Yingyu IoT</title>
+<link rel="icon" type="image/png" href="/favicon.png">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; background: #f8fafc; color: #1e293b; line-height: 1.7; }
+  .hero { background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); color: #fff; padding: 46px 20px 40px; }
+  .hero .wrap { max-width: 880px; margin: 0 auto; }
+  .hero h1 { font-size: 1.9rem; font-weight: 800; margin-bottom: 8px; }
+  .hero p { font-size: 1rem; opacity: .93; max-width: 680px; }
+  .hero .badge { display: inline-block; background: rgba(255,255,255,.18); padding: 4px 12px; border-radius: 20px; font-size: .78rem; margin: 10px 6px 0 0; }
+  .hero .lang { float: right; font-size: .85rem; color: #fff; opacity: .85; text-decoration: none; border: 1px solid rgba(255,255,255,.45); border-radius: 8px; padding: 4px 10px; }
+  .hero .lang:hover { opacity: 1; background: rgba(255,255,255,.12); }
+  .container { max-width: 880px; margin: 24px auto 60px; padding: 0 20px; }
+  .card { background: #fff; border-radius: 16px; box-shadow: 0 4px 24px rgba(0,0,0,.06); padding: 26px 26px 22px; margin-bottom: 18px; border: 1px solid #e2e8f0; }
+  .card h2 { font-size: 1.16rem; font-weight: 800; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; scroll-margin-top: 12px; }
+  .card h3 { font-size: .98rem; font-weight: 700; margin: 16px 0 6px; color: #334155; }
+  .card p { font-size: .92rem; color: #334155; margin-bottom: 8px; }
+  .toc { position: sticky; top: 0; z-index: 10; background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 10px 14px; margin-bottom: 18px; font-size: .86rem; display: flex; flex-wrap: wrap; gap: 6px 14px; box-shadow: 0 2px 10px rgba(0,0,0,.04); }
+  .toc a { color: #4338ca; text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+  .step { display: flex; gap: 14px; padding: 14px 0; border-bottom: 1px dashed #e2e8f0; }
+  .step:last-child { border-bottom: none; }
+  .step .num { flex: 0 0 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg,#4f46e5,#7c3aed); color: #fff; font-weight: 800; display: flex; align-items: center; justify-content: center; font-size: .95rem; }
+  .step .body { flex: 1; }
+  .step .body strong { display: block; font-size: .95rem; margin-bottom: 2px; }
+  .step .body span { font-size: .89rem; color: #475569; }
+  table { width: 100%; border-collapse: collapse; font-size: .86rem; margin-top: 10px; }
+  th, td { padding: 8px 10px; border-bottom: 1px solid #f1f5f9; text-align: left; vertical-align: top; }
+  th { color: #334155; background: #f8fafc; font-weight: 600; }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .84em; background: #f1f5f9; padding: 2px 6px; border-radius: 4px; }
+  .tip { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 11px 15px; margin: 12px 0; font-size: .88rem; color: #1e40af; }
+  .warn { background: #fff7ed; border: 1px solid #fed7aa; border-radius: 10px; padding: 11px 15px; margin: 12px 0; font-size: .88rem; color: #9a3412; }
+  .ok { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; padding: 11px 15px; margin: 12px 0; font-size: .88rem; color: #166534; }
+  .ui { display: inline-block; background: #eef2ff; border: 1px solid #c7d2fe; color: #3730a3; border-radius: 6px; padding: 1px 7px; font-size: .85em; font-weight: 600; }
+  .kbd { display: inline-block; background: #fff; border: 1px solid #cbd5e1; border-bottom-width: 2px; border-radius: 5px; padding: 1px 7px; font-size: .82em; font-family: ui-monospace, Menlo, monospace; color: #334155; }
+  .faq { border-left: 3px solid #c7d2fe; padding-left: 14px; margin: 14px 0; }
+  .faq strong { display: block; font-size: .93rem; color: #1e293b; margin-bottom: 3px; }
+  .faq span { font-size: .89rem; color: #475569; }
+  .footer { text-align: center; padding: 10px 20px 50px; color: #94a3b8; font-size: .84rem; }
+  .footer a { color: #6366f1; text-decoration: none; }
+  @media (max-width: 640px) { .hero h1 { font-size: 1.5rem; } .card { padding: 20px 18px; } }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="wrap">
+    <a class="lang" href="/actions-guide.html">中文</a>
+    <h1>⚡ Extended Actions Guide</h1>
+    <p>Make one key on your keypad open a folder, open a website, paste a block of text, click a spot on screen — or replay a whole recorded sequence.</p>
+    <span class="badge">Desktop app only</span>
+    <span class="badge">Windows / macOS / Linux</span>
+    <span class="badge">1.2.0+</span>
+  </div>
+</div>
+
+<div class="container">
+
+  <div class="toc">
+    <a href="#what">① What it does</a>
+    <a href="#step1">② Step 1: create an action</a>
+    <a href="#step2">③ Step 2: bind a key</a>
+    <a href="#step3">④ Step 3: two saves</a>
+    <a href="#record">⑤ Record a macro</a>
+    <a href="#hotkey">⑥ Trigger keys &amp; conflicts</a>
+    <a href="#platform">⑦ Platform differences</a>
+    <a href="#faq">⑧ FAQ</a>
+    <a href="#privacy">⑨ Data &amp; privacy</a>
+  </div>
+
+  <div class="card">
+    <h2>Start here: three steps</h2>
+    <div class="step">
+      <div class="num">1</div>
+      <div class="body">
+        <strong>Create the action in the “Extended Actions” window</strong>
+        <span>Menu <span class="ui">File</span> → <span class="ui">Extended Actions…</span>. Name a slot, pick an action type, fill in the parameters.</span>
+      </div>
+    </div>
+    <div class="step">
+      <div class="num">2</div>
+      <div class="body">
+        <strong>Bind that slot to a key on the keypad</strong>
+        <span>In the keypad config page, select a key → open the <span class="ui">Actions</span> tab → click the matching number (action 1 = F13).</span>
+      </div>
+    </div>
+    <div class="step">
+      <div class="num">3</div>
+      <div class="body">
+        <strong>Save in both places</strong>
+        <span><span class="ui">Save to keypad</span> in the config page, and <span class="ui">Save &amp; apply</span> in the actions window.</span>
+      </div>
+    </div>
+    <div class="tip">💡 Shortcut: each slot has quick-template buttons. One click gives you a ready-made action — you only change the folder path or the text.</div>
+  </div>
+
+  <div class="card">
+    <h2 id="what">① What it can do</h2>
+    <p>Extended actions are executed by the <b>desktop app</b> running in the background. The keypad itself only sends keystrokes; the “open / paste / click” part is done by the app.</p>
+    <table>
+      <tr><th>Action</th><th>Parameters</th><th>Typical use</th></tr>
+      <tr><td>Open folder</td><td>Folder path</td><td>Open the “Quotes” folder with one key</td></tr>
+      <tr><td>Open URL</td><td>URL</td><td>Company site, admin console</td></tr>
+      <tr><td>Launch program</td><td>Executable path (optional arguments)</td><td>ERP client, remote desktop</td></tr>
+      <tr><td>Paste text</td><td>Any text (multi-line ok)</td><td>Paste shipping info, canned replies</td></tr>
+      <tr><td>Paste image</td><td>Image file path</td><td>Paste a signature, stamp or product photo</td></tr>
+      <tr><td>Key combo</td><td>Captured from your keyboard, e.g. <code>Ctrl+Shift+A</code></td><td>Trigger another app’s shortcut</td></tr>
+      <tr><td>Mouse click</td><td>Coordinates + left/right/middle</td><td>Click a button at a fixed position</td></tr>
+      <tr><td>Wait</td><td>Milliseconds</td><td>Let the other app catch up</td></tr>
+    </table>
+    <p style="margin-top:10px">One slot can hold <b>several steps</b> executed in order, e.g. paste image → wait 300 ms → mouse click → <code>Ctrl+Enter</code>.</p>
+  </div>
+
+  <div class="card">
+    <h2 id="step1">② Step 1: create an action</h2>
+    <p>Two ways in: menu <span class="ui">File</span> → <span class="ui">Extended Actions…</span>, or the <span class="ui">⚙ Configure actions</span> button in the <span class="ui">Actions</span> tab of the keypad config page.</p>
+
+    <h3>What the slot numbers mean</h3>
+    <table>
+      <tr><th>Slots</th><th>Trigger key</th><th>Hardware</th></tr>
+      <tr><td>1 – 12</td><td><span class="kbd">F13</span> – <span class="kbd">F24</span></td><td>Version 2.0 protocol keypads</td></tr>
+      <tr><td>13 – 24</td><td><span class="kbd">Ctrl</span>+<span class="kbd">Alt</span>+<span class="kbd">Shift</span>+<span class="kbd">F1</span> – <span class="kbd">F12</span></td><td>Legacy protocol and Bluetooth models</td></tr>
+    </table>
+
+    <h3>Try it: open a folder</h3>
+    <div class="step">
+      <div class="num">1</div>
+      <div class="body"><strong>Click the “Open folder” template</strong><span>It is the first button in the template row under the slot.</span></div>
+    </div>
+    <div class="step">
+      <div class="num">2</div>
+      <div class="body"><strong>Click “Browse…” and pick the folder</strong><span>The path is filled in automatically; you can also type it.</span></div>
+    </div>
+    <div class="step">
+      <div class="num">3</div>
+      <div class="body"><strong>Give the slot a name</strong><span>e.g. “Open quotes”. The name is shown on the keypad config page so you can tell slots apart.</span></div>
+    </div>
+    <div class="ok">✅ The name is optional but strongly recommended — without it the config page just shows “Not set”.</div>
+
+    <h3>The “Test” button</h3>
+    <p>After configuring, click <span class="ui">Test</span> to run it once before you continue.</p>
+  </div>
+
+  <div class="card">
+    <h2 id="step2">③ Step 2: bind a key</h2>
+    <div class="step">
+      <div class="num">1</div>
+      <div class="body"><strong>Go back to the keypad config page</strong><span>Select the physical key you want to use (K1, K2 …).</span></div>
+    </div>
+    <div class="step">
+      <div class="num">2</div>
+      <div class="body"><strong>Open the “Actions” tab</strong><span>You will see numbered buttons: Action 1, Action 2 …</span></div>
+    </div>
+    <div class="step">
+      <div class="num">3</div>
+      <div class="body"><strong>Click the matching number</strong><span>If the action is in slot 1, click “Action 1”. A toast confirms “Set as extended action 1 (F13)”.</span></div>
+    </div>
+    <div class="tip">💡 A green <b>⚡ name</b> on the button means that slot has an action. “Not set” means pressing the key will do nothing.</div>
+    <div class="warn">⚠️ The desktop app must be <b>running in the background</b>. Otherwise the key only sends F13 (or Ctrl+Alt+Shift+F1), which almost no software reacts to — it looks like “nothing happens”.</div>
+  </div>
+
+  <div class="card">
+    <h2 id="step3">④ Step 3: two saves (the step people miss)</h2>
+    <p>There are <b>two independent</b> saves. Doing only one is the most common reason “it doesn’t work”:</p>
+    <table>
+      <tr><th>Where</th><th>What is saved</th><th>Button</th></tr>
+      <tr><td>Keypad config page</td><td>“Which key is sent”, stored <b>in the keypad</b></td><td><span class="ui">Save to keypad</span></td></tr>
+      <tr><td>Extended actions window</td><td>“What the action does”, stored <b>on the PC</b></td><td><span class="ui">Save &amp; apply</span></td></tr>
+    </table>
+    <div class="warn">⚠️ Missing either one breaks it:<br>· Only saved to keypad → the key reacts, but nothing knows what to do<br>· Only saved the action → the key still has its old function</div>
+    <p>After saving to the keypad, some models need to be <b>unplugged and plugged back in</b> before the new config takes effect. Bluetooth models: reconnect once.</p>
+  </div>
+
+  <div class="card">
+    <h2 id="record">⑤ Record a macro</h2>
+    <p>Don’t want to build steps by hand? Just record them. Each slot has a pink <span class="ui">⏺ Record</span> button:</p>
+    <div class="step">
+      <div class="num">1</div>
+      <div class="body"><strong>Click “⏺ Record”</strong><span>The actions window minimizes automatically so your clicks on it are not recorded.</span></div>
+    </div>
+    <div class="step">
+      <div class="num">2</div>
+      <div class="body"><strong>Do the operation once</strong><span>Click wherever you want, type whatever keys you want — up to 15 seconds.</span></div>
+    </div>
+    <div class="step">
+      <div class="num">3</div>
+      <div class="body"><strong>Press F10 to stop early</strong><span>Or just wait 15 seconds; the window comes back by itself.</span></div>
+    </div>
+    <p>The result becomes normal steps — you can delete, reorder or adjust waits and coordinates afterwards.</p>
+    <table>
+      <tr><th>Recorded</th><th>Not recorded / limited</th></tr>
+      <tr><td>Mouse clicks (with coordinates, left/right/middle)</td><td>Press-and-drag (becomes two clicks)</td></tr>
+      <tr><td>Key combos (Ctrl+A, Shift+B …)</td><td>IME candidate selection</td></tr>
+      <tr><td>Letters, digits, F1–F12, arrows, Enter/Tab/Space …</td><td>Mouse wheel</td></tr>
+      <tr><td>Pauses (≥80 ms becomes a wait step)</td><td>Ultra-fast taps under ~15 ms (merged)</td></tr>
+    </table>
+    <div class="warn">⚠️ Recording is <b>Windows only</b> for now. On macOS / Linux the button reports “not supported”; add steps manually there.</div>
+  </div>
+
+  <div class="card">
+    <h2 id="hotkey">⑥ Trigger keys &amp; conflicts</h2>
+    <div class="warn">⚠️ Once the desktop app registers a trigger key, that key <b>no longer reaches the current application</b>. Do not bind an action to a shortcut you still want to use normally.</div>
+    <h3>The key is already taken by another app</h3>
+    <p>If another program (IME, screenshot tool, chat app …) already owns the combination, the desktop app cannot register it — pressing does nothing and a <b>red banner</b> appears at the top of the window.</p>
+    <div class="step">
+      <div class="num">1</div>
+      <div class="body"><strong>Click “Check availability”</strong><span>It probes every candidate and tells you which ones are free.</span></div>
+    </div>
+    <div class="step">
+      <div class="num">2</div>
+      <div class="body"><strong>Pick a free combination in the slot’s dropdown</strong><span>Entries marked “(in use)” are taken.</span></div>
+    </div>
+    <div class="step">
+      <div class="num">3</div>
+      <div class="body"><strong>Save &amp; apply, then re-bind the key</strong><span>The keypad must send the new trigger key, so redo step 2.</span></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2 id="platform">⑦ Platform differences</h2>
+    <table>
+      <tr><th></th><th>Windows</th><th>macOS</th><th>Domestic Linux</th></tr>
+      <tr><td>Open / paste / combos</td><td>✅</td><td>✅</td><td>✅</td></tr>
+      <tr><td>Mouse click</td><td>✅ built-in</td><td>needs <code>cliclick</code></td><td>needs <code>xdotool</code></td></tr>
+      <tr><td>Macro recording</td><td>✅</td><td>❌</td><td>❌</td></tr>
+      <tr><td>Extra requirement</td><td>Antivirus may block simulated input</td><td>Accessibility permission</td><td>X11 session (Wayland limited)</td></tr>
+    </table>
+    <div class="tip">💡 macOS: on first run, allow the app in <b>System Settings → Privacy &amp; Security → Accessibility</b>. Mouse clicks also need <code>brew install cliclick</code>.</div>
+    <div class="tip">💡 Kylin / UOS: if clicks do nothing, check that you are on an <b>X11</b> session (<code>echo $XDG_SESSION_TYPE</code>). Wayland restricts simulated input.</div>
+    <div class="tip">💡 There is <b>no Command key</b> on the keypad — that is normal. <b>Win = Command ⌘</b>, <b>Alt = Option ⌥</b>.</div>
+  </div>
+
+  <div class="card">
+    <h2 id="faq">⑧ FAQ</h2>
+
+    <div class="faq"><strong>Nothing happens when I press the key</strong><span>Check in order: ① is the desktop app running (tray icon present) ② did you click “Save to keypad” ③ did you click “Save &amp; apply” ④ does the slot have a name and at least one step ⑤ is there a red “in use” banner?</span></div>
+
+    <div class="faq"><strong>The action runs but the text is pasted into the wrong window</strong><span>Paste actions go to whatever window is focused. Click into the target input first, or add a “Mouse click” step before the paste.</span></div>
+
+    <div class="faq"><strong>The click lands in the wrong place</strong><span>Usually display scaling (125% / 150%). Re-capture with “📍 Get cursor position” — it uses the same coordinate space as the actual click.</span></div>
+
+    <div class="faq"><strong>Actions stop working after I close the window</strong><span>Closing the main window minimizes the app to the <b>tray</b>; it keeps running. To quit completely: right-click the tray icon → Quit. If you quit by accident, just start the app again.</span></div>
+
+    <div class="faq"><strong>Can it start with Windows?</strong><span>Yes — put a shortcut in the Startup folder (<span class="kbd">Win</span>+<span class="kbd">R</span>, type <code>shell:startup</code>).</span></div>
+
+    <div class="faq"><strong>I changed computers — must I reconfigure?</strong><span>Actions live in <code>actions.json</code>. Use <span class="ui">Export</span> / <span class="ui">Import</span> in the bottom-right corner. Be careful importing a file from someone else — it may contain “Launch program” steps.</span></div>
+
+    <div class="faq"><strong>My antivirus complains</strong><span>Extended actions simulate keyboard and mouse, which some AV products flag. Add the install folder to the whitelist. The app does not connect to the internet or upload anything.</span></div>
+
+    <div class="faq"><strong>Recorded macros are not accurate enough</strong><span>Recording samples every ~15 ms, so extremely fast taps may be merged. Record a rough version first, then fine-tune the waits by hand.</span></div>
+  </div>
+
+  <div class="card">
+    <h2 id="privacy">⑨ Data &amp; privacy</h2>
+    <table>
+      <tr><th>Item</th><th>Details</th></tr>
+      <tr><td>Where actions are stored</td><td><code>%APPDATA%\YYWL键盘配置工具\actions.json</code> (per-user config dir on macOS/Linux)</td></tr>
+      <tr><td>Written into the keypad?</td><td><b>No.</b> The keypad only stores “this key sends F13”; actions always stay on the PC</td></tr>
+      <tr><td>Network access</td><td><b>None.</b> Actions run fully offline</td></tr>
+      <tr><td>Moving to another PC</td><td>Export / import the json file</td></tr>
+      <tr><td>Deleting</td><td>“Delete” next to the slot, or remove the json file</td></tr>
+    </table>
+  </div>
+
+  <div class="footer">
+    <p><a href="/">← Back to the config tool</a> · <a href="/tutorial-en.html">Full manual</a> · <a href="/download.html">Download the desktop app</a></p>
+    <p style="margin-top:8px">Yingyu IoT · Multi-function keypad config tool</p>
+  </div>
+</div>
+</body>
+</html>
