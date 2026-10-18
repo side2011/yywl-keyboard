@@ -196,14 +196,17 @@ jobs:
             echo "✓ 一致: 桌面版首次启动不会触发无效更新"
           fi
 
-      # 这些包已经传到 FTP 服务器并挂到 Release 上了，artifact 只是给下面
-      # 「生成下载清单」任务在同一轮流水线里取文件用，保留 1 天足够。
-      # 之前保留 30 天，每轮约 650MB × 6 个包，把 Actions 存储（免费 0.5GB）吃光了。
-      - name: 上传 Artifact (仅供清单任务使用, 保留 1 天)
+      # 只上传几 KB 的校验信息（体积 + SHA256），不再上传 100MB+ 的安装包。
+      # 安装包本身已经传到 FTP 服务器并挂到 GitHub Release；
+      # 把大文件当 artifact 会吃光 Actions 免费存储（0.5GB），实测堆到 9GB。
+      - name: 生成产物校验信息
+        run: node scripts/make-meta.mjs
+
+      - name: 上传校验信息 (几 KB)
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.artifact }}
-          path: release/download/*
+          name: meta-${{ matrix.artifact }}
+          path: release/download/meta.json
           if-no-files-found: error
           retention-days: 1
 
@@ -229,20 +232,13 @@ jobs:
         with:
           node-version: 22
 
-      - name: 收集三个平台的产物
+      - name: 收集各平台的校验信息
         uses: actions/download-artifact@v4
         with:
-          path: artifacts
-          merge-multiple: true
-
-      - name: 归档到约定目录
-        run: |
-          mkdir -p release/download
-          find artifacts -type f -exec cp {} release/download/ \;
-          ls -lh release/download/
+          path: meta
 
       - name: 生成 manifest.json
-        run: node scripts/update-manifest.mjs
+        run: node scripts/update-manifest.mjs --meta=meta
 
       - name: 上传清单到服务器
         env:
