@@ -115,6 +115,10 @@ const en = {
   '动作': 'Action',
   '扩展动作由桌面版后台执行（打开文件夹、开网址、粘贴文字/图片、鼠标点击等）。这里只需把按键设成对应的触发键。':
     'Extended actions run in the desktop app (open folders/URLs, paste text or images, mouse clicks). Here you only assign the trigger key.',
+  '扩展动作由桌面版后台执行。这里只需把按键设成触发键，具体动作在桌面版的「文件 → 扩展动作」里配置。':
+    'Extended actions run in the desktop app. Here you only assign the trigger key; the actual action is configured in the desktop app (File → Extended Actions).',
+  '需要桌面版在后台运行才生效；否则按下只会发出 Ctrl+Alt+Shift+F1~F12 组合键。':
+    'Requires the desktop app running in the background; otherwise the key only sends Ctrl+Alt+Shift+F1-F12.',
   '已设为扩展动作 {n}（F{k}）': 'Set as extended action {n} (F{k})',
   '扩展动作需要安装桌面版并让它在后台运行；网页版和未安装桌面版时，按下只会发出 F13-F24（大多数软件没有反应）。':
     'Extended actions require the desktop app running in the background. Without it, the key only sends F13-F24 (most apps ignore them).',
