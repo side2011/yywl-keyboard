@@ -18,6 +18,9 @@ contextBridge.exposeInMainWorld('yywlActions', {
   pickFolder: () => ipcRenderer.invoke('actions:pick-folder'),
   pickFile: (kind) => ipcRenderer.invoke('actions:pick-file', kind),
 
+  // 录制鼠标位置（返回当前光标坐标）
+  captureMouse: () => ipcRenderer.invoke('actions:capture-mouse'),
+
   // 检测候选热键是否被其它程序占用
   probe: () => ipcRenderer.invoke('actions:probe'),
 
