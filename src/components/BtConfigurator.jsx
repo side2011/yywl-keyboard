@@ -372,11 +372,14 @@ export default function BtConfigurator() {
     }
   };
 
+  // 灯光作为右侧的一个"选项卡", 不再堆在左栏最底部(小屏会看不到)
+  const LED_TAB = 'led';
   const tabs = [
     { label: t('键盘'), mode: MODE.KEY },
     { label: t('鼠标'), mode: MODE.MOUSE },
     { label: t('多媒体'), mode: MODE.MEDIA },
     { label: t('延时'), mode: MODE.DELAY },
+    { label: t('灯光'), mode: LED_TAB },
   ];
 
   const isConnected = !!device;
@@ -460,26 +463,55 @@ export default function BtConfigurator() {
                 );
               };
               if (knobCount > 0) {
-                // 旋钮款: 按键 2×3 网格 + 右侧旋钮簇 (左转/右转在上, 按下大圆在下) — 对齐实物布局
+                // 对齐实物布局（用户照片）: 两个旋钮在上方, 下面两排按键 K1-K3 / K4-K6
+                // 每个旋钮有 左转 / 按下 / 右转 三个可配置槽位
                 return (
-                  <div className="flex gap-3">
-                    <div className="grid grid-cols-3 gap-2 flex-1">
-                      {Array.from({ length: keyCount }, (_, i) => renderSlot(i))}
-                    </div>
-                    <div className="flex-shrink-0 flex flex-col items-center gap-1.5">
+                  <div className="space-y-3">
+                    {/* 旋钮在上 */}
+                    <div className={`grid gap-2 ${knobCount > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}>
                       {Array.from({ length: knobCount }, (_, n) => {
                         const base = keyCount + n * 3;
                         return (
-                          <div key={n} className="flex flex-col items-center gap-1.5">
-                            <div className="flex gap-1.5">
-                              {renderSlot(base, 'w-[84px]')}
-                              {renderSlot(base + 2, 'w-[84px]')}
+                          <div key={n} className="rounded-xl border-2 border-dashed border-indigo-200 bg-indigo-50/50 p-2">
+                            <div className="text-[11px] font-bold text-indigo-500 mb-1.5 text-center tracking-wide">
+                              {t('旋钮')} {n + 1}
                             </div>
-                            {renderSlot(base + 1, 'w-[104px] h-[104px] rounded-full flex flex-col items-center justify-center')}
+                            <div className="grid grid-cols-3 gap-1.5">
+                              {[t('左'), t('中'), t('右')].map((pos, k) => {
+                                const idx = base + k;
+                                const isSel = selectedKey === idx;
+                                return (
+                                  <button key={k} onClick={() => handleSelectKey(idx)}
+                                    className={`rounded-lg border-2 px-1 py-1.5 transition-all cursor-pointer ${
+                                      isSel
+                                        ? 'border-indigo-500 bg-indigo-500 text-white shadow-sm'
+                                        : 'border-gray-200 bg-white text-gray-600 hover:border-indigo-300'
+                                    }`}>
+                                    <div className="text-[11px] font-bold leading-none mb-1">{pos}</div>
+                                    <div className="text-[10px] leading-tight line-clamp-2 break-all opacity-80 min-h-[1.6rem]">
+                                      {getConfigDisplay(keyConfigs[idx])}
+                                    </div>
+                                  </button>
+                                );
+                              })}
+                            </div>
                           </div>
                         );
                       })}
                     </div>
+
+                    {/* 按键在下: 3 列, 第 1 排 K1-K3, 第 2 排 K4-K6 */}
+                    <div className="grid grid-cols-3 gap-2">
+                      {Array.from({ length: keyCount }, (_, i) => renderSlot(i))}
+                    </div>
+                  </div>
+                );
+              }
+              // 无旋钮款: 4 键是单排 4 个 (与实物一致), 其余每行 3 个
+              if (totalSlots === 4) {
+                return (
+                  <div className="grid grid-cols-4 gap-2">
+                    {Array.from({ length: totalSlots }, (_, i) => renderSlot(i))}
                   </div>
                 );
               }
@@ -523,42 +555,6 @@ export default function BtConfigurator() {
             extra={{ layers: layerConfigsRef.current, led: { mode: ledMode, colors: ledColors } }}
             onLoadConfig={handleLoadConfig}
           />
-
-          {/* 灯光 */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-            <h3 className="text-base font-bold text-gray-600 mb-3">{t('灯光')}</h3>
-            <div className="flex flex-wrap gap-2 mb-3">
-              {BT_LED_MODES.map((m, i) => (
-                <button key={i} onClick={() => setLedMode(i)}
-                  className={`px-3 py-1.5 text-sm font-semibold rounded-lg transition-colors cursor-pointer ${
-                    ledMode === i ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}>
-                  {m}
-                </button>
-              ))}
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {BT_LED_COLORS.map((c, i) => {
-                const isSel = isColorSel(c.rgb);
-                return (
-                  <button key={i} onClick={() => setLedColors(prev => prev.map(() => ({ r: c.rgb[0], g: c.rgb[1], b: c.rgb[2] })))}
-                    title={c.label}
-                    className={`relative w-9 h-9 rounded-lg border-2 cursor-pointer transition-all hover:scale-110 ${
-                      isSel ? 'border-indigo-600 ring-2 ring-indigo-300 scale-110' : 'border-gray-200'
-                    }`}
-                    style={{ backgroundColor: `rgb(${c.rgb[0]},${c.rgb[1]},${c.rgb[2]})` }}>
-                    {isSel && (
-                      <svg className="absolute inset-0 m-auto" width="16" height="16" viewBox="0 0 24 24" fill="none">
-                        <path d="M20 6L9 17l-5-5" stroke="rgba(0,0,0,0.35)" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
-                        <path d="M20 6L9 17l-5-5" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-            {btLayerCount > 1 && <p className="text-xs text-gray-400 mt-3">{t('灯光保存时应用到所有层。')}</p>}
-          </div>
         </div>
 
         {/* ==== 右栏: 配置面板 ==== */}
@@ -573,7 +569,7 @@ export default function BtConfigurator() {
             {/* Tab 切换 */}
             <div className="flex gap-2 mb-5">
               {tabs.map(tab => (
-                <button key={tab.mode} onClick={() => { setActiveTab(tab.mode); if (tab.mode !== MODE.DELAY) updateConfig({ mode: tab.mode }); }}
+                <button key={tab.mode} onClick={() => { setActiveTab(tab.mode); if (tab.mode !== MODE.DELAY && tab.mode !== LED_TAB) updateConfig({ mode: tab.mode }); }}
                   className={`flex-1 py-2.5 text-base font-semibold text-center rounded-lg transition-colors cursor-pointer ${
                     activeTab === tab.mode ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
                   }`}>
@@ -681,6 +677,53 @@ export default function BtConfigurator() {
                   <span className="text-base text-gray-600">ms</span>
                 </div>
                 <p className="text-sm text-gray-400 mt-3">{t('设置该按键按下后的延时时间 (0~60000ms)。')}</p>
+              </div>
+            )}
+
+            {/* 灯光（从左侧移到这里，避免在小屏上被挤到最底部看不到） */}
+            {activeTab === LED_TAB && (
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <label className="text-base font-bold text-gray-700">{t('灯光模式')}</label>
+                  {btLayerCount > 1 && (
+                    <span className="text-xs text-gray-400">{t('保存时应用到所有层')}</span>
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {BT_LED_MODES.map((m, i) => (
+                    <button key={i} onClick={() => setLedMode(i)}
+                      className={`px-4 py-2 text-sm font-semibold rounded-lg transition-colors cursor-pointer ${
+                        ledMode === i ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      }`}>
+                      {m}
+                    </button>
+                  ))}
+                </div>
+
+                <label className="text-base font-bold text-gray-700 block mb-2">{t('灯光颜色')}</label>
+                <div className="flex flex-wrap gap-3">
+                  {BT_LED_COLORS.map((c, i) => {
+                    const isSel = isColorSel(c.rgb);
+                    return (
+                      <button key={i} onClick={() => setLedColors(prev => prev.map(() => ({ r: c.rgb[0], g: c.rgb[1], b: c.rgb[2] })))}
+                        title={c.label}
+                        className={`relative w-11 h-11 rounded-xl border-2 cursor-pointer transition-all hover:scale-105 ${
+                          isSel ? 'border-indigo-600 ring-2 ring-indigo-300 scale-105' : 'border-gray-200'
+                        }`}
+                        style={{ backgroundColor: `rgb(${c.rgb[0]},${c.rgb[1]},${c.rgb[2]})` }}>
+                        {isSel && (
+                          <svg className="absolute inset-0 m-auto" width="18" height="18" viewBox="0 0 24 24" fill="none">
+                            <path d="M20 6L9 17l-5-5" stroke="rgba(0,0,0,0.35)" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
+                            <path d="M20 6L9 17l-5-5" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="text-sm text-gray-400 mt-4">
+                  {t('选好模式和颜色后，点左下角「保存到键盘」写入。')}
+                </p>
               </div>
             )}
           </div>
