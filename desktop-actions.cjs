@@ -410,7 +410,17 @@ Write-Output ("{0},{1}" -f $p.X, $p.Y)`;
       }
       case 'pasteText': return pasteText(step.text);
       case 'pasteImage': return pasteImage(step.image);
-      case 'keyPress': return sendKeys(step.keys);
+      case 'keyPress': {
+        // 支持单个组合（keys）和多个组合连发（chords: [['alt','x'], ['enter']]）
+        if (Array.isArray(step.chords) && step.chords.length) {
+          for (const chord of step.chords) {
+            if (Array.isArray(chord) && chord.length) await sendKeys(chord);
+            await new Promise((r) => setTimeout(r, 120));
+          }
+          return;
+        }
+        return sendKeys(step.keys || []);
+      }
       case 'mouseClick': return mouseClick(step);
       case 'delay': {
         const ms = Math.min(Math.max(Number(step.ms) || 0, 0), 60000);
