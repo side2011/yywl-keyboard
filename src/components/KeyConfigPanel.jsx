@@ -1,5 +1,6 @@
 // src/components/KeyConfigPanel.jsx
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { fetchActionSummary, toSlotMap } from '../services/action-slots';
 import { useLang } from '../context/LanguageContext.jsx';
 import { KEY_MODE, KEYCODE_LABELS, MEDIA_KEYS, MOUSE_BUTTONS, mouseIndexToDevice, mouseDeviceToIndex, MODIFIERS, BROWSER_CODE_TO_HID, BROWSER_MOD_TO_BIT, HID_TO_CS_SHIFTED, CS_SHIFTED_CODES } from '../services/hid-constants';
 
@@ -194,12 +195,16 @@ export default function KeyConfigPanel({ config, onChange, multiKeyOnly, multiKe
   const { t, lang } = useLang();
   const [activeTab, setActiveTab] = useState(0);
   const [capturing, setCapturing] = useState(false);
+  // 桌面版里已配置的扩展动作（网页版拿不到 → 空对象）
+  const [actionNames, setActionNames] = useState({});
+  useEffect(() => { fetchActionSummary().then((s) => setActionNames(toSlotMap(s))); }, []);
   const capturingRef = useRef(false);
   const tabs = multiKeyOnly
     ? [{ label: t('多键合一'), mode: KEY_MODE.MULTI }]
     : [
         { label: t('键盘'), mode: KEY_MODE.KEYBOARD }, { label: t('鼠标'), mode: KEY_MODE.MOUSE },
         { label: t('多媒体'), mode: KEY_MODE.MEDIA }, { label: t('多键合一'), mode: KEY_MODE.MULTI },
+        { label: t('扩展'), mode: -2 },
       ];
 
   useEffect(() => {
@@ -397,6 +402,39 @@ export default function KeyConfigPanel({ config, onChange, multiKeyOnly, multiKe
             </div>
           </div>
           <VirtualKeyboard selectedCode={null} onSelect={addMultiKey} t={t} shiftToggle={true} />
+        </div>
+      )}
+
+      {/* 扩展：把按键设成扩展动作的触发键（Ctrl+Alt+Shift+F1..F12）*/}
+      {currentMode === -2 && (
+        <div>
+          <p className="text-sm text-gray-500 mb-3">
+            {t('扩展动作由桌面版后台执行。这里只需把按键设成触发键，具体动作在桌面版的「文件 → 扩展动作」里配置。')}
+          </p>
+          <div className="grid grid-cols-4 gap-2">
+            {Array.from({ length: 12 }, (_, i) => {
+              const code = 0x3a + i; // F1..F12
+              const isSel = config.keyCode === code && (config.modifier || 0) === 0x07;
+              return (
+                <button key={i}
+                  onClick={() => { onChange({ ...config, mode: KEY_MODE.KEYBOARD, modifier: 0x07, keyCode: code }); }}
+                  className={`py-3 rounded-xl border-2 transition-all cursor-pointer ${
+                    isSel ? 'border-indigo-500 bg-indigo-50 shadow-sm' : 'border-gray-200 bg-white hover:border-indigo-300'
+                  }`}>
+                  <div className={`text-sm font-bold ${isSel ? 'text-indigo-700' : 'text-gray-700'}`}>{t('动作')} {i + 13}</div>
+                  <div className="text-[10px] text-gray-400 mt-0.5">Ctrl+Alt+Shift+F{i + 1}</div>
+                  <div className="text-[10px] mt-1 truncate px-1">
+                    {actionNames[i + 13]
+                      ? <span className="text-emerald-600 font-semibold" title={actionNames[i + 13]}>⚡ {actionNames[i + 13]}</span>
+                      : <span className="text-gray-300">{t('未配置')}</span>}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+          <div className="mt-3 p-2.5 rounded-lg bg-amber-50 border border-amber-200 text-xs text-amber-800 leading-relaxed">
+            ⚠️ {t('需要桌面版在后台运行才生效；否则按下只会发出 Ctrl+Alt+Shift+F1~F12 组合键。')}
+          </div>
         </div>
       )}
     </div>
