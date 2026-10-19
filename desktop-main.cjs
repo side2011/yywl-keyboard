@@ -752,6 +752,10 @@ function setupActionsIpc() {
   // 逐个探测候选热键是否可用（用完即注销，不会长期占用）
   ipcMain.handle('actions:probe', () => (HOTKEY_CANDIDATES.slice(0, 60).map(probeHotkey)));
 
+  // 开机自启动：扩展动作窗口里的开关
+  ipcMain.handle('autostart:get', () => isAutoStartEnabled());
+  ipcMain.handle('autostart:set', (_e, enabled) => setAutoStart(!!enabled));
+
   // ---------- 录制 HUD（屏幕上的录制提示框）----------
   // 窗口最小化后用户「看不到在录」，所以在屏幕角落挂一个置顶小窗，
   // 实时显示倒计时和「按了什么」，跟网页版宏录制那种感觉类似。
@@ -901,16 +905,86 @@ function setupTray() {
     const icon = fs.existsSync(iconPath) ? nativeImage.createFromPath(iconPath) : nativeImage.createEmpty();
     tray = new Tray(icon);
     tray.setToolTip('YYWL 键盘配置工具（扩展动作运行中）');
-    tray.setContextMenu(Menu.buildFromTemplate([
+    trayMenu = Menu.buildFromTemplate([
       { label: '打开配置工具', click: () => { if (mainWindow) { mainWindow.show(); mainWindow.focus(); } else startApp(); } },
       { label: '扩展动作…', click: openActionsWindow },
       { type: 'separator' },
+      {
+        id: 'autostart',
+        label: '开机自动启动',
+        type: 'checkbox',
+        checked: isAutoStartEnabled(),
+        click: (item) => { setAutoStart(item.checked); },
+      },
+      { type: 'separator' },
       { label: '退出', click: () => { app.isQuitting = true; app.quit(); } },
-    ]));
+    ]);
+    tray.setContextMenu(trayMenu);
     tray.on('double-click', () => { if (mainWindow) { mainWindow.show(); mainWindow.focus(); } });
   } catch (e) {
     console.warn('托盘创建失败:', e.message);
   }
+}
+
+// ---------- 开机自启动 ----------
+// Windows / macOS 用系统登录项；Linux 写 ~/.config/autostart 的 .desktop
+let trayMenu = null;
+
+function autostartFile() {
+  return path.join(app.getPath('home'), '.config', 'autostart', 'yywl-keyboard-config.desktop');
+}
+
+function isAutoStartEnabled() {
+  try {
+    if (process.platform === 'linux') return fs.existsSync(autostartFile());
+    return !!app.getLoginItemSettings().openAtLogin;
+  } catch {
+    return false;
+  }
+}
+
+function setAutoStart(enabled) {
+  try {
+    if (process.platform === 'linux') {
+      const file = autostartFile();
+      if (enabled) {
+        fs.mkdirSync(path.dirname(file), { recursive: true });
+        fs.writeFileSync(file, [
+          '[Desktop Entry]',
+          'Type=Application',
+          'Name=YYWL 键盘配置工具',
+          `Exec="${process.execPath}"`,
+          'X-GNOME-Autostart-enabled=true',
+          'Terminal=false',
+          '',
+        ].join('\n'), 'utf8');
+      } else if (fs.existsSync(file)) {
+        fs.unlinkSync(file);
+      }
+    } else {
+      app.setLoginItemSettings({
+        openAtLogin: !!enabled,
+        path: process.execPath,
+        args: app.isPackaged ? [] : [__dirname],
+        name: 'YYWL键盘配置工具',
+      });
+    }
+  } catch (e) {
+    console.warn('[autostart] 设置失败:', e.message);
+  }
+  const now = isAutoStartEnabled();
+  // 托盘菜单里的勾选状态跟着变
+  try {
+    const item = trayMenu && trayMenu.getMenuItemById('autostart');
+    if (item) item.checked = now;
+  } catch { /* 忽略 */ }
+  // 通知扩展动作窗口（如果开着）
+  try {
+    if (actionsWindow && !actionsWindow.isDestroyed()) {
+      actionsWindow.webContents.send('autostart:changed', now);
+    }
+  } catch { /* 忽略 */ }
+  return now;
 }
 
 // ---------- 生命周期 ----------
