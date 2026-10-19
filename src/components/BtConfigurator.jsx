@@ -310,7 +310,77 @@ export default function BtConfigurator() {
       for (let l = 0; l < btLayerCount; l++) {
         await handler.writeLedLayer(l, ledAll[l]?.mode ?? 0, ledAll[l]?.colors || ledColors);
       }
-      toast.success(t('配置已成功保存到键盘！'), { id: 'bt-save' });
+
+      // ---- 保存后校验：读回来比对，别让"悄悄丢配置"蒙混过关 ----
+      // 客户反馈过 4+1 / 6 键款"保存了但配置丢了"，所以写完必须回读确认。
+      const sameCfg = (a, b) => {
+        const norm = (c) => {
+          if (!c) return 'none';
+          return JSON.stringify({
+            mode: c.mode || 0,
+            keyCode: c.keyCode || 0,
+            modifierMask: c.modifierMask || 0,
+            mediaCode: c.mediaCode || 0,
+            mouse: c.mouse || null,
+            delay: c.delay || 0,
+          });
+        };
+        return norm(a) === norm(b);
+      };
+      const badSlots = [];
+      for (let l = 0; l < btLayerCount; l += 1) {
+        let back = [];
+        try {
+          back = await handler.readLayer(l, totalSlots);
+        } catch {
+          continue; // 读不回来就先不判失败，避免误报
+        }
+        const want = cached[l] || [];
+        for (let i = 0; i < totalSlots; i += 1) {
+          const w = want[i] || createDefaultConfig();
+          const g = back[i] || createDefaultConfig();
+          if (!sameCfg(w, g)) badSlots.push({ layer: l + 1, slot: i, want: w, got: g });
+        }
+      }
+
+      if (badSlots.length) {
+        console.warn('[BtConfigurator] 保存校验不一致，重试写入这些槽位:', JSON.stringify(badSlots));
+        // 只重写不一致的槽位，再刷一次 Flash
+        for (const { layer, slot } of badSlots) {
+          const cfg = (cached[layer - 1] || [])[slot];
+          if (cfg && cfg.mode !== MODE.NONE) await handler.writeKey(layer - 1, slot, cfg);
+          else await handler.clearKey(layer - 1, slot);
+          await new Promise(r => setTimeout(r, 20));
+        }
+        await handler._writeFlash();
+
+        // 第二次校验
+        let stillBad = 0;
+        for (let l = 0; l < btLayerCount; l += 1) {
+          let back = [];
+          try {
+            back = await handler.readLayer(l, totalSlots);
+          } catch {
+            continue;
+          }
+          const want = cached[l] || [];
+          for (let i = 0; i < totalSlots; i += 1) {
+            if (!sameCfg(want[i] || createDefaultConfig(), back[i] || createDefaultConfig())) stillBad += 1;
+          }
+        }
+        if (stillBad) {
+          console.error('[BtConfigurator] 重试后仍有', stillBad, '个槽位没写进去');
+          toast.error(
+            t('保存后校验失败：有 {n} 个按键没写进键盘，请再点一次「保存到键盘」；若一直这样请把控制台日志发给技术支持', { n: stillBad }),
+            { id: 'bt-save', duration: 8000 },
+          );
+          return;
+        }
+        toast.success(t('配置已保存并校验通过（首次有 {n} 个按键没写进去，已自动重写）', { n: badSlots.length }), { id: 'bt-save' });
+        return;
+      }
+
+      toast.success(t('配置已保存到键盘，并已回读校验通过！'), { id: 'bt-save' });
     } catch (e) {
       console.error('[BtConfigurator] 保存失败:', e);
       toast.error(t('保存到键盘失败: {msg}', { msg: e.message }), { id: 'bt-save' });
