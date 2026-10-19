@@ -103,23 +103,37 @@ export default function BtConfigurator() {
   // 旋钮左右对调：个别固件把「左/右转」的存储顺序装反了，给客户一个一键纠正的开关。
   // 映射是自逆的（再调一次就还原），读写两侧用同一个函数即可。
   const knobSwapKey = `bt-knob-swap:${modelId || 'bt'}-${keyCount}k${knobCount}r`;
+  // 每个旋钮单独一个"左右对调"标记：不同固件/不同款式的装反情况不一定相同
   const [knobSwap, setKnobSwap] = useState(() => {
-    try { return localStorage.getItem(knobSwapKey) === '1'; } catch { return false; }
+    try {
+      const raw = localStorage.getItem(knobSwapKey);
+      if (!raw) return [];
+      const arr = JSON.parse(raw);
+      return Array.isArray(arr) ? arr.map(Boolean) : [];
+    } catch { return []; }
   });
   useEffect(() => {
-    try { setKnobSwap(localStorage.getItem(knobSwapKey) === '1'); } catch { setKnobSwap(false); }
+    try {
+      const raw = localStorage.getItem(knobSwapKey);
+      const arr = raw ? JSON.parse(raw) : [];
+      setKnobSwap(Array.isArray(arr) ? arr.map(Boolean) : []);
+    } catch { setKnobSwap([]); }
   }, [knobSwapKey]);
-  const toggleKnobSwap = (next) => {
-    setKnobSwap(next);
-    try { localStorage.setItem(knobSwapKey, next ? '1' : '0'); } catch { /* 忽略 */ }
-    toast.success(next ? t('已把旋钮左右对调，请重新读取配置确认') : t('已恢复默认的旋钮左右顺序'), { id: 'knob-swap' });
+  const toggleKnobSwap = (n, next) => {
+    const arr = [...knobSwap];
+    while (arr.length <= n) arr.push(false);
+    arr[n] = next;
+    setKnobSwap(arr);
+    try { localStorage.setItem(knobSwapKey, JSON.stringify(arr)); } catch { /* 忽略 */ }
+    toast.success(next ? t('已把旋钮 {n} 左右对调，请点「保存到键盘」后重新读取确认', { n: n + 1 }) : t('旋钮 {n} 已恢复默认顺序', { n: n + 1 }), { id: 'knob-swap' });
   };
-  // UI 槽位 ↔ 设备槽位（对调时把旋钮的三个位置倒过来：左↔右，中不变）
+  // UI 槽位 ↔ 设备槽位（对调时把该旋钮的三个位置倒过来：左↔右，中不变）
   const mapSlot = (i) => {
-    if (!knobSwap || knobCount === 0 || i < keyCount) return i;
+    if (knobCount === 0 || i < keyCount) return i;
     const rel = i - keyCount;
     const n = Math.floor(rel / 3);
     const k = rel % 3;
+    if (!knobSwap[n]) return i;
     return keyCount + n * 3 + (2 - k);
   };
 
@@ -602,10 +616,15 @@ export default function BtConfigurator() {
           </div>
           {/* 只有"自动判定支持多层"的型号才显示层数覆盖；2/3/4/5 键、4+1 一律只有 1 层 */}
           {knobCount > 0 && (
-            <label className="flex items-center gap-2 mt-2 cursor-pointer select-none">
-              <input type="checkbox" checked={knobSwap} onChange={(e) => toggleKnobSwap(e.target.checked)} className="cursor-pointer" />
-              <span>{t('旋钮左右对调（左转/右转装反时勾选）')}</span>
-            </label>
+            <div className="mt-2 space-y-1">
+              <div className="text-gray-500">{t('某个旋钮左转/右转装反了，勾选对应的那一个：')}</div>
+              {Array.from({ length: knobCount }, (_, n) => (
+                <label key={n} className="flex items-center gap-2 cursor-pointer select-none">
+                  <input type="checkbox" checked={!!knobSwap[n]} onChange={(e) => toggleKnobSwap(n, e.target.checked)} className="cursor-pointer" />
+                  <span>{t('旋钮')} {n + 1} {t('左右对调')}</span>
+                </label>
+              ))}
+            </div>
           )}
           {autoLayerCount > 1 ? (
           <div className="flex items-center gap-2 mt-2 flex-wrap">
