@@ -183,6 +183,7 @@
   var conflicts = [];    // 保存/注册后仍被占用的槽位
   var appVersion = '';   // 桌面版版本（老版本不支持录制时提示用）
   var caps = {};         // 安装包能力（由 actions:info 返回）
+  var supportedTypes = null; // 当前安装包支持的步骤类型（null = 老版本，未知）
 
   function slotOf(n) { return state.actions.find(function (a) { return a.slot === n; }); }
   function ensureSlot(n) {
@@ -222,10 +223,11 @@
       e.stopPropagation();
       if (e.code === 'Escape' && !e.ctrlKey && !e.altKey && !e.shiftKey && !e.metaKey) { cleanup(); return; }
       var mods = [];
-      if (e.ctrlKey) mods.push('ctrl');
-      if (e.altKey) mods.push('alt');
-      if (e.shiftKey) mods.push('shift');
-      if (e.metaKey) mods.push('win');
+      // 用 e.code 区分左右修饰键（真实键盘上左右是两套键码）
+      if (e.ctrlKey) mods.push(e.code === 'ControlRight' ? 'rctrl' : 'ctrl');
+      if (e.altKey) mods.push(e.code === 'AltRight' ? 'ralt' : 'alt');
+      if (e.shiftKey) mods.push(e.code === 'ShiftRight' ? 'rshift' : 'shift');
+      if (e.metaKey) mods.push(e.code === 'MetaRight' ? 'rwin' : 'win');
       var k = normKey(e);
       if (!k) {
         // 只按了修饰键：keyTap / keyDown / keyUp 允许把 Ctrl、Alt、Shift、Win 单独录下来
@@ -243,7 +245,8 @@
 
   // 鼠标点选的虚拟键盘：录入按钮按不动/不方便时用这个
   var KBOARD = {
-    mods: [['ctrl', 'Ctrl'], ['shift', 'Shift'], ['alt', 'Alt'], ['win', 'Win']],
+    mods: [['ctrl', '左Ctrl'], ['rctrl', '右Ctrl'], ['shift', '左Shift'], ['rshift', '右Shift'],
+      ['alt', '左Alt'], ['ralt', '右Alt'], ['win', '左Win'], ['rwin', '右Win']],
     fkeys: Array.from({ length: 24 }, function (_, i) { return ['f' + (i + 1), 'F' + (i + 1)]; }),
     letters: 'abcdefghijklmnopqrstuvwxyz'.split('').map(function (ch) { return [ch, ch.toUpperCase()]; }),
     digits: '0123456789'.split('').map(function (ch) { return [ch, ch]; }),
@@ -669,11 +672,16 @@
 
         var sel = el('select');
         TYPES.forEach(function (t) {
-          var o = el('option', null, t.label);
+          var missing = supportedTypes && !supportedTypes.includes(t.v);
+          var o = el('option', null, t.label + (missing ? '（需升级桌面版）' : ''));
           o.value = t.v;
+          if (missing) o.disabled = true;
           if (step.type === t.v) o.selected = true;
           sel.appendChild(o);
         });
+        if (supportedTypes && !supportedTypes.includes(step.type)) {
+          wrap.appendChild(el('span', 'hintSmall', '⚠ 当前安装包不支持这一步，请升级桌面版'));
+        }
         sel.addEventListener('change', function () {
           var fresh = { type: sel.value };
           if (sel.value === 'delay') fresh.ms = 300;
@@ -740,6 +748,8 @@
   }
   // 按键名显示：enter→Enter、f5→F5、left→←
   var KEY_DISPLAY = {
+    ctrl: '左Ctrl', rctrl: '右Ctrl', shift: '左Shift', rshift: '右Shift',
+    alt: '左Alt', ralt: '右Alt', win: '左Win', rwin: '右Win',
     enter: 'Enter', tab: 'Tab', space: 'Space', backspace: 'Backspace', delete: 'Delete', esc: 'Esc',
     up: '↑', down: '↓', left: '←', right: '→', home: 'Home', end: 'End', pgup: 'PgUp', pgdn: 'PgDn',
   };
@@ -908,6 +918,7 @@
     conflicts = info.conflicts || [];
     appVersion = info.appVersion || '';
     caps = (info.caps && typeof info.caps === 'object') ? info.caps : {};
+    supportedTypes = Array.isArray(caps.stepTypes) ? caps.stepTypes : null;
     document.getElementById('enabled').checked = state.enabled;
     var name = { win32: 'Windows', darwin: 'macOS', linux: 'Linux' }[info.platform] || info.platform;
     document.getElementById('platform').textContent = name + (appVersion ? ' v' + appVersion : '') + ' · 已注册 ' + (info.registered || []).length + ' 个热键';
