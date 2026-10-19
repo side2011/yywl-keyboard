@@ -16,6 +16,8 @@
   main{padding:18px 22px 60px;max-width:1060px;margin:0 auto}
   .hint{background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af;border-radius:10px;padding:10px 14px;font-size:13px;line-height:1.7;margin-bottom:14px}
   .hint b{color:#1d4ed8}
+  .tabsmore{margin-left:auto;font-size:12px;color:#94a3b8;cursor:pointer;padding:8px 10px;white-space:nowrap}
+  .tabsmore:hover{color:#4f46e5}
   .tabs{display:flex;gap:8px;margin-bottom:12px}
   .tab{padding:8px 16px;border-radius:9px;background:#fff;border:1px solid #e2e8f0;color:#64748b;font-weight:600;cursor:pointer;font-size:13px}
   .tab.on{background:#6366f1;border-color:#6366f1;color:#fff}
@@ -88,7 +90,7 @@
   <div id="verBar"></div>
   <div class="hint">
     <b>怎么用：</b>给槽位配好动作 → 在「键盘配置」里把某个物理键设成对应的触发键 → 按下按键即执行。<br>
-    槽位 1–12 对应 <code>F13 ~ F24</code>（<b>版本 2.0 新协议</b>直接可选）；槽位 13–24 对应 <code>Ctrl+Alt+Shift+F1 ~ F12</code>（<b>旧协议 / 蓝牙款</b>用「多键合一」组合）。<br>
+    所有款式都支持 <code>F13 ~ F24</code>：键盘配置页「扩展」里点「动作 1~12」即可，<b>不用配组合键</b>。<br>
     动作只存在这台电脑上，不会写入键盘；换电脑用右下角「导出 / 导入」。
   </div>
 
@@ -110,7 +112,8 @@
   </details>
   <div class="tabs">
     <div class="tab on" data-bank="0">槽位 1–12（F13–F24）</div>
-    <div class="tab" data-bank="1">槽位 13–24（Ctrl+Alt+Shift+F1–F12）</div>
+    <div class="tab" data-bank="1" id="tabBank2" style="display:none">槽位 13–24（Ctrl+Alt+Shift+F1–F12）</div>
+    <div class="tabsmore" id="moreBank" title="键盘只能直接发 F13–F24，超过 12 个动作就要靠组合键触发">需要更多动作（13–24）？</div>
   </div>
 
   <div id="slots"></div>
@@ -657,6 +660,16 @@
     }
   });
 
+  // 默认只显示 1–12（F13–F24）：键盘能直接发这些键，超过 12 个动作才需要组合键
+  document.getElementById('moreBank').addEventListener('click', function () {
+    var tab2 = document.getElementById('tabBank2');
+    tab2.style.display = '';
+    this.style.display = 'none';
+    document.querySelectorAll('.tab').forEach(function (x) { x.classList.remove('on'); });
+    tab2.classList.add('on');
+    bank = Number(tab2.dataset.bank);
+    render();
+  });
   document.getElementById('btnProbe').addEventListener('click', function () {
     setStatus('检测中…');
     api.probe().then(function (list) {
