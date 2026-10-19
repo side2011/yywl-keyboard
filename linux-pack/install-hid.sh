@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ============================================================
-# 颖昱物联 键盘配置工具 —— 键盘访问权限配置
+#  键盘配置工具 —— 键盘访问权限配置
 #
 # 国产系统上 /dev/hidraw* 默认只有 root 能读写, 普通用户连不上键盘,
 # 所以需要装一条 udev 规则。只需要执行一次, 需要管理员密码。
@@ -11,7 +11,7 @@ set -u
 
 RULES="/etc/udev/rules.d/99-yywl-keyboard.rules"
 
-RULES_CONTENT='# 颖昱物联多功能小键盘 - 允许普通用户访问设备
+RULES_CONTENT='# 多功能小键盘 - 允许普通用户访问设备
 # 旧协议 VID 0x413D
 SUBSYSTEM=="hidraw", ATTRS{idVendor}=="413d", MODE="0666"
 # 旧协议 VID 0x8808
