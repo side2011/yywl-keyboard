@@ -18,6 +18,12 @@ contextBridge.exposeInMainWorld('yywlActions', {
   pickFolder: () => ipcRenderer.invoke('actions:pick-folder'),
   pickFile: (kind) => ipcRenderer.invoke('actions:pick-file', kind),
 
+  // 开机自启动
+  getAutoStart: () => ipcRenderer.invoke('autostart:get'),
+  setAutoStart: (v) => ipcRenderer.invoke('autostart:set', v),
+  // 托盘里改了开关时同步给窗口
+  onAutoStartChanged: (cb) => ipcRenderer.on('autostart:changed', (_e, v) => cb(!!v)),
+
   // 录制宏：录一段键盘+鼠标操作，返回步骤序列
   record: (opts) => ipcRenderer.invoke('actions:record', opts),
 
