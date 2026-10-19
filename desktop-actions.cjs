@@ -412,6 +412,55 @@ Write-Output ("{0},{1}" -f $p.X, $p.Y)`;
     while (steps.length && steps[steps.length - 1].type === 'delay') steps.pop();
     return steps;
   }
+  // ---------- 按住 / 松开（真实按键序列）----------
+  // SendKeys 的 "^c" 是"一次性发组合键"，某些程序（游戏、远程桌面、部分 ERP）
+  // 会识别不到。这里提供 keyDown/keyUp，可以精确构造：
+  //   按下 Ctrl → 按下 C → 松开 C → 松开 Ctrl
+  const KEY_TO_VK = {
+    ctrl: 0x11, control: 0x11, shift: 0x10, alt: 0x12, win: 0x5B, meta: 0x5B, cmd: 0x5B,
+    enter: 0x0d, return: 0x0d, tab: 0x09, esc: 0x1b, escape: 0x1b, space: 0x20,
+    backspace: 0x08, delete: 0x2e, del: 0x2e, insert: 0x2d,
+    up: 0x26, down: 0x28, left: 0x25, right: 0x27,
+    home: 0x24, end: 0x23, pgup: 0x21, pgdn: 0x22,
+  };
+
+  function keyToVk(key) {
+    const k = String(key || '').toLowerCase();
+    if (KEY_TO_VK[k] !== undefined) return KEY_TO_VK[k];
+    if (/^[a-z]$/.test(k)) return 0x41 + (k.charCodeAt(0) - 97);
+    if (/^[0-9]$/.test(k)) return 0x30 + Number(k);
+    if (/^f([1-9]|1[0-9]|2[0-4])$/.test(k)) return 0x70 + (Number(k.slice(1)) - 1);
+    return null;
+  }
+
+  async function keyHold(key, down) {
+    const vk = keyToVk(key);
+    if (vk === null) throw new Error(`不认识的按键：${key}`);
+    if (dryRun) { commands.push({ file: 'keybd_event', args: [vk, down ? 'down' : 'up'] }); return; }
+
+    if (platform === 'win32') {
+      const ps = `Add-Type -TypeDefinition @"\nusing System;\nusing System.Runtime.InteropServices;\npublic class YywlKey {\n  [DllImport("user32.dll")] public static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, IntPtr dwExtraInfo);\n}\n"@\n[YywlKey]::keybd_event(${vk}, 0, ${down ? 0 : 2}, [IntPtr]::Zero)`;
+      await run('powershell', ['-NoProfile', '-NonInteractive', '-Command', ps]);
+      return;
+    }
+    if (platform === 'linux') {
+      await run('xdotool', [down ? 'keydown' : 'keyup', String(key).toLowerCase()]);
+      return;
+    }
+    // macOS: 修饰键能用 cliclick 的 kd:/ku:，其它键没有等价能力
+    const mods = ['ctrl', 'control', 'shift', 'alt', 'option', 'cmd', 'command', 'win'];
+    if (mods.includes(String(key).toLowerCase())) {
+      const map = { control: 'ctrl', option: 'alt', command: 'cmd', win: 'cmd' };
+      const name = map[String(key).toLowerCase()] || String(key).toLowerCase();
+      try {
+        await run('cliclick', [`${down ? 'kd' : 'ku'}:${name}`]);
+        return;
+      } catch {
+        throw new Error('macOS 需要 cliclick 才能按住修饰键：brew install cliclick');
+      }
+    }
+    throw new Error('macOS 暂不支持按住非修饰键（可用「发送组合键」代替）');
+  }
   // ---- 步骤调度 ----
 
   async function executeStep(step) {
@@ -435,6 +484,8 @@ Write-Output ("{0},{1}" -f $p.X, $p.Y)`;
       }
       case 'pasteText': return pasteText(step.text);
       case 'pasteImage': return pasteImage(step.image);
+      case 'keyDown': return keyHold(step.key, true);
+      case 'keyUp': return keyHold(step.key, false);
       case 'keyTap': {
         // 单个按键（不带修饰键），比如 Enter / F5 / 方向键
         if (!step.key) throw new Error('keyTap 缺少 key');
