@@ -182,6 +182,7 @@
   var probeMap = {};     // 热键 → 是否可用（点「检测占用」后填充）
   var conflicts = [];    // 保存/注册后仍被占用的槽位
   var appVersion = '';   // 桌面版版本（老版本不支持录制时提示用）
+  var caps = {};         // 安装包能力（由 actions:info 返回）
 
   function slotOf(n) { return state.actions.find(function (a) { return a.slot === n; }); }
   function ensureSlot(n) {
@@ -319,6 +320,20 @@
       + '  </div>'
       + '</div>';
     document.body.appendChild(mask);
+
+    // 老安装包没有 hold 模式的执行器：禁用该选项并说明，别让用户白选
+    if (!caps.holdMode) {
+      var holdRadio = mask.querySelector('input[name="recmode"][value="hold"]');
+      if (holdRadio) {
+        holdRadio.disabled = true;
+        var lb = holdRadio.closest('label');
+        if (lb) lb.style.opacity = '0.45';
+        var tip = document.createElement('div');
+        tip.style.cssText = 'color:#b45309;font-size:12px;margin:2px 0 0 62px';
+        tip.textContent = '需要 1.3.6 及以上安装包（当前 v' + (appVersion || '?') + '），请先升级桌面版';
+        mask.querySelector('.capture-box').appendChild(tip);
+      }
+    }
     var close = function () { if (mask.parentNode) mask.parentNode.removeChild(mask); };
     document.getElementById('recCancel').addEventListener('click', close);
     document.getElementById('recStart').addEventListener('click', function () {
@@ -892,6 +907,7 @@
     state = { enabled: loaded.enabled !== false, actions: loaded.actions || [] };
     conflicts = info.conflicts || [];
     appVersion = info.appVersion || '';
+    caps = (info.caps && typeof info.caps === 'object') ? info.caps : {};
     document.getElementById('enabled').checked = state.enabled;
     var name = { win32: 'Windows', darwin: 'macOS', linux: 'Linux' }[info.platform] || info.platform;
     document.getElementById('platform').textContent = name + (appVersion ? ' v' + appVersion : '') + ' · 已注册 ' + (info.registered || []).length + ' 个热键';
