@@ -759,6 +759,12 @@ function setupActionsIpc() {
     }
     const durationMs = Math.min(Math.max(Number(opts.durationMs) || 15000, 2000), 60000);
     const win = actionsWindow;
+    // 窗口一最小化用户就「看不到在录」了，用托盘气泡提示一下
+    try {
+      if (tray && process.platform === 'win32') {
+        tray.displayBalloon({ title: '正在录制操作', content: '按 F10 可提前结束，最长 15 秒' });
+      }
+    } catch { /* 忽略 */ }
     try { if (win) win.minimize(); } catch { /* 忽略 */ }
     await new Promise((r) => setTimeout(r, 800)); // 等窗口让开，别把点击录到自己身上
     try {
