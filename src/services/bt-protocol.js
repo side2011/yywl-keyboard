@@ -526,6 +526,10 @@ export class BtProtocolHandler {
 
   // 写单个按键
   async writeKey(layer, actionIdx, cfg) {
+    // 自愈: 没有设备信息就拿不到正确键号（会把键写错槽位，表现为"这层没保存"），先补读一次
+    if (!this._info) {
+      try { await this.readDeviceInfo(); } catch { /* 拿不到就用兜底逻辑 */ }
+    }
     const keyNo = this._actionIdxToKeyNo(actionIdx);
     const rec = serializeBtKeyRecord(cfg, keyNo, layer + 1, this._isV10);
     if (rec) await this._send(rec);
@@ -533,6 +537,9 @@ export class BtProtocolHandler {
 
   // 清除单个按键
   async clearKey(layer, actionIdx) {
+    if (!this._info) {
+      try { await this.readDeviceInfo(); } catch { /* 忽略 */ }
+    }
     const keyNo = this._actionIdxToKeyNo(actionIdx);
     const rec = serializeBtClearRecord(keyNo, layer + 1, this._isV10);
     await this._send(rec);
