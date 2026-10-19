@@ -303,6 +303,15 @@
       + '    <label style="display:flex;align-items:center;gap:8px;cursor:pointer">'
       + '      <input type="checkbox" id="recKeys" checked> 录制键盘按键'
       + '    </label>'
+      + '    <div style="margin-top:8px;color:#475569">记录方式：</div>'
+      + '    <label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer;margin-top:4px">'
+      + '      <input type="radio" name="recmode" value="tap" checked style="margin-top:3px">'
+      + '      <span>组合键（把 Ctrl+C 记成一步，简洁）</span>'
+      + '    </label>'
+      + '    <label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer;margin-top:4px">'
+      + '      <input type="radio" name="recmode" value="hold" style="margin-top:3px">'
+      + '      <span>按住 / 松开（记录按下与松开的时序，适合需要"真的按住"的软件）</span>'
+      + '    </label>'
       + '  </div>'
       + '  <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px">'
       + '    <button class="btn" id="recCancel">取消</button>'
@@ -586,7 +595,7 @@
       var startRec = function () {
         // 先弹说明 + 3 秒倒计时（在这个窗口里能看见），再最小化开始录
         startRecordFlow(function (opts) {
-          api.record({ durationMs: 15000, mouse: opts.mouse, keyboard: opts.keyboard }).then(function (r) {
+          api.record({ durationMs: 15000, mouse: opts.mouse, keyboard: opts.keyboard, mode: opts.mode }).then(function (r) {
             if (!r || !r.ok) { setStatus('录制失败：' + ((r && r.error) || '未知错误'), true); return; }
             if (!r.steps || !r.steps.length) { setStatus('没有录到任何操作（窗口可能没切过去），再试一次？', true); return; }
             target.steps = r.steps;
