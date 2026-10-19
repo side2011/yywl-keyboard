@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useDevice } from '../context/DeviceContext.jsx';
 import { useLang } from '../context/LanguageContext.jsx';
 import CableHint from './CableHint';
-import { DEVICE_FILTERS, MODEL_NAMES, isBluetoothModel, BT_DOWNLOAD_URL, BT_PIDS, VID, isAc632nDevice, isBtModelByHid } from '../services/hid-constants';
+import { DEVICE_FILTERS, MODEL_NAMES, isBluetoothModel, BT_PIDS, VID, isAc632nDevice, isBtModelByHid } from '../services/hid-constants';
 import { isNewProtocolDevice, NEW_DEVICE_FILTERS } from '../services/new-protocol';
 import { isBtWirelessDevice, BtProtocolHandler } from '../services/bt-protocol';
 import toast from 'react-hot-toast';
@@ -52,6 +52,22 @@ function KeyboardConnector() {
   const [failCount, setFailCount] = useState(0); // 连续连接失败次数 — 用于升级提示 (换新标签页)
   const [forceTry, setForceTry] = useState(false); // 应用内嵌窗口里用户坚持"仍要尝试"
   const navigate = useNavigate();
+  // 找不到 USB 配置接口时，不再直接跳外链下载页（会让客户卡死、也容易误判），
+  // 改成让用户选：按蓝牙款继续配置，或留在本页重试。
+  const askBluetoothFallback = (reason) => {
+    console.warn('[KeyboardConnector] 疑似蓝牙无线款:', reason);
+    const goBt = window.confirm(t(
+      '没找到 USB 配置接口，这个键盘可能是「蓝牙无线款」。\n\n'
+      + '点「确定」 → 用蓝牙款模式继续配置（推荐）\n'
+      + '点「取消」 → 留在本页，拔插一次 USB 后重试',
+    ));
+    if (goBt) {
+      navigate('/bt');
+    } else {
+      setConnecting(false);
+    }
+  };
+
   const { device, modelId, modelName, protocolVersion, connectDevice, disconnectDevice, setManualModel, setDeviceInfoData, getNewHandler, switchToBt } = useDevice();
   const connected = !!device;
 
@@ -247,9 +263,7 @@ function KeyboardConnector() {
       // 其他蓝牙款 (0x8850 无响应等场景) 仍走下载页引导
       const btDevice = devices.find(dev => !isAc632nDevice(dev.vendorId, dev.productId) && isBluetoothModel(dev.vendorId, dev.productId));
       if (btDevice) {
-        alert(t('检测到您使用的是蓝牙无线款小键盘，请下载专用配置软件进行配置。'));
-        window.location.href = BT_DOWNLOAD_URL;
-        setConnecting(false);
+        askBluetoothFallback('非 AC632N 且 PID 属于蓝牙款');
         return;
       }
 
@@ -258,9 +272,7 @@ function KeyboardConnector() {
       // 蓝牙款只有 consumer control(0x0C) 接口，没有任何设备对象含 0xFF00
       if (isBtModelByHid(devices)) {
         console.log('[KeyboardConnector] 通过 HID collection 检测到蓝牙无线款 (所有设备均无0xFF00)');
-        alert(t('检测到您使用的是蓝牙无线款小键盘，请下载专用配置软件进行配置。'));
-        window.location.href = BT_DOWNLOAD_URL;
-        setConnecting(false);
+        askBluetoothFallback('所有设备都没有 0xFF00 配置接口');
         return;
       }
 
@@ -380,9 +392,7 @@ function KeyboardConnector() {
             const isBtByModelName = /BT|WIRELESS|BLUETOOTH|蓝牙|无线/.test(btModelName);
             if (isBtByModelName) {
               console.log(`[KeyboardConnector] 协议判定蓝牙无线款 (modelName='${info.modelName || ''}' keyCount=${info.keyCount} encoderCount=${info.encoderCount} layoutId=${info.layoutId} hwVer=${info.hardwareVersion})`);
-              alert(t('检测到您使用的是蓝牙无线款小键盘，请下载专用配置软件进行配置。'));
-              window.location.href = BT_DOWNLOAD_URL;
-              setConnecting(false);
+              askBluetoothFallback('设备型号名里带 BT/无线 标记');
               return;
             }
             // 检测是否为麦克风设备
@@ -466,9 +476,7 @@ function KeyboardConnector() {
                 return;
               }
               console.log('[KeyboardConnector] 0x0B 超时且设备无任何响应 → 判定为蓝牙无线款, 跳转下载页');
-              alert(t('检测到您使用的是蓝牙无线款小键盘，请下载专用配置软件进行配置。'));
-              window.location.href = BT_DOWNLOAD_URL;
-              setConnecting(false);
+              askBluetoothFallback('0x0B 超时且设备无响应');
               return;
             }
             // handler 不可用时按最保守处理: 提示重试, 不误跳转
