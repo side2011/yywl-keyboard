@@ -807,16 +807,16 @@ export default function BtConfigurator() {
 
                 <div className="grid grid-cols-4 gap-2">
                   {Array.from({ length: 12 }, (_, i) => {
-                    const code = 0x3a + i;
-                    const isSel = currentConfig.mode === MODE.KEY && currentConfig.keyCode === code && (currentConfig.modifierMask || 0) === 0x07;
+                    const code = 0x68 + i; // F13..F24
+                    const isSel = currentConfig.mode === MODE.KEY && currentConfig.keyCode === code && !(currentConfig.modifierMask || 0);
                     return (
                       <button key={i}
-                        onClick={() => updateConfig({ mode: MODE.KEY, modifierMask: 0x07, keyCode: code })}
+                        onClick={() => updateConfig({ mode: MODE.KEY, modifierMask: 0, keyCode: code })}
                         className={`py-3 rounded-xl border-2 transition-all cursor-pointer ${
                           isSel ? 'border-indigo-500 bg-indigo-50 shadow-sm' : 'border-gray-200 bg-white hover:border-indigo-300'
                         }`}>
-                        <div className={`text-sm font-bold ${isSel ? 'text-indigo-700' : 'text-gray-700'}`}>{t('动作')} {i + 13}</div>
-                        <div className="text-[10px] text-gray-400 mt-0.5">Ctrl+Alt+Shift+F{i + 1}</div>
+                        <div className={`text-sm font-bold ${isSel ? 'text-indigo-700' : 'text-gray-700'}`}>{t('动作')} {i + 1}</div>
+                        <div className="text-[10px] text-gray-400 mt-0.5">F{i + 13}</div>
                         <div className="text-[10px] mt-1 truncate px-1">
                           {actionNames[i + 13]
                             ? <span className="text-emerald-600 font-semibold" title={actionNames[i + 13]}>⚡ {actionNames[i + 13]}</span>
@@ -827,7 +827,7 @@ export default function BtConfigurator() {
                   })}
                 </div>
                 <div className="mt-3 p-2.5 rounded-lg bg-amber-50 border border-amber-200 text-xs text-amber-800 leading-relaxed">
-                  ⚠️ {t('需要桌面版在后台运行才生效；否则按下只会发出 Ctrl+Alt+Shift+F1~F12 组合键。')}
+                  ⚠️ {t('需要桌面版在后台运行才生效；否则按下只会发出 F13~F24（多数软件没有反应）。')}
                 </div>
               </div>
             )}
