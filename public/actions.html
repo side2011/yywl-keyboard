@@ -144,6 +144,8 @@
     { v: 'pasteImage', label: '粘贴图片' },
     { v: 'keyPress', label: '发送组合键' },
     { v: 'keyTap', label: '发送按键（单个键）' },
+    { v: 'keyDown', label: '按下按键（按住不放）' },
+    { v: 'keyUp', label: '松开按键' },
     { v: 'mouseClick', label: '鼠标点击' },
     { v: 'delay', label: '等待' }
   ];
@@ -157,6 +159,8 @@
     { label: '粘贴图片', step: { type: 'pasteImage', image: '' } },
     { label: '组合键', step: { type: 'keyPress', keys: ['ctrl', 'v'] } },
     { label: '单个按键', step: { type: 'keyTap', key: '' } },
+    { label: '按住 Ctrl', step: { type: 'keyDown', key: 'ctrl' } },
+    { label: '松开 Ctrl', step: { type: 'keyUp', key: 'ctrl' } },
     { label: '鼠标点击', step: { type: 'mouseClick', x: 0, y: 0, button: 'left' } },
     { label: '等待', step: { type: 'delay', ms: 300 } }
   ];
@@ -191,7 +195,8 @@
   }
 
   // 录入组合键：弹遮罩，按下什么就记什么（Esc 取消）
-  function captureKeys(done) {
+  function captureKeys(done, opts) {
+    var allowModOnly = !!(opts && opts.allowModifierOnly);
     var mask = document.createElement('div');
     mask.className = 'capture-mask';
     mask.innerHTML = '<div class="capture-box">请按下要发送的组合键<div class="capture-sub">例如 Ctrl+Shift+A；按 Esc 取消</div></div>';
@@ -210,7 +215,14 @@
       if (e.shiftKey) mods.push('shift');
       if (e.metaKey) mods.push('win');
       var k = normKey(e);
-      if (!k) return; // 只按了修饰键，继续等
+      if (!k) {
+        // 只按了修饰键：keyTap / keyDown / keyUp 允许把 Ctrl、Alt、Shift、Win 单独录下来
+        if (allowModOnly && mods.length === 1) {
+          cleanup();
+          done(mods.slice());
+        }
+        return;
+      }
       cleanup();
       done(mods.concat([k]));
     }
@@ -400,7 +412,7 @@
       var tapBtn = el('button', 'btn', step.key ? '重新录入按键' : '⌨ 录入按键');
       tapBtn.title = '按一下要发送的键，比如 Enter / F5 / 方向键';
       tapBtn.addEventListener('click', function () {
-        captureKeys(function (keys) {
+        captureKeys({ allowModifierOnly: true }, function (keys) {
           if (!keys || !keys.length) return;
           var mods = keys.slice(0, -1);
           var key = keys[keys.length - 1];
@@ -412,7 +424,24 @@
         });
       });
       wrap.appendChild(tapChip);
-      wrap.appendChild(tapBtn);    } else if (step.type === 'mouseClick') {
+      wrap.appendChild(tapBtn);    } else if (step.type === 'keyDown' || step.type === 'keyUp') {
+      // 按住 / 松开：用来构造"按住 Ctrl → 按 C → 松开"的真实序列
+      const isDown = step.type === 'keyDown';
+      const chip2 = el('span', 'combo', step.key ? keyDisplay(step.key) : '未录入');
+      const btn2 = el('button', 'btn', step.key ? '重新录入按键' : '⌨ 录入按键');
+      btn2.title = isDown ? '按一下要"按住"的键（Ctrl / Alt / Shift / Win 都可以）' : '按一下要"松开"的键';
+      btn2.addEventListener('click', function () {
+        captureKeys({ allowModifierOnly: true }, function (keys) {
+          const key = keys[keys.length - 1];
+          step.key = key;
+          onChange();
+          render();
+        });
+      });
+      wrap.appendChild(chip2);
+      wrap.appendChild(btn2);
+      wrap.appendChild(el('span', 'hintSmall', isDown ? '一直按住，直到后面的「松开按键」' : '松开前面按住的键'));
+    } else if (step.type === 'mouseClick') {
       var xi = input({ type: 'number', placeholder: 'X', width: '90px' }, step.x, function (v) { step.x = Number(v); onChange(); });
       var yi = input({ type: 'number', placeholder: 'Y', width: '90px' }, step.y, function (v) { step.y = Number(v); onChange(); });
       wrap.appendChild(xi);
