@@ -44,6 +44,8 @@ let webRoot = BUNDLED_DIST;   // 当前实际服务的网页目录 (可能在更
 let webBase = '';             // userData/web
 let updateBase = 'https://key.itytsoft.com/';
 let updateInFlight = false;
+let pkgInstallBusy = false;   // 安装包下载/解压进行中，防止重复下载
+let checkingBusy = false;    // 检查更新进行中
 let appConfig = {};
 
 // ---------- 更新进度窗口（下载安装包时挡住主界面）----------
@@ -229,6 +231,13 @@ async function checkPackageUpdate({ manual = false } = {}) {
   });
   if (response !== 0) return;
 
+  // 防止重复下载：已经在下载/解压就直接把进度窗拉到前面
+  if (pkgInstallBusy) {
+    if (updWin && !updWin.isDestroyed()) updWin.focus();
+    return;
+  }
+  pkgInstallBusy = true;
+
   const dir = path.join(app.getPath('temp'), `yywl-update-${latest}`);
   try { fs.mkdirSync(dir, { recursive: true }); } catch { /* 忽略 */ }
   const file = path.join(dir, pkg.file);
@@ -254,6 +263,7 @@ async function checkPackageUpdate({ manual = false } = {}) {
   } catch (e) {
     if (mainWindow) mainWindow.setProgressBar(-1);
     closeUpdWindow();
+    pkgInstallBusy = false;
     dialog.showMessageBox(mainWindow, {
       type: updCancelled ? 'info' : 'error',
       message: updCancelled ? '已取消更新' : '下载失败',
@@ -273,6 +283,7 @@ async function checkPackageUpdate({ manual = false } = {}) {
   } catch (e) {
     closeUpdWindow();
     shell.showItemInFolder(file);
+    pkgInstallBusy = false;
     dialog.showMessageBox(mainWindow, {
       type: 'warning', message: '已下载，但自动解压失败',
       detail: `${e.message}\n\n安装包已保存：${file}\n请手动解压后运行。`, buttons: ['知道了'],
@@ -284,6 +295,7 @@ async function checkPackageUpdate({ manual = false } = {}) {
   if (!launcher) {
     closeUpdWindow();
     shell.openPath(out);
+    pkgInstallBusy = false;
     dialog.showMessageBox(mainWindow, {
       type: 'info', message: '下载完成', detail: `已解压到：\n${out}\n\n请手动运行其中的程序。`, buttons: ['知道了'],
     });
@@ -298,6 +310,7 @@ async function checkPackageUpdate({ manual = false } = {}) {
   } catch (e) {
     closeUpdWindow();
     shell.showItemInFolder(launcher);
+    pkgInstallBusy = false;
     dialog.showMessageBox(mainWindow, {
       type: 'warning', message: '新版本已就绪，但自动启动失败',
       detail: `${e.message}\n\n请手动运行：\n${launcher}`, buttons: ['知道了'],
@@ -506,7 +519,15 @@ function friendlyVersion(info) {
 // 统一的更新入口：先看程序本体（安装包）有没有新版，没有再看网页内容。
 // 菜单里只留一个「检查更新…」，避免客户面对两个相似的菜单项。
 async function checkAllUpdates({ manual = false } = {}) {
-  if (updateInFlight) return;
+  if (checkingBusy) {
+    if (manual) {
+      if (updWin && !updWin.isDestroyed()) { updWin.focus(); return; }
+      dialog.showMessageBox(mainWindow, { type: 'info', message: '正在检查/更新中', detail: '请稍候，不要重复点击。', buttons: ['知道了'] });
+    }
+    return;
+  }
+  checkingBusy = true;
+  try {
 
   // 1) 程序本体：读下载页清单里的版本号
   let pkgManifest = null;
@@ -541,6 +562,9 @@ async function checkAllUpdates({ manual = false } = {}) {
 
   // 2) 网页内容（程序已是最新或用户选了稍后）
   await checkForUpdates({ manual });
+  } finally {
+    checkingBusy = false;
+  }
 }
 
 async function checkForUpdates({ manual = false } = {}) {
