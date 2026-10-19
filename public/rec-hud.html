@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>录制中</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { background: transparent; overflow: hidden; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+    padding: 8px;
+  }
+  .hud {
+    width: 100%;
+    overflow: hidden;
+    background: rgba(15, 23, 42, 0.92);
+    border: 1px solid rgba(248, 113, 113, 0.55);
+    border-radius: 14px;
+    color: #e2e8f0;
+    padding: 10px 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+    -webkit-app-region: drag;
+  }
+  .head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .dot {
+    width: 10px; height: 10px; border-radius: 50%; background: #ef4444;
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.8);
+    animation: pulse 1.2s infinite;
+  }
+  @keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(239,68,68,.85); }
+    70% { box-shadow: 0 0 0 9px rgba(239,68,68,0); }
+    100% { box-shadow: 0 0 0 0 rgba(239,68,68,0); }
+  }
+  .title { font-size: 13px; font-weight: 800; letter-spacing: .5px; }
+  .time { font-size: 12px; font-weight: 800; font-variant-numeric: tabular-nums; color: #fca5a5; }
+  .tip { font-size: 11px; color: #94a3b8; margin-bottom: 6px; }
+  .tip b { color: #fda4af; }
+  .list {
+    max-height: 108px; overflow: hidden; display: flex; flex-direction: column; gap: 3px;
+    border-top: 1px solid rgba(148,163,184,.2); padding-top: 6px;
+  }
+  .row {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 12px; color: #cbd5e1; display: flex; align-items: center; gap: 6px;
+    animation: fade .18s ease-out;
+  }
+  .row .tag {
+    font-size: 10px; padding: 1px 6px; border-radius: 6px; font-weight: 700;
+  }
+  .tag.key { background: rgba(99,102,241,.25); color: #c7d2fe; }
+  .tag.mouse { background: rgba(16,185,129,.25); color: #a7f3d0; }
+  .empty { font-size: 11px; color: #64748b; }
+  @keyframes fade { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: none; } }
+</style>
+</head>
+<body>
+<div class="hud">
+  <div class="head">
+    <span class="dot"></span>
+    <span class="title">正在录制</span>
+
+  </div>
+  <div class="tip">剩余 <span class="time" id="time">0:15</span> · 按 <b>F10</b> 提前结束</div>
+  <div class="list" id="list"><div class="empty">开始操作吧，这里会实时显示按了什么</div></div>
+</div>
+<script>
+  var list = document.getElementById('list');
+  var timeEl = document.getElementById('time');
+  var timer = null;
+
+  window.hudStart = function (seconds) {
+    var left = seconds;
+    timeEl.textContent = fmt(left);
+    if (timer) clearInterval(timer);
+    timer = setInterval(function () {
+      left -= 1;
+      if (left < 0) left = 0;
+      timeEl.textContent = fmt(left);
+      if (left <= 0) clearInterval(timer);
+    }, 1000);
+  };
+
+  function fmt(sec) {
+    var m = Math.floor(sec / 60);
+    var s = sec % 60;
+    return m + ':' + (s < 10 ? '0' + s : s);
+  }
+
+  window.hudEvent = function (kind, text) {
+    var empty = list.querySelector('.empty');
+    if (empty) list.innerHTML = '';
+    var row = document.createElement('div');
+    row.className = 'row';
+    var tag = document.createElement('span');
+    tag.className = 'tag ' + (kind === 'mouse' ? 'mouse' : 'key');
+    tag.textContent = kind === 'mouse' ? '鼠标' : '按键';
+    var label = document.createElement('span');
+    label.textContent = text;
+    row.appendChild(tag);
+    row.appendChild(label);
+    list.insertBefore(row, list.firstChild);
+    while (list.children.length > 6) list.removeChild(list.lastChild);
+  };
+</script>
+</body>
+</html>
