@@ -853,11 +853,26 @@ const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock) {
   app.quit();
 } else {
+  // 用户关窗口后程序会缩在托盘里。这时再双击图标启动，应该把已有的窗口唤出来，
+  // 而不是"什么都不发生"（客户会以为程序打不开）。
   app.on('second-instance', () => {
-    if (mainWindow) {
-      if (mainWindow.isMinimized()) mainWindow.restore();
-      mainWindow.show();
-      mainWindow.focus();
+    try {
+      if (!mainWindow) {
+        // 窗口已经被关掉了（只剩托盘）→ 重新创建窗口；本地服务还在就直接复用
+        startApp();
+      } else {
+        if (mainWindow.isMinimized()) mainWindow.restore();
+        mainWindow.show();
+        mainWindow.focus();
+      }
+      try {
+        new Notification({
+          title: 'YYWL 键盘配置工具',
+          body: '程序一直在后台运行，已为你打开窗口',
+        }).show();
+      } catch { /* 通知不可用就只弹窗口 */ }
+    } catch (e) {
+      console.warn('[second-instance] 唤起窗口失败:', e.message);
     }
   });
 
