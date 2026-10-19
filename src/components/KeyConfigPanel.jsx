@@ -460,16 +460,16 @@ export default function KeyConfigPanel({ config, onChange, multiKeyOnly, multiKe
 
           <div className="grid grid-cols-4 gap-2">
             {Array.from({ length: 12 }, (_, i) => {
-              const code = 0x3a + i; // F1..F12
-              const isSel = config.keyCode === code && (config.modifier || 0) === 0x07;
+              const code = 0x68 + i; // F13..F24（所有款式都支持，单个键码即可，不用组合键）
+              const isSel = config.keyCode === code && !(config.modifier || 0);
               return (
                 <button key={i}
-                  onClick={() => { onChange({ ...config, mode: KEY_MODE.KEYBOARD, modifier: 0x07, keyCode: code }); }}
+                  onClick={() => { onChange({ ...config, mode: KEY_MODE.KEYBOARD, modifier: 0, keyCode: code }); }}
                   className={`py-3 rounded-xl border-2 transition-all cursor-pointer ${
                     isSel ? 'border-indigo-500 bg-indigo-50 shadow-sm' : 'border-gray-200 bg-white hover:border-indigo-300'
                   }`}>
-                  <div className={`text-sm font-bold ${isSel ? 'text-indigo-700' : 'text-gray-700'}`}>{t('动作')} {i + 13}</div>
-                  <div className="text-[10px] text-gray-400 mt-0.5">Ctrl+Alt+Shift+F{i + 1}</div>
+                  <div className={`text-sm font-bold ${isSel ? 'text-indigo-700' : 'text-gray-700'}`}>{t('动作')} {i + 1}</div>
+                  <div className="text-[10px] text-gray-400 mt-0.5">F{i + 13}</div>
                   <div className="text-[10px] mt-1 truncate px-1">
                     {actionNames[i + 13]
                       ? <span className="text-emerald-600 font-semibold" title={actionNames[i + 13]}>⚡ {actionNames[i + 13]}</span>
@@ -480,7 +480,7 @@ export default function KeyConfigPanel({ config, onChange, multiKeyOnly, multiKe
             })}
           </div>
           <div className="mt-3 p-2.5 rounded-lg bg-amber-50 border border-amber-200 text-xs text-amber-800 leading-relaxed">
-            ⚠️ {t('需要桌面版在后台运行才生效；否则按下只会发出 Ctrl+Alt+Shift+F1~F12 组合键。')}
+            ⚠️ {t('需要桌面版在后台运行才生效；否则按下只会发出 F13~F24（多数软件没有反应）。')}
           </div>
         </div>
       )}
