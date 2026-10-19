@@ -885,6 +885,8 @@ function setupActionsIpc() {
   ipcMain.handle('actions:info', () => ({
     platform: process.platform,
     appVersion: app.getVersion(),
+    // 能力声明：网页据此判断当前安装包支持哪些新功能，避免选了却没效果
+    caps: { holdMode: true, chords: true, record: true, autostart: true },
     registered: registeredShortcuts.slice(),
     enabled: actionsConfig.enabled,
     slots: ACTION_SLOTS,
