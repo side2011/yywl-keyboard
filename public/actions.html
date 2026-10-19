@@ -82,6 +82,7 @@
   <span class="badge" id="platform">—</span>
   <span class="spacer"></span>
   <button class="btn" id="helpBtn" title="打开图文使用说明（含常见问题）">📖 使用说明</button>
+  <label class="switch" id="autostartWrap" title="随系统登录自动运行，热键一直可用"><input type="checkbox" id="autostart"> 开机自启动</label>
   <label class="switch"><input type="checkbox" id="enabled" checked> 启用</label>
 </header>
 
@@ -728,6 +729,27 @@
     });
   });
 
+  // 开机自启动开关（托盘菜单里也有同一个开关，两边状态同步）
+  (function initAutoStart() {
+    var wrap = document.getElementById('autostartWrap');
+    var box = document.getElementById('autostart');
+    if (!wrap || !box) return;
+    if (!api.getAutoStart) {
+      wrap.style.display = 'none'; // 老版本桌面版没有这个能力
+      return;
+    }
+    api.getAutoStart().then(function (v) { box.checked = !!v; });
+    box.addEventListener('change', function () {
+      var want = box.checked;
+      api.setAutoStart(want).then(function (now) {
+        box.checked = !!now;
+        setStatus(now ? '已开启开机自动启动：登录后自动在后台运行' : '已关闭开机自动启动');
+      });
+    });
+    if (api.onAutoStartChanged) {
+      api.onAutoStartChanged(function (v) { box.checked = !!v; });
+    }
+  })();
   // 使用说明：桌面版走系统浏览器打开本地说明页；网页版直接新开标签
   document.getElementById('helpBtn').addEventListener('click', function () {
     if (api && api.openHelp) {
