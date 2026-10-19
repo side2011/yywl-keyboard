@@ -46,6 +46,55 @@ let updateBase = 'https://key.itytsoft.com/';
 let updateInFlight = false;
 let appConfig = {};
 
+// ---------- 更新进度窗口（下载安装包时挡住主界面）----------
+let updWin = null;
+let updCancelled = false;
+
+function updCall(js) {
+  try {
+    if (updWin && !updWin.isDestroyed()) updWin.webContents.executeJavaScript(js, true).catch(() => {});
+  } catch { /* 忽略 */ }
+}
+
+function updSet(data) {
+  updCall(`window.updSet && window.updSet(${JSON.stringify(data)})`);
+}
+
+function openUpdWindow(versionText) {
+  try {
+    if (updWin && !updWin.isDestroyed()) { updWin.focus(); return; }
+    updCancelled = false;
+    updWin = new BrowserWindow({
+      width: 460,
+      height: 210,
+      parent: mainWindow || undefined,
+      modal: true,
+      frame: true,
+      resizable: false,
+      minimizable: false,
+      maximizable: false,
+      closable: false,
+      title: `正在更新 ${versionText || ''}`.trim(),
+      webPreferences: { preload: path.join(__dirname, 'update-progress-preload.cjs'), sandbox: false },
+    });
+    updWin.setMenuBarVisibility(false);
+    updWin.loadURL(`${localPrefix}/update-progress.html`);
+    // 下载期间主界面不响应，避免用户一边更新一边操作
+    try { if (mainWindow) mainWindow.setEnabled(false); } catch { /* 忽略 */ }
+  } catch (e) {
+    console.warn('[update] 打开进度窗口失败:', e.message);
+    updWin = null;
+  }
+}
+
+function closeUpdWindow() {
+  try {
+    if (updWin && !updWin.isDestroyed()) updWin.destroy();
+  } catch { /* 忽略 */ }
+  updWin = null;
+  try { if (mainWindow && !mainWindow.isDestroyed()) mainWindow.setEnabled(true); } catch { /* 忽略 */ }
+}
+
 // ---------- 程序自身更新（安装包级别）----------
 // 网页内容能热更新，但主进程/Electron 本身换不了 —— 那些新功能（宏录制、托盘、
 // 窗口关闭保护）都在安装包里。这里做"下载 → 解压 → 启动新版"，
@@ -57,9 +106,17 @@ function platformPackageId() {
   return 'linux-x64-domestic';
 }
 
+let activeDownloadReq = null;
+
+function abortDownload() {
+  try { if (activeDownloadReq) activeDownloadReq.abort(); } catch { /* 忽略 */ }
+  activeDownloadReq = null;
+}
+
 function downloadTo(url, destPath, onProgress) {
   return new Promise((resolve, reject) => {
     const req = net.request(url);
+    activeDownloadReq = req;
     req.on('response', (res) => {
       if (res.statusCode !== 200) { reject(new Error(`HTTP ${res.statusCode}`)); return; }
       const total = Number(res.headers['content-length'] || 0);
@@ -68,10 +125,10 @@ function downloadTo(url, destPath, onProgress) {
       res.on('data', (chunk) => { got += chunk.length; if (onProgress) onProgress(got, total); });
       res.on('end', () => ws.end());
       res.pipe(ws);
-      ws.on('finish', () => resolve({ bytes: got, total }));
-      ws.on('error', reject);
+      ws.on('finish', () => { activeDownloadReq = null; resolve({ bytes: got, total }); });
+      ws.on('error', (e) => { activeDownloadReq = null; reject(e); });
     });
-    req.on('error', reject);
+    req.on('error', (e) => { activeDownloadReq = null; reject(e); });
     req.end();
   });
 }
@@ -175,25 +232,46 @@ async function checkPackageUpdate({ manual = false } = {}) {
   const dir = path.join(app.getPath('temp'), `yywl-update-${latest}`);
   try { fs.mkdirSync(dir, { recursive: true }); } catch { /* 忽略 */ }
   const file = path.join(dir, pkg.file);
-  if (mainWindow) mainWindow.setProgressBar(0.01);
+
+  // 下载全程挡住主界面，只留进度窗口
+  openUpdWindow(latest);
+  updSet({ title: `正在下载 ${latest}`, text: '下载期间请不要关闭程序，完成后会自动启动新版本。', percent: 0, size: '' });
+  let lastPct = -1;
   try {
     await downloadTo(`${updateBase}download/${encodeURIComponent(pkg.file)}`, file, (got, total) => {
-      if (mainWindow && total) mainWindow.setProgressBar(Math.min(0.98, got / total));
+      const pct = total ? (got / total) * 100 : 0;
+      if (mainWindow) mainWindow.setProgressBar(Math.min(0.98, pct / 100));
+      if (pct - lastPct >= 1) {
+        lastPct = pct;
+        const mb = (n) => (n / 1048576).toFixed(1);
+        updSet({
+          percent: pct,
+          size: total ? `${mb(got)} / ${mb(total)} MB` : `${mb(got)} MB`,
+        });
+      }
+      if (updCancelled) throw new Error('已取消下载');
     });
   } catch (e) {
     if (mainWindow) mainWindow.setProgressBar(-1);
+    closeUpdWindow();
     dialog.showMessageBox(mainWindow, {
-      type: 'error', message: '下载失败',
-      detail: `${e.message}\n\n可以到 ${updateBase}download.html 手动下载。`, buttons: ['知道了'],
+      type: updCancelled ? 'info' : 'error',
+      message: updCancelled ? '已取消更新' : '下载失败',
+      detail: updCancelled ? '随时可以再点「帮助 → 检查更新…」重试。' : `${e.message}\n\n可以到 ${updateBase}download.html 手动下载。`,
+      buttons: ['知道了'],
     });
     return;
   }
   if (mainWindow) mainWindow.setProgressBar(-1);
 
+  // 解压
+  updSet({ title: '正在安装', text: '正在解压新版本文件，请稍候…', percent: 99, size: '' });
   const out = path.join(dir, 'app');
   try {
+    try { fs.rmSync(out, { recursive: true, force: true }); } catch { /* 忽略 */ }
     await extractPackage(file, out);
   } catch (e) {
+    closeUpdWindow();
     shell.showItemInFolder(file);
     dialog.showMessageBox(mainWindow, {
       type: 'warning', message: '已下载，但自动解压失败',
@@ -204,6 +282,7 @@ async function checkPackageUpdate({ manual = false } = {}) {
 
   const launcher = findLauncher(out);
   if (!launcher) {
+    closeUpdWindow();
     shell.openPath(out);
     dialog.showMessageBox(mainWindow, {
       type: 'info', message: '下载完成', detail: `已解压到：\n${out}\n\n请手动运行其中的程序。`, buttons: ['知道了'],
@@ -211,23 +290,26 @@ async function checkPackageUpdate({ manual = false } = {}) {
     return;
   }
 
-  const { response: r2 } = await dialog.showMessageBox(mainWindow, {
-    type: 'info', message: '新版本已就绪',
-    detail: `程序位置：\n${launcher}\n\n现在关闭当前程序并启动新版本？（配置和动作都会保留）`,
-    buttons: ['立即重启到新版本', '我自己打开'],
-    defaultId: 0,
-    cancelId: 1,
-  });
-  if (r2 === 0) {
-    try {
-      const child = spawn(launcher, [], { detached: true, stdio: 'ignore' });
-      child.unref();
-    } catch { /* 启动失败就退回打开目录 */ shell.showItemInFolder(launcher); return; }
+  // 成功：直接启动新版本并退出当前进程
+  updSet({ title: '正在启动新版本', text: '即将自动切换到新版本，配置和动作都会保留…', percent: 100, size: '', done: true });
+  try {
+    const child = spawn(launcher, [], { detached: true, stdio: 'ignore' });
+    child.unref();
+  } catch (e) {
+    closeUpdWindow();
+    shell.showItemInFolder(launcher);
+    dialog.showMessageBox(mainWindow, {
+      type: 'warning', message: '新版本已就绪，但自动启动失败',
+      detail: `${e.message}\n\n请手动运行：\n${launcher}`, buttons: ['知道了'],
+    });
+    return;
+  }
+  // 给新进程一点时间起来，再退出当前实例（单实例锁会让旧进程先退）
+  setTimeout(() => {
+    try { closeUpdWindow(); } catch { /* 忽略 */ }
     app.isQuitting = true;
     app.quit();
-  } else {
-    shell.showItemInFolder(launcher);
-  }
+  }, 1200);
 }
 // ---------- 配置 ----------
 
@@ -792,6 +874,12 @@ function setupActionsIpc() {
   ipcMain.handle('actions:probe', () => (HOTKEY_CANDIDATES.slice(0, 60).map(probeHotkey)));
 
   // 开机自启动：扩展动作窗口里的开关
+  // 更新进度窗口里的「取消更新」
+  ipcMain.on('update:cancel', () => {
+    updCancelled = true;
+    abortDownload();
+  });
+
   ipcMain.handle('autostart:get', () => isAutoStartEnabled());
   ipcMain.handle('autostart:set', (_e, enabled) => setAutoStart(!!enabled));
 
