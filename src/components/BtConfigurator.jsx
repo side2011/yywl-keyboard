@@ -660,15 +660,16 @@ export default function BtConfigurator() {
                   </button>
                 );
               };
-              // 4 键 + 1 旋钮款（实物照片）：K1–K4 单排，旋钮在右边
-              if (keyCount === 4 && knobCount === 1) {
+              // 1 个旋钮 + 4/6 键的款式：按键在左（4 键单排 / 6 键两排），旋钮在右（对齐实物照片）
+              if (knobCount === 1 && (keyCount === 4 || keyCount === 6)) {
                 const base = keyCount; // 旋钮三个槽位接在按键后面
+                const keyCols = keyCount === 4 ? 'grid-cols-4' : 'grid-cols-3';
                 return (
                   <div className="flex items-stretch gap-2">
-                    <div className="grid grid-cols-4 gap-1.5 flex-1 min-w-0">
-                      {Array.from({ length: 4 }, (_, i) => renderSlot(i, 'min-w-0 px-1.5'))}
+                    <div className={`grid ${keyCols} gap-1.5 flex-1 min-w-0`}>
+                      {Array.from({ length: keyCount }, (_, i) => renderSlot(i, 'min-w-0 px-1.5'))}
                     </div>
-                    <div className="rounded-xl border-2 border-dashed border-indigo-200 bg-indigo-50/50 p-1.5 flex-shrink-0 w-[120px]">
+                    <div className="rounded-xl border-2 border-dashed border-indigo-200 bg-indigo-50/50 p-1.5 flex-shrink-0 w-[132px]">
                       <div className="text-[11px] font-bold text-indigo-500 mb-1 text-center tracking-wide">
                         {t('旋钮')} 1
                       </div>
