@@ -1098,26 +1098,44 @@ function openActionsWindow() {
   });
 }
 
+// 托盘菜单：自启动开关用**普通菜单项**（前面打勾字符），不用 checkbox 类型。
+// 原因：Windows 只要有 checkbox 项，整个菜单左侧都会留出勾选列，看着一大片空白。
+function buildTrayMenu() {
+  const auto = isAutoStartEnabled();
+  return Menu.buildFromTemplate([
+    { label: '打开配置工具', click: () => { if (mainWindow) { mainWindow.show(); mainWindow.focus(); } else startApp(); } },
+    { label: '扩展动作…', click: openActionsWindow },
+    { type: 'separator' },
+    {
+      id: 'autostart',
+      label: (auto ? '✓ 开机自动启动' : '　开机自动启动'),
+      click: () => {
+        setAutoStart(!isAutoStartEnabled());
+        refreshTrayMenu();
+      },
+    },
+    { type: 'separator' },
+    { label: '退出', click: () => { app.isQuitting = true; app.quit(); } },
+  ]);
+}
+
+function refreshTrayMenu() {
+  try {
+    if (!tray) return;
+    trayMenu = buildTrayMenu();
+    tray.setContextMenu(trayMenu);
+  } catch (e) {
+    console.warn('[tray] 刷新菜单失败:', e.message);
+  }
+}
+
 function setupTray() {
   try {
     const iconPath = path.join(webRoot, 'favicon-32.png');
     const icon = fs.existsSync(iconPath) ? nativeImage.createFromPath(iconPath) : nativeImage.createEmpty();
     tray = new Tray(icon);
     tray.setToolTip('YYWL 键盘配置工具（扩展动作运行中）');
-    trayMenu = Menu.buildFromTemplate([
-      { label: '打开配置工具', click: () => { if (mainWindow) { mainWindow.show(); mainWindow.focus(); } else startApp(); } },
-      { label: '扩展动作…', click: openActionsWindow },
-      { type: 'separator' },
-      {
-        id: 'autostart',
-        label: '开机自动启动',
-        type: 'checkbox',
-        checked: isAutoStartEnabled(),
-        click: (item) => { setAutoStart(item.checked); },
-      },
-      { type: 'separator' },
-      { label: '退出', click: () => { app.isQuitting = true; app.quit(); } },
-    ]);
+    trayMenu = buildTrayMenu();
     tray.setContextMenu(trayMenu);
     tray.on('double-click', () => { if (mainWindow) { mainWindow.show(); mainWindow.focus(); } });
   } catch (e) {
@@ -1172,11 +1190,8 @@ function setAutoStart(enabled) {
     console.warn('[autostart] 设置失败:', e.message);
   }
   const now = isAutoStartEnabled();
-  // 托盘菜单里的勾选状态跟着变
-  try {
-    const item = trayMenu && trayMenu.getMenuItemById('autostart');
-    if (item) item.checked = now;
-  } catch { /* 忽略 */ }
+  // 托盘菜单里的勾选状态跟着变（普通菜单项 → 重建菜单）
+  refreshTrayMenu();
   // 通知扩展动作窗口（如果开着）
   try {
     if (actionsWindow && !actionsWindow.isDestroyed()) {
