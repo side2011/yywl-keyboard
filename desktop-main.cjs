@@ -877,7 +877,7 @@ function setupActionsIpc() {
           hudCall(`window.hudEvent && window.hudEvent(${JSON.stringify(isMouse ? 'mouse' : 'key')}, ${JSON.stringify(text)})`);
         },
       });
-      const steps = executor.eventsToSteps(events, { includeMouse, includeKeyboard });
+      const steps = executor.eventsToSteps(events, { includeMouse, includeKeyboard, mode: opts.mode === 'hold' ? 'hold' : 'tap' });
       return { ok: true, steps, events: events.length };
     } catch (e) {
       return { ok: false, error: e.message };
