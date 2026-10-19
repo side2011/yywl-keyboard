@@ -143,6 +143,7 @@
     { v: 'pasteText', label: '粘贴文字' },
     { v: 'pasteImage', label: '粘贴图片' },
     { v: 'keyPress', label: '发送组合键' },
+    { v: 'keyTap', label: '发送按键（单个键）' },
     { v: 'mouseClick', label: '鼠标点击' },
     { v: 'delay', label: '等待' }
   ];
@@ -155,6 +156,7 @@
     { label: '粘贴文字', step: { type: 'pasteText', text: '' } },
     { label: '粘贴图片', step: { type: 'pasteImage', image: '' } },
     { label: '组合键', step: { type: 'keyPress', keys: ['ctrl', 'v'] } },
+    { label: '单个按键', step: { type: 'keyTap', key: '' } },
     { label: '鼠标点击', step: { type: 'mouseClick', x: 0, y: 0, button: 'left' } },
     { label: '等待', step: { type: 'delay', ms: 300 } }
   ];
@@ -392,7 +394,25 @@
       wrap.appendChild(chips);
       wrap.appendChild(addChord);
       if (chords.length > 1) wrap.appendChild(el('span', 'hintSmall', '按顺序依次发送'));
-    } else if (step.type === 'mouseClick') {
+    } else if (step.type === 'keyTap') {
+      // 单个按键：按一下键盘就记下来（忽略修饰键；要组合键请用上面那个）
+      var tapChip = el('span', 'combo', step.key ? keyDisplay(step.key) : '未录入');
+      var tapBtn = el('button', 'btn', step.key ? '重新录入按键' : '⌨ 录入按键');
+      tapBtn.title = '按一下要发送的键，比如 Enter / F5 / 方向键';
+      tapBtn.addEventListener('click', function () {
+        captureKeys(function (keys) {
+          if (!keys || !keys.length) return;
+          var mods = keys.slice(0, -1);
+          var key = keys[keys.length - 1];
+          if (mods.length) {
+            setStatus('「发送按键」只发单个键；要发 ' + mods.join('+') + '+' + keyDisplay(key) + ' 请用「发送组合键」', true);
+          }
+          step.key = key;
+          onChange(); render();
+        });
+      });
+      wrap.appendChild(tapChip);
+      wrap.appendChild(tapBtn);    } else if (step.type === 'mouseClick') {
       var xi = input({ type: 'number', placeholder: 'X', width: '90px' }, step.x, function (v) { step.x = Number(v); onChange(); });
       var yi = input({ type: 'number', placeholder: 'Y', width: '90px' }, step.y, function (v) { step.y = Number(v); onChange(); });
       wrap.appendChild(xi);
@@ -601,6 +621,17 @@
       .replace(/\bControl\b/g, 'Ctrl')
       .replace(/\bCommand\b/g, 'Cmd')
       .replace(/\bSuper\b/g, 'Win');
+  }
+  // 按键名显示：enter→Enter、f5→F5、left→←
+  var KEY_DISPLAY = {
+    enter: 'Enter', tab: 'Tab', space: 'Space', backspace: 'Backspace', delete: 'Delete', esc: 'Esc',
+    up: '↑', down: '↓', left: '←', right: '→', home: 'Home', end: 'End', pgup: 'PgUp', pgdn: 'PgDn',
+  };
+  function keyDisplay(k) {
+    var s = String(k || '');
+    if (KEY_DISPLAY[s]) return KEY_DISPLAY[s];
+    if (/^f\d{1,2}$/i.test(s)) return s.toUpperCase();
+    return s.length === 1 ? s.toUpperCase() : s;
   }
   // 冲突提示：告诉用户哪几个槽位被占用，并给出可换的冷门组合
   function renderConflicts() {
