@@ -127,6 +127,7 @@ const en = {
   '层数': 'Layers',
   'Mac 用户：键盘上没有 Command 键是正常的 —— Win 就是 Command ⌘，Alt 就是 Option ⌥。': 'Mac users: there is no Command key on the keypad - Win maps to Command ⌘ and Alt maps to Option ⌥.',
   '图文使用说明': 'Illustrated guide',
+  '打开扩展工具': 'Open actions tool',
   '固件信息': 'Firmware info',
   '固件版本': 'Firmware version',
   '子型号': 'Sub-model',
