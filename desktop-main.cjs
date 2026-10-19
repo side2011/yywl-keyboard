@@ -406,7 +406,7 @@ function startApp() {
 
     // 启动后延迟检查更新 (不阻塞界面; 离线时静默跳过)
     if (appConfig.autoUpdate !== false) {
-      setTimeout(() => { checkForUpdates({ manual: false }); }, 6000);
+      setTimeout(() => { checkAllUpdates({ manual: false }); }, 6000);
     }
   }).catch((e) => {
     console.error('本地服务启动失败:', e);
@@ -419,6 +419,46 @@ function startApp() {
 function friendlyVersion(info) {
   if (!info) return '未知';
   return `${info.appVersion || ''} (${info.buildId || ''})`.trim();
+}
+
+// 统一的更新入口：先看程序本体（安装包）有没有新版，没有再看网页内容。
+// 菜单里只留一个「检查更新…」，避免客户面对两个相似的菜单项。
+async function checkAllUpdates({ manual = false } = {}) {
+  if (updateInFlight) return;
+
+  // 1) 程序本体：读下载页清单里的版本号
+  let pkgManifest = null;
+  try {
+    pkgManifest = await updater.fetchJson(`${updateBase}download/manifest.json?t=${Date.now()}`, 15000);
+  } catch (e) {
+    pkgManifest = null;
+    if (manual) {
+      dialog.showMessageBox(mainWindow, {
+        type: 'warning', message: '检查更新失败',
+        detail: `读不到版本清单：${e.message}\n\n更新地址：${updateBase}`, buttons: ['知道了'],
+      });
+      return;
+    }
+  }
+
+  const latestPkg = pkgManifest && pkgManifest.version;
+  const current = app.getVersion();
+  if (latestPkg && compareVersions(latestPkg, current) > 0) {
+    if (manual) {
+      // 有新程序版本 → 走"下载并安装"
+      await checkPackageUpdate({ manual: true });
+      return;
+    }
+    // 自动检查时不打扰：托盘气泡提示一下，网页内容继续检查
+    try {
+      if (tray && process.platform === 'win32') {
+        tray.displayBalloon({ title: `发现新版本 ${latestPkg}`, content: '右键托盘 → 检查更新 即可升级' });
+      }
+    } catch { /* 忽略 */ }
+  }
+
+  // 2) 网页内容（程序已是最新或用户选了稍后）
+  await checkForUpdates({ manual });
 }
 
 async function checkForUpdates({ manual = false } = {}) {
@@ -444,7 +484,7 @@ async function checkForUpdates({ manual = false } = {}) {
       if (manual) {
         await dialog.showMessageBox(mainWindow, {
           type: 'info', message: '已是最新版本',
-          detail: `网页版本：${friendlyVersion(local)}\n文件数：${local.fileCount || '-'}`,
+          detail: `程序版本：${app.getVersion()}\n网页版本：${friendlyVersion(local)}\n文件数：${local.fileCount || '-'}`,
           buttons: ['知道了'],
         });
       }
@@ -596,8 +636,7 @@ function buildMenu() {
     {
       label: '帮助',
       submenu: [
-        { label: '检查更新（网页内容）…', click: () => checkForUpdates({ manual: true }) },
-        { label: '检查程序更新（安装包）…', click: () => checkPackageUpdate({ manual: true }) },
+        { label: '检查更新…', click: () => checkAllUpdates({ manual: true }) },
         { label: '版本信息', click: showAbout },
       ],
     },
