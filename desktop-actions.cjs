@@ -452,6 +452,8 @@ Write-Output ("{0},{1}" -f $p.X, $p.Y)`;
   //   按下 Ctrl → 按下 C → 松开 C → 松开 Ctrl
   const KEY_TO_VK = {
     ctrl: 0x11, control: 0x11, shift: 0x10, alt: 0x12, win: 0x5B, meta: 0x5B, cmd: 0x5B,
+    // 右侧修饰键（真实键盘上左右是两套不同的键码）
+    rctrl: 0xA3, rshift: 0xA1, ralt: 0xA2, rwin: 0x5C,
     enter: 0x0d, return: 0x0d, tab: 0x09, esc: 0x1b, escape: 0x1b, space: 0x20,
     backspace: 0x08, delete: 0x2e, del: 0x2e, insert: 0x2d,
     up: 0x26, down: 0x28, left: 0x25, right: 0x27,
@@ -574,6 +576,9 @@ Write-Output ("{0},{1}" -f $p.X, $p.Y)`;
   function vkLabel(vk) {
     if (VK_MOUSE[vk]) return { left: '左键', right: '右键', middle: '中键' }[VK_MOUSE[vk]];
     if (VK_MODS[vk]) return { shift: 'Shift', ctrl: 'Ctrl', alt: 'Alt', win: 'Win' }[VK_MODS[vk]];
+    // 右侧修饰键单独标出（VK 直查，VK_MODS 里没有）
+    const rightMods = { 0xA3: '右Ctrl', 0xA1: '右Shift', 0xA2: '右Alt', 0x5C: '右Win' };
+    if (rightMods[vk]) return rightMods[vk];
     return vkToKey(vk) || '';
   }
 
