@@ -120,6 +120,33 @@ function createExecutor(deps, opts = {}) {
   async function sendKeys(keys) {
     if (!Array.isArray(keys) || !keys.length) throw new Error('keyPress 缺少 keys');
     if (platform === 'win32') {
+      // 优先用 keybd_event 走真实的"按下 → 停一下 → 抬起"，
+      // 效果和物理按键一致；SendKeys 在游戏/远程桌面/部分 ERP 里会被忽略。
+      const vks = keys.map((k) => keyToVk(k));
+      if (vks.every((v) => v !== null && v !== undefined)) {
+        const mods = vks.slice(0, -1);
+        const main = vks[vks.length - 1];
+        const lines = [
+          'Add-Type -TypeDefinition @"',
+          'using System;',
+          'using System.Runtime.InteropServices;',
+          'public class YywlSend {',
+          '  [DllImport("user32.dll")] public static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, IntPtr dwExtraInfo);',
+          '}',
+          '"@',
+          ...mods.map((v) => `[YywlSend]::keybd_event(${v}, 0, 0, [IntPtr]::Zero)`),
+          ...mods.map(() => 'Start-Sleep -Milliseconds 15'),
+          `[YywlSend]::keybd_event(${main}, 0, 0, [IntPtr]::Zero)`,
+          'Start-Sleep -Milliseconds 25',
+          `[YywlSend]::keybd_event(${main}, 0, 2, [IntPtr]::Zero)`,
+          'Start-Sleep -Milliseconds 15',
+          ...[...mods].reverse().map((v) => `[YywlSend]::keybd_event(${v}, 0, 2, [IntPtr]::Zero)`),
+        ];
+        if (dryRun) { commands.push({ file: 'keybd_event-seq', args: vks }); return; }
+        await run('powershell', ['-NoProfile', '-NonInteractive', '-Command', lines.join('\n')]);
+        return;
+      }
+      // 有 keyToVk 不认识的键（标点等）→ 退回 SendKeys
       const seq = buildSendKeys(keys);
       const script = `Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait('${seq.replace(/'/g, "''")}')`;
       await run('powershell', ['-NoProfile', '-NonInteractive', '-Command', script]);
