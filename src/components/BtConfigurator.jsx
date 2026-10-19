@@ -96,7 +96,9 @@ export default function BtConfigurator() {
       setLayerOverride(v === 3 || v === 1 ? v : null);
     } catch { setLayerOverride(null); }
   }, [layerKey]);
-  const btLayerCount = layerOverride ?? autoLayerCount;
+  // 只有"自动判定支持多层"的型号才允许人工覆盖；2/3/4/5 键和 4+1 一律固定 1 层，
+  // 免得之前测试时点过「3 层」的旧值残留在 localStorage 里又冒出来。
+  const btLayerCount = autoLayerCount > 1 ? (layerOverride ?? autoLayerCount) : 1;
   const [showLayerAdvanced, setShowLayerAdvanced] = useState(false);
 
   const [currentLayer, setCurrentLayer] = useState(0); // 0..2
@@ -562,6 +564,8 @@ export default function BtConfigurator() {
           <div>
             {t('固件版本')} v{deviceInfo?.version ?? '?'} · {t('子型号')} {deviceInfo?.subModel ?? '?'} · {t('键数')} {keyCount} · {t('旋钮')} {knobCount}
           </div>
+          {/* 只有"自动判定支持多层"的型号才显示层数覆盖；2/3/4/5 键、4+1 一律只有 1 层 */}
+          {autoLayerCount > 1 ? (
           <div className="flex items-center gap-2 mt-2 flex-wrap">
             <span>{t('层数')}:</span>
             <button onClick={() => setLayerMode(null)}
@@ -577,6 +581,9 @@ export default function BtConfigurator() {
               3 {t('层')}
             </button>
           </div>
+          ) : (
+            <div className="mt-2">{t('这个型号只有 1 层配置')}</div>
+          )}
         </div>
       )}
 
