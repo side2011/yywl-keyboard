@@ -212,6 +212,43 @@
     document.addEventListener('keydown', onKey, true);
   }
 
+  // 录制宏的引导流程：先说明规则 → 3 秒倒计时 → 最小化窗口开始录
+  function startRecordFlow(onDone) {
+    var mask = document.createElement('div');
+    mask.className = 'capture-mask';
+    mask.innerHTML = ''
+      + '<div class="capture-box" style="max-width:420px;text-align:left">'
+      + '  <div style="font-size:16px;font-weight:800;margin-bottom:10px">准备录制操作</div>'
+      + '  <div style="font-size:13px;font-weight:400;color:#475569;line-height:1.9">'
+      + '    1. 点「开始录制」后窗口会最小化，请先切到要操作的软件<br>'
+      + '    2. 有 3 秒倒计时，倒计时结束才开始记录<br>'
+      + '    3. 最多录 15 秒，按 <b>F10</b> 可以提前结束<br>'
+      + '    4. 录完窗口会自动弹回来，步骤直接填进这个槽位'
+      + '  </div>'
+      + '  <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px">'
+      + '    <button class="btn" id="recCancel">取消</button>'
+      + '    <button class="btn primary" id="recStart">开始录制</button>'
+      + '  </div>'
+      + '</div>';
+    document.body.appendChild(mask);
+    var close = function () { if (mask.parentNode) mask.parentNode.removeChild(mask); };
+    document.getElementById('recCancel').addEventListener('click', close);
+    document.getElementById('recStart').addEventListener('click', function () {
+      // 倒计时（就在这个窗口里显示，用户能看到）
+      mask.innerHTML = '<div class="capture-box"><div class="recnum" id="recNum">3</div>'
+        + '<div class="capture-sub">倒计时结束就开始录制…</div></div>';
+      var left = 3;
+      var timer = setInterval(function () {
+        left -= 1;
+        var num = document.getElementById('recNum');
+        if (left > 0) { if (num) num.textContent = left; return; }
+        clearInterval(timer);
+        close();
+        setStatus('● 录制中… 请执行操作，按 F10 结束（最长 15 秒）');
+        onDone();
+      }, 1000);
+    });
+  }
   // 录制鼠标位置：3 秒倒计时后读取当前光标坐标
   function captureMouse(done) {
     var mask = document.createElement('div');
@@ -415,14 +452,16 @@
       if (!api.record) { setStatus('当前桌面版 v' + (appVersion || '?') + ' 不支持录制，请重新安装 1.2.0 及以上版本', true); return; }
       var target = ensureSlot(n);
       var startRec = function () {
-        setStatus('录制中… 请执行你的操作，按 F10 结束');
-        api.record({ durationMs: 15000 }).then(function (r) {
-          if (!r || !r.ok) { setStatus('录制失败：' + ((r && r.error) || '未知错误'), true); return; }
-          if (!r.steps || !r.steps.length) { setStatus('没有录到任何操作（窗口可能没切过去）', true); return; }
-          target.steps = r.steps;
-          setDirty();
-          render();
-          setStatus('已录制 ' + r.steps.length + ' 个步骤，记得点「保存并生效」');
+        // 先弹说明 + 3 秒倒计时（在这个窗口里能看见），再最小化开始录
+        startRecordFlow(function () {
+          api.record({ durationMs: 15000 }).then(function (r) {
+            if (!r || !r.ok) { setStatus('录制失败：' + ((r && r.error) || '未知错误'), true); return; }
+            if (!r.steps || !r.steps.length) { setStatus('没有录到任何操作（窗口可能没切过去），再试一次？', true); return; }
+            target.steps = r.steps;
+            setDirty();
+            render();
+            setStatus('已录制 ' + r.steps.length + ' 个步骤，记得点「保存并生效」');
+          });
         });
       };
       if ((target.steps || []).length) {
