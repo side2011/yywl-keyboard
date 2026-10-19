@@ -1,7 +1,7 @@
 {
   "name": "yywl-keyboard-app",
   "private": true,
-  "version": "1.3.0",
+  "version": "1.3.1",
   "description": "YYWL 多功能小键盘配置工具（网页版 / Electron 桌面版）",
   "author": "YYWL <1291285148@qq.com>",
   "type": "module",
@@ -10,6 +10,7 @@
     "dev": "vite",
     "build": "vite build && node scripts/make-update.mjs",
     "check:undef": "node scripts/check-undef.mjs",
+    "test:bt": "node scripts/test-bt-parse.mjs",
     "build:plain": "vite build",
     "make-update": "node scripts/make-update.mjs",
     "release:web": "vite build && node scripts/make-update.mjs --offline",
