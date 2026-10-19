@@ -87,7 +87,8 @@ export default function BtConfigurator() {
   const AUTO_LAYERS = { 6: 3 };
   const autoLayerCount = AUTO_LAYERS[keyCount] || 1;
 
-  const layerKey = `bt-layer-mode:${modelId || `${keyCount}k${knobCount}r`}`;
+  // 层数覆盖按「型号 + 键数/旋钮数」分开记，避免把 6 键款的 3 层设置串到 4+1 款上
+  const layerKey = `bt-layer-mode:${modelId || 'bt'}-${keyCount}k${knobCount}r`;
   const [layerOverride, setLayerOverride] = useState(null); // null=跟随自动, 1/3=人工指定
   useEffect(() => {
     try {
@@ -610,6 +611,41 @@ export default function BtConfigurator() {
                   </button>
                 );
               };
+              // 4 键 + 1 旋钮款（实物照片）：K1–K4 单排，旋钮在右边
+              if (keyCount === 4 && knobCount === 1) {
+                const base = keyCount; // 旋钮三个槽位接在按键后面
+                return (
+                  <div className="flex items-stretch gap-2">
+                    <div className="grid grid-cols-4 gap-1.5 flex-1 min-w-0">
+                      {Array.from({ length: 4 }, (_, i) => renderSlot(i, 'min-w-0 px-1.5'))}
+                    </div>
+                    <div className="rounded-xl border-2 border-dashed border-indigo-200 bg-indigo-50/50 p-1.5 flex-shrink-0 w-[120px]">
+                      <div className="text-[11px] font-bold text-indigo-500 mb-1 text-center tracking-wide">
+                        {t('旋钮')} 1
+                      </div>
+                      <div className="grid grid-cols-3 gap-1">
+                        {[t('左'), t('中'), t('右')].map((pos, k) => {
+                          const idx = base + k;
+                          const isSel = selectedKey === idx;
+                          return (
+                            <button key={k} onClick={() => handleSelectKey(idx)}
+                              className={`rounded-lg border-2 px-0.5 py-1 transition-all cursor-pointer ${
+                                isSel
+                                  ? 'border-indigo-500 bg-indigo-500 text-white shadow-sm'
+                                  : 'border-gray-200 bg-white text-gray-600 hover:border-indigo-300'
+                              }`}>
+                              <div className="text-[10px] font-bold leading-none mb-0.5">{pos}</div>
+                              <div className="text-[9px] leading-tight line-clamp-2 break-all opacity-80 min-h-[1.4rem]">
+                                {getConfigDisplay(keyConfigs[idx])}
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
               if (knobCount > 0) {
                 // 对齐实物布局（用户照片）: 两个旋钮在上方, 下面两排按键 K1-K3 / K4-K6
                 // 每个旋钮有 左转 / 按下 / 右转 三个可配置槽位
