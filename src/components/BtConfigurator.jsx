@@ -100,6 +100,28 @@ export default function BtConfigurator() {
   // 免得之前测试时点过「3 层」的旧值残留在 localStorage 里又冒出来。
   const btLayerCount = autoLayerCount > 1 ? (layerOverride ?? autoLayerCount) : 1;
   const [showLayerAdvanced, setShowLayerAdvanced] = useState(false);
+  // 旋钮左右对调：个别固件把「左/右转」的存储顺序装反了，给客户一个一键纠正的开关。
+  // 映射是自逆的（再调一次就还原），读写两侧用同一个函数即可。
+  const knobSwapKey = `bt-knob-swap:${modelId || 'bt'}-${keyCount}k${knobCount}r`;
+  const [knobSwap, setKnobSwap] = useState(() => {
+    try { return localStorage.getItem(knobSwapKey) === '1'; } catch { return false; }
+  });
+  useEffect(() => {
+    try { setKnobSwap(localStorage.getItem(knobSwapKey) === '1'); } catch { setKnobSwap(false); }
+  }, [knobSwapKey]);
+  const toggleKnobSwap = (next) => {
+    setKnobSwap(next);
+    try { localStorage.setItem(knobSwapKey, next ? '1' : '0'); } catch { /* 忽略 */ }
+    toast.success(next ? t('已把旋钮左右对调，请重新读取配置确认') : t('已恢复默认的旋钮左右顺序'), { id: 'knob-swap' });
+  };
+  // UI 槽位 ↔ 设备槽位（对调时把旋钮的三个位置倒过来：左↔右，中不变）
+  const mapSlot = (i) => {
+    if (!knobSwap || knobCount === 0 || i < keyCount) return i;
+    const rel = i - keyCount;
+    const n = Math.floor(rel / 3);
+    const k = rel % 3;
+    return keyCount + n * 3 + (2 - k);
+  };
 
   const [currentLayer, setCurrentLayer] = useState(0); // 0..2
   const [keyConfigs, setKeyConfigs] = useState(() => Array.from({ length: totalSlots }, createDefaultConfig));
@@ -239,9 +261,11 @@ export default function BtConfigurator() {
       const allLayers = [];
       for (let l = 0; l < btLayerCount; l++) {
         const configs = await handler.readLayer(l, totalSlots);
-        // 补齐到 totalSlots 长度
+        // 补齐到 totalSlots 长度，并按 mapSlot 把设备槽位映射回界面槽位（旋钮左右对调时有用）
         const padded = Array.from({ length: totalSlots }, (_, i) => configs[i] || createDefaultConfig());
-        allLayers.push(padded);
+        const ui = new Array(totalSlots);
+        for (let i = 0; i < totalSlots; i += 1) ui[mapSlot(i)] = padded[i];
+        allLayers.push(ui);
       }
       layerConfigsRef.current = allLayers;
       setKeyConfigs(allLayers[0]);
@@ -301,10 +325,11 @@ export default function BtConfigurator() {
         const cfgs = cached[l] || [];
         for (let i = 0; i < totalSlots; i++) {
           const cfg = cfgs[i];
+          const devSlot = mapSlot(i);
           if (cfg && cfg.mode !== MODE.NONE) {
-            await handler.writeKey(l, i, cfg);
+            await handler.writeKey(l, devSlot, cfg);
           } else {
-            await handler.clearKey(l, i);
+            await handler.clearKey(l, devSlot);
           }
           await new Promise(r => setTimeout(r, 40));
         }
@@ -343,7 +368,9 @@ export default function BtConfigurator() {
       for (let l = 0; l < btLayerCount; l += 1) {
         let back = [];
         try {
-          back = await handler.readLayer(l, totalSlots);
+          const raw = await handler.readLayer(l, totalSlots);
+          back = new Array(totalSlots);
+          for (let i = 0; i < totalSlots; i += 1) back[mapSlot(i)] = raw[i] || createDefaultConfig();
         } catch {
           continue; // 读不回来就先不判失败，避免误报
         }
@@ -574,6 +601,12 @@ export default function BtConfigurator() {
             {t('固件版本')} v{deviceInfo?.version ?? '?'} · {t('子型号')} {deviceInfo?.subModel ?? '?'} · {t('键数')} {keyCount} · {t('旋钮')} {knobCount}
           </div>
           {/* 只有"自动判定支持多层"的型号才显示层数覆盖；2/3/4/5 键、4+1 一律只有 1 层 */}
+          {knobCount > 0 && (
+            <label className="flex items-center gap-2 mt-2 cursor-pointer select-none">
+              <input type="checkbox" checked={knobSwap} onChange={(e) => toggleKnobSwap(e.target.checked)} className="cursor-pointer" />
+              <span>{t('旋钮左右对调（左转/右转装反时勾选）')}</span>
+            </label>
+          )}
           {autoLayerCount > 1 ? (
           <div className="flex items-center gap-2 mt-2 flex-wrap">
             <span>{t('层数')}:</span>
