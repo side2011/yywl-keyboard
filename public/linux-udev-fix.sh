@@ -1,6 +1,6 @@
 #!/bin/bash
 # ============================================================
-# 颖昱物联小键盘 - Linux udev 权限修复脚本
+# 小键盘 - Linux udev 权限修复脚本
 # 适用系统: 银河麒麟 / Ubuntu / Deepin / 统信UOS 等
 # 使用方法: 右键此文件 → 属性 → 允许执行，然后终端运行:
 #           sudo bash linux-udev-fix.sh
@@ -9,7 +9,7 @@
 RULES_FILE="/etc/udev/rules.d/99-yywl-keyboard.rules"
 
 echo "=========================================="
-echo " 颖昱物联小键盘 - Linux HID 权限配置工具"
+echo " 小键盘 - Linux HID 权限配置工具"
 echo "=========================================="
 echo ""
 
@@ -22,7 +22,7 @@ fi
 
 echo "[1/3] 写入 udev 规则文件..."
 cat > "$RULES_FILE" << 'EOF'
-# 颖昱物联多功能小键盘 - WebHID 访问权限
+# 多功能小键盘 - WebHID 访问权限
 # 旧协议 VID 0x413D
 SUBSYSTEM=="hidraw", ATTRS{idVendor}=="413d", MODE="0666"
 # 旧协议 VID 0x8808
