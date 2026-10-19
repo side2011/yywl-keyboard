@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { fetchActionSummary, toSlotMap } from '../services/action-slots';
 import { useLang } from '../context/LanguageContext.jsx';
-import { isDesktopApp, guideUrl } from '../services/env';
+import { isDesktopApp, guideUrl, openActionsWindow } from '../services/env';
 import { KEY_MODE, KEYCODE_LABELS, MEDIA_KEYS, MOUSE_BUTTONS, mouseIndexToDevice, mouseDeviceToIndex, MODIFIERS, BROWSER_CODE_TO_HID, BROWSER_MOD_TO_BIT, HID_TO_CS_SHIFTED, CS_SHIFTED_CODES } from '../services/hid-constants';
 
 // ---- styles ----
@@ -431,17 +431,29 @@ export default function KeyConfigPanel({ config, onChange, multiKeyOnly, multiKe
                 </div>
                 <div className="text-xs text-indigo-900/80 leading-relaxed">
                   {t('键盘本身只能发标准按键；打开文件夹、开网址、粘贴文字/图片、鼠标点击，都要由桌面版在后台执行。这里只负责把按键绑定到某个动作。')}
-            <a href={guideUrl(lang)} target="_blank" rel="noreferrer"
-              className="inline-block mt-2 text-xs font-semibold text-indigo-700 underline underline-offset-2 hover:text-indigo-900">
-              📖 {t('图文使用说明')}
-            </a>
                 </div>
-                {!isDesktopApp() && (
-                  <a href={`${import.meta.env.BASE_URL}download.html`}
-                    className="inline-block mt-2 px-3 py-1.5 text-xs font-bold rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 transition-colors">
-                    ⬇ {t('下载桌面版')}
+                <div className="flex items-center gap-3 mt-2 flex-wrap">
+                  {isDesktopApp() && (
+                    <button
+                      onClick={async () => {
+                        const ok = await openActionsWindow();
+                        if (!ok) window.open(guideUrl(lang), '_blank');
+                      }}
+                      className="px-3 py-1.5 text-xs font-bold rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 transition-colors cursor-pointer">
+                      ⚙ {t('打开扩展工具')}
+                    </button>
+                  )}
+                  {!isDesktopApp() && (
+                    <a href={`${import.meta.env.BASE_URL}download.html`}
+                      className="px-3 py-1.5 text-xs font-bold rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 transition-colors">
+                      ⬇ {t('下载桌面版')}
+                    </a>
+                  )}
+                  <a href={guideUrl(lang)} target="_blank" rel="noreferrer"
+                    className="text-xs font-semibold text-indigo-700 underline underline-offset-2 hover:text-indigo-900">
+                    📖 {t('图文使用说明')}
                   </a>
-                )}
+                </div>
               </div>
             </div>
           </div>
