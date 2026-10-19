@@ -752,6 +752,57 @@ function setupActionsIpc() {
   // 逐个探测候选热键是否可用（用完即注销，不会长期占用）
   ipcMain.handle('actions:probe', () => (HOTKEY_CANDIDATES.slice(0, 60).map(probeHotkey)));
 
+  // ---------- 录制 HUD（屏幕上的录制提示框）----------
+  // 窗口最小化后用户「看不到在录」，所以在屏幕角落挂一个置顶小窗，
+  // 实时显示倒计时和「按了什么」，跟网页版宏录制那种感觉类似。
+  let recHud = null;
+
+  function createRecHud(seconds) {
+    destroyRecHud();
+    try {
+      const { screen } = require('electron');
+      const area = screen.getPrimaryDisplay().workArea;
+      const w = 300;
+      const h = 190;
+      recHud = new BrowserWindow({
+        width: w,
+        height: h,
+        x: area.x + area.width - w - 24,
+        y: area.y + 24,
+        frame: false,
+        transparent: true,
+        resizable: false,
+        minimizable: false,
+        maximizable: false,
+        skipTaskbar: true,
+        alwaysOnTop: true,
+        focusable: false,
+        hasShadow: false,
+        webPreferences: { sandbox: true, contextIsolation: true },
+      });
+      recHud.setAlwaysOnTop(true, 'screen-saver');
+      recHud.setIgnoreMouseEvents(true, { forward: true });
+      recHud.loadURL(`${localPrefix}/rec-hud.html`);
+      recHud.webContents.on('did-finish-load', () => hudCall(`window.hudStart && window.hudStart(${seconds})`));
+    } catch (e) {
+      console.warn('[hud] 创建录制提示框失败:', e.message);
+      recHud = null;
+    }
+  }
+
+  function hudCall(js) {
+    try {
+      if (!recHud || recHud.isDestroyed()) return;
+      recHud.webContents.executeJavaScript(js, true).catch(() => { /* 忽略 */ });
+    } catch { /* 忽略 */ }
+  }
+
+  function destroyRecHud() {
+    try {
+      if (recHud && !recHud.isDestroyed()) recHud.destroy();
+    } catch { /* 忽略 */ }
+    recHud = null;
+  }
   // 宏录制：录制期间把扩展动作窗口最小化，录完还原
   ipcMain.handle('actions:record', async (_e, opts = {}) => {
     if (process.platform !== 'win32') {
@@ -767,13 +818,28 @@ function setupActionsIpc() {
     } catch { /* 忽略 */ }
     try { if (win) win.minimize(); } catch { /* 忽略 */ }
     await new Promise((r) => setTimeout(r, 800)); // 等窗口让开，别把点击录到自己身上
+    const includeMouse = opts.mouse !== false;
+    const includeKeyboard = opts.keyboard !== false;
+    createRecHud(Math.round(durationMs / 1000));
     try {
-      const events = await executor.record(durationMs);
-      const steps = executor.eventsToSteps(events);
+      const events = await executor.record(durationMs, {
+        onEvent: (ev) => {
+          if (!ev.down) return;
+          const label = executor.vkLabel(ev.vk);
+          if (!label) return;
+          const isMouse = [1, 2, 4].includes(ev.vk);
+          if (isMouse && !includeMouse) return;
+          if (!isMouse && !includeKeyboard) return;
+          const text = isMouse ? `${label} (${ev.x}, ${ev.y})` : label;
+          hudCall(`window.hudEvent && window.hudEvent(${JSON.stringify(isMouse ? 'mouse' : 'key')}, ${JSON.stringify(text)})`);
+        },
+      });
+      const steps = executor.eventsToSteps(events, { includeMouse, includeKeyboard });
       return { ok: true, steps, events: events.length };
     } catch (e) {
       return { ok: false, error: e.message };
     } finally {
+      destroyRecHud();
       try { if (win) { win.restore(); win.focus(); } } catch { /* 忽略 */ }
     }
   });
