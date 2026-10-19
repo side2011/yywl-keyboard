@@ -350,7 +350,7 @@ Write-Output ("{0},{1}" -f $p.X, $p.Y)`;
   }
 
   // 把原始事件压成步骤序列
-  function eventsToSteps(events, { maxSteps = 80, includeMouse = true, includeKeyboard = true } = {}) {
+  function eventsToSteps(events, { maxSteps = 80, includeMouse = true, includeKeyboard = true, mode = 'tap' } = {}) {
     const steps = [];
     const held = Object.create(null);
     let lastT = 0;
@@ -384,6 +384,40 @@ Write-Output ("{0},{1}" -f $p.X, $p.Y)`;
       }
       return [...out];
     };
+
+    // 逐键模式：把"按下/松开"原样还原成 keyDown/keyUp 步骤，保留时间间隔。
+    // 适合那些不认"一次性组合键"的软件（游戏、远程桌面、部分 ERP）。
+    if (mode === 'hold') {
+      const held = Object.create(null);
+      const pushGap = (gap) => {
+        if (gap >= 30 && steps.length) steps.push({ type: 'delay', ms: Math.min(Math.round(gap), 3000) });
+      };
+      for (const ev of events) {
+        if (steps.length >= maxSteps) break;
+        const { t, vk, down, x, y } = ev;
+        if (VK_MOUSE[vk]) {
+          if (!includeMouse || !down || steps.length >= maxSteps) continue;
+          pushGap(t - lastT);
+          steps.push({ type: 'mouseClick', x, y, button: VK_MOUSE[vk] });
+          lastT = t;
+          continue;
+        }
+        if (!includeKeyboard) continue;
+        const name = VK_MODS[vk] || vkToKey(vk);
+        if (!name) continue;
+        if (down) {
+          if (held[name]) continue; // 长按自动重复只记一次
+          held[name] = true;
+        } else {
+          delete held[name];
+        }
+        pushGap(t - lastT);
+        steps.push({ type: down ? 'keyDown' : 'keyUp', key: name });
+        lastT = t;
+      }
+      while (steps.length && steps[steps.length - 1].type === 'delay') steps.pop();
+      return steps;
+    }
 
     for (const ev of events) {
       if (steps.length >= maxSteps) break;
