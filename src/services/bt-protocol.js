@@ -301,12 +301,18 @@ export function parseBtKeyRecord(data, isV10) {
   cfg.mode = data[3];
   if (isV10) {
     cfg.behavior = data[4];
-    const groupCount = data[5] || 0;
     cfg.groups = [];
-    for (let j = 0; j < groupCount && j < 18; j++) {
+    // 原厂 Qt 源码 (Traversal_Key_Txt) 是**遍历 18 个组槽位**、不看"组数量"字节的。
+    // 之前我们信 data[5] 的组数量，某些固件把它填成 1，导致「Ctrl+A」只读出 Ctrl、
+    // 键码读成 0（客户看到的"左Ctrl+无"就是这个）。改成固定扫 18 个槽位。
+    for (let j = 0; j < 18; j += 1) {
+      const base = 8 + j * 3;
+      if (base >= data.length) break;
+      const value = data[base] || 0;
+      if (!value) continue;
       cfg.groups.push({
-        delay: (data[6 + j * 3] << 8) | data[7 + j * 3],
-        value: data[8 + j * 3],
+        delay: ((data[base - 2] || 0) << 8) | (data[base - 1] || 0),
+        value,
       });
     }
   } else {
@@ -329,9 +335,14 @@ export function parseBtKeyRecord(data, isV10) {
         behavior: 0x01,
       };
     } else {
-      const count = data[9] || 0;
-      for (let j = 0; j < count && j < 18; j++) {
-        cfg.groups.push({ mask: data[10 + j * 2], value: data[11 + j * 2] });
+      // 同样按原厂逻辑扫 18 个槽位（每槽 2 字节：修饰位掩码 + 键码），不依赖数量字节
+      for (let j = 0; j < 18; j += 1) {
+        const base = 10 + j * 2;
+        if (base >= data.length) break;
+        const mask = data[base] || 0;
+        const value = data[base + 1] || 0;
+        if (!mask && !value) continue;
+        cfg.groups.push({ mask, value });
       }
     }
   }
@@ -345,10 +356,12 @@ export function parseBtKeyRecord(data, isV10) {
         else if (g.value) keyCode = g.value;
       }
     } else {
+      // 旧协议: 同一个组里 [mask]=修饰位掩码、[value]=键码，两者互不排斥。
+      // 原厂 Qt 解码也是分别按位取 mask、按值取键码 —— 之前这里写成
+      // "value && !mask 才算键码"，导致「Ctrl+A」只读出 Ctrl、键码被丢掉。
       for (const g of cfg.groups) {
         mask |= g.mask || 0;
-        if (g.value && !g.mask) keyCode = g.value;
-        if (!mask && g.value) keyCode = g.value;
+        if (g.value) keyCode = g.value;
       }
     }
     cfg.modifierMask = mask;
