@@ -292,7 +292,12 @@ export default function BtConfigurator() {
       cached[currentLayer] = keyConfigs;
       layerConfigsRef.current = cached;
       // 逐层写所有键
+      // 15ms 对某些蓝牙固件太急，后面几层会出现"发了但没生效"——客户反馈的
+      // "第二层没保存上"很可能就是这个。改成 40ms，并且旧协议每写完一层就确认一次。
       for (let l = 0; l < btLayerCount; l++) {
+        if (btLayerCount > 1) {
+          toast.loading(t('正在保存配置到键盘… 第 {n}/{total} 层', { n: l + 1, total: btLayerCount }), { id: 'bt-save' });
+        }
         const cfgs = cached[l] || [];
         for (let i = 0; i < totalSlots; i++) {
           const cfg = cfgs[i];
@@ -301,11 +306,15 @@ export default function BtConfigurator() {
           } else {
             await handler.clearKey(l, i);
           }
-          await new Promise(r => setTimeout(r, 15));
+          await new Promise(r => setTimeout(r, 40));
         }
+        // 旧协议（版本 < 10）每层单独 Flash 确认；V10 最后统一确认
+        if (!handler.isV10) await handler._writeFlash();
       }
-      // 写Flash确认 (V10一次; 旧协议每层 — 处理器saveAll已封装, 这里直接调用flash)
+      // 写Flash确认 (V10一次)
       await handler._writeFlash();
+      // 给设备一点时间落盘，再回读校验
+      await new Promise(r => setTimeout(r, 300));
       // 写灯光 (同步当前层灯光到缓存)
       const ledAll = [...ledCacheRef.current];
       ledAll[currentLayer] = { mode: ledMode, colors: ledColors };
