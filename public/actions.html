@@ -341,9 +341,11 @@
     document.getElementById('recCancel').addEventListener('click', close);
     document.getElementById('recStart').addEventListener('click', function () {
       // 先读选项，再倒计时（就在这个窗口里显示，用户能看到）
+      var modeEl = document.querySelector('input[name="recmode"]:checked');
       var opts = {
         mouse: document.getElementById('recMouse').checked,
         keyboard: document.getElementById('recKeys').checked,
+        mode: (modeEl && !modeEl.disabled) ? modeEl.value : 'tap',
       };
       if (!opts.mouse && !opts.keyboard) {
         setStatus('至少要勾选一项（鼠标点击或键盘按键）', true);
