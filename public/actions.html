@@ -66,6 +66,16 @@
   .chipx{border:none;background:none;color:#94a3b8;cursor:pointer;font-size:15px;line-height:1;padding:0 3px}
   .chipx:hover{color:#ef4444}
   .arrow{color:#94a3b8;font-size:12px}
+  /* 虚拟键盘选择器 */
+  .kbd-mask{position:fixed;inset:0;background:rgba(15,23,42,.55);display:flex;align-items:center;justify-content:center;z-index:120}
+  .kbd-box{background:#fff;border-radius:16px;padding:18px 20px;width:min(640px,92vw);max-height:86vh;overflow:auto;box-shadow:0 24px 60px rgba(0,0,0,.35)}
+  .kbd-title{font-size:16px;font-weight:800;margin-bottom:12px;color:#1e293b}
+  .kbd-sec{margin-bottom:12px}
+  .kbd-sec h4{font-size:11px;font-weight:700;color:#94a3b8;margin-bottom:6px;letter-spacing:.5px}
+  .kbd-row{display:flex;flex-wrap:wrap;gap:5px}
+  .kbbtn{min-width:38px;padding:7px 9px;font-size:12px;font-weight:600;border:1px solid #e2e8f0;background:#f8fafc;color:#334155;border-radius:8px;cursor:pointer;transition:all .12s}
+  .kbbtn:hover{background:#eef2ff;border-color:#a5b4fc;color:#4338ca}
+  .kbd-foot{display:flex;justify-content:flex-end;margin-top:6px}
   .hintSmall{font-size:11px;color:#94a3b8;margin-left:4px}
   .banner{margin-bottom:12px;padding:10px 14px;border-radius:10px;font-size:13px;line-height:1.7}
   .banner.warn2{background:#fef2f2;border:1px solid #fecaca;color:#991b1b}
@@ -228,6 +238,48 @@
       done(mods.concat([k]));
     }
     document.addEventListener('keydown', onKey, true);
+  }
+
+  // 鼠标点选的虚拟键盘：录入按钮按不动/不方便时用这个
+  var KBOARD = {
+    mods: [['ctrl', 'Ctrl'], ['shift', 'Shift'], ['alt', 'Alt'], ['win', 'Win']],
+    fkeys: Array.from({ length: 24 }, function (_, i) { return ['f' + (i + 1), 'F' + (i + 1)]; }),
+    letters: 'abcdefghijklmnopqrstuvwxyz'.split('').map(function (ch) { return [ch, ch.toUpperCase()]; }),
+    digits: '0123456789'.split('').map(function (ch) { return [ch, ch]; }),
+    nav: [['enter', 'Enter'], ['tab', 'Tab'], ['space', 'Space'], ['esc', 'Esc'], ['backspace', 'Backspace'],
+      ['delete', 'Delete'], ['insert', 'Insert'], ['up', '↑'], ['down', '↓'], ['left', '←'], ['right', '→'],
+      ['home', 'Home'], ['end', 'End'], ['pgup', 'PgUp'], ['pgdn', 'PgDn']],
+  };
+
+  function pickKeyFromBoard(done) {
+    var mask = el('div', 'kbd-mask');
+    var box = el('div', 'kbd-box');
+    box.appendChild(el('div', 'kbd-title', '选择要发送的按键'));
+    function section(title, items) {
+      var sec = el('div', 'kbd-sec');
+      sec.appendChild(el('h4', null, title));
+      var row = el('div', 'kbd-row');
+      items.forEach(function (it) {
+        var b = el('button', 'kbbtn', it[1]);
+        b.addEventListener('click', function () { close(); done(it[0]); });
+        row.appendChild(b);
+      });
+      sec.appendChild(row);
+      box.appendChild(sec);
+    }
+    section('修饰键', KBOARD.mods);
+    section('功能键', KBOARD.fkeys);
+    section('字母', KBOARD.letters);
+    section('数字', KBOARD.digits);
+    section('常用', KBOARD.nav);
+    var foot = el('div', 'kbd-foot');
+    var cancel = el('button', 'btn', '取消');
+    cancel.addEventListener('click', close);
+    foot.appendChild(cancel);
+    box.appendChild(foot);
+    mask.appendChild(box);
+    document.body.appendChild(mask);
+    function close() { if (mask.parentNode) mask.parentNode.removeChild(mask); }
   }
 
   // 录制宏的引导流程：先说明规则 → 3 秒倒计时 → 最小化窗口开始录
@@ -410,6 +462,11 @@
     } else if (step.type === 'keyTap') {
       // 单个按键：按一下键盘就记下来（忽略修饰键；要组合键请用上面那个）
       var tapChip = el('span', 'combo', step.key ? keyDisplay(step.key) : '未录入');
+      tapChip.title = '点这里用鼠标从虚拟键盘里选';
+      tapChip.style.cursor = 'pointer';
+      tapChip.addEventListener('click', function () {
+        pickKeyFromBoard(function (key) { step.key = key; onChange(); render(); });
+      });
       var tapBtn = el('button', 'btn', step.key ? '重新录入按键' : '⌨ 录入按键');
       tapBtn.title = '按一下要发送的键，比如 Enter / F5 / 方向键';
       tapBtn.addEventListener('click', function () {
@@ -429,6 +486,11 @@
       // 按住 / 松开：用来构造"按住 Ctrl → 按 C → 松开"的真实序列
       const isDown = step.type === 'keyDown';
       const chip2 = el('span', 'combo', step.key ? keyDisplay(step.key) : '未录入');
+      chip2.title = '点这里用鼠标从虚拟键盘里选';
+      chip2.style.cursor = 'pointer';
+      chip2.addEventListener('click', function () {
+        pickKeyFromBoard(function (key) { step.key = key; onChange(); render(); });
+      });
       const btn2 = el('button', 'btn', step.key ? '重新录入按键' : '⌨ 录入按键');
       btn2.title = isDown ? '按一下要"按住"的键（Ctrl / Alt / Shift / Win 都可以）' : '按一下要"松开"的键';
       btn2.addEventListener('click', function () {
