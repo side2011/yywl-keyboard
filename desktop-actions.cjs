@@ -17,7 +17,7 @@
 //   { type: 'delay',      ms }              等待
 //   { type: 'runApp',     path, args? }     启动程序
 // ============================================================
-const { execFile } = require('child_process');
+const { execFile, spawn } = require('child_process');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
@@ -292,41 +292,65 @@ Write-Output ("{0},{1}" -f $p.X, $p.Y)`;
       '    $since = ($st -band 0x0001) -ne 0',
       '    if ($isDown -ne $prev[$vk]) {',
       '      $prev[$vk] = $isDown',
-      '      [void]$lines.Add(("{0}`t{1}`t{2}`t{3}`t{4}" -f $sw.ElapsedMilliseconds, $vk, [int]$isDown, $pt.X, $pt.Y))',
+      '      [Console]::Out.WriteLine(("{0}`t{1}`t{2}`t{3}`t{4}" -f $sw.ElapsedMilliseconds, $vk, [int]$isDown, $pt.X, $pt.Y))',
       `      if ($vk -eq ${VK_STOP} -and $isDown) { $stop = $true }`,
       '    } elseif ($since -and (-not $isDown) -and (-not $prev[$vk])) {',
       '      # 整个按下-抬起都发生在两次轮询之间：补一对 down/up',
-      '      [void]$lines.Add(("{0}`t{1}`t{2}`t{3}`t{4}" -f $sw.ElapsedMilliseconds, $vk, 1, $pt.X, $pt.Y))',
-      '      [void]$lines.Add(("{0}`t{1}`t{2}`t{3}`t{4}" -f $sw.ElapsedMilliseconds, $vk, 0, $pt.X, $pt.Y))',
+      '      [Console]::Out.WriteLine(("{0}`t{1}`t{2}`t{3}`t{4}" -f $sw.ElapsedMilliseconds, $vk, 1, $pt.X, $pt.Y))',
+      '      [Console]::Out.WriteLine(("{0}`t{1}`t{2}`t{3}`t{4}" -f $sw.ElapsedMilliseconds, $vk, 0, $pt.X, $pt.Y))',
       '    }',
       '  }',
       '  Start-Sleep -Milliseconds 15',
       '}',
-      '$lines -join "`n"',
     ].join('\n');
   }
 
-  // 录制：返回原始事件 [{t, vk, down, x, y}]
-  async function record(durationMs = 15000) {
+  // 录制：边录边把事件抛给 onEvent（HUD 实时显示），结束时返回完整事件数组
+  async function record(durationMs = 15000, opts = {}) {
     if (platform !== 'win32') throw new Error('宏录制目前只支持 Windows');
+    const onEvent = typeof opts.onEvent === 'function' ? opts.onEvent : null;
     const file = path.join(os.tmpdir(), `yywl-record-${process.pid}.ps1`);
     const script = recordScript(durationMs);
     // 带 BOM 写入：PowerShell 5.1 读无 BOM 的 UTF-8 会按 ANSI 解析，注释里的中文会拆坏后续行
     fs.writeFileSync(file, '\uFEFF' + script, 'utf8');
-    try { fs.writeFileSync(path.join(os.tmpdir(), 'yywl-record-last.ps1'), script, 'utf8'); } catch { /* 调试用副本，失败无所谓 */ }
+    const events = [];
+    const handleLine = (line) => {
+      const parts = String(line).trim().split('\t');
+      if (parts.length < 5) return;
+      const [t, vk, down, x, y] = parts;
+      const ev = { t: Number(t), vk: Number(vk), down: Number(down) === 1, x: Number(x), y: Number(y) };
+      if (!Number.isFinite(ev.vk)) return;
+      events.push(ev);
+      if (onEvent) { try { onEvent(ev); } catch { /* 忽略 */ } }
+    };
     try {
-      const { stdout } = await run('powershell', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', file], durationMs + 20000);
-      return String(stdout || '').split(/\r?\n/).filter(Boolean).map((line) => {
-        const [t, vk, down, x, y] = line.split('\t');
-        return { t: Number(t), vk: Number(vk), down: Number(down) === 1, x: Number(x), y: Number(y) };
-      }).filter((e) => Number.isFinite(e.vk));
+      await new Promise((resolve, reject) => {
+        const child = spawn('powershell', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', file], { windowsHide: true });
+        let buf = '';
+        child.stdout.on('data', (chunk) => {
+          buf += chunk.toString('utf8');
+          let idx;
+          while ((idx = buf.indexOf('\n')) >= 0) {
+            handleLine(buf.slice(0, idx));
+            buf = buf.slice(idx + 1);
+          }
+        });
+        child.on('error', reject);
+        child.on('exit', () => {
+          if (buf.trim()) handleLine(buf);
+          resolve();
+        });
+        // 兜底：脚本卡住也不能让 UI 一直等
+        setTimeout(() => { try { child.kill(); } catch { /* 忽略 */ } }, durationMs + 8000);
+      });
+      return events;
     } finally {
       try { fs.unlinkSync(file); } catch { /* 忽略 */ }
     }
   }
 
   // 把原始事件压成步骤序列
-  function eventsToSteps(events, { maxSteps = 80 } = {}) {
+  function eventsToSteps(events, { maxSteps = 80, includeMouse = true, includeKeyboard = true } = {}) {
     const steps = [];
     const held = Object.create(null);
     let lastT = 0;
@@ -365,13 +389,14 @@ Write-Output ("{0},{1}" -f $p.X, $p.Y)`;
       if (steps.length >= maxSteps) break;
       const { t, vk, down, x, y } = ev;
       if (VK_MOUSE[vk]) {
-        if (!down || steps.length >= maxSteps) continue;
+        if (!includeMouse || !down || steps.length >= maxSteps) continue;
         pushDelay(t - lastT);
         steps.push({ type: 'mouseClick', x, y, button: VK_MOUSE[vk] });
         lastT = t;
         continue;
       }
       if (VK_MODS[vk]) continue; // 修饰键只参与组合，不单独成步
+      if (!includeKeyboard) continue;
       const key = vkToKey(vk);
       if (!key) continue;
       if (!down) { delete held[key]; continue; }
@@ -455,7 +480,14 @@ Write-Output ("{0},{1}" -f $p.X, $p.Y)`;
     return { ok: true, ms: Date.now() - started, commands: dryRun ? commands : undefined };
   }
 
-  return { runAction, executeStep, commands, sendKeys, mouseClick, pasteText, pasteImage, getMousePosition, record, eventsToSteps };
+  // 给 HUD 用的按键名（把 VK 转成 F13 / A / Enter 这种）
+  function vkLabel(vk) {
+    if (VK_MOUSE[vk]) return { left: '左键', right: '右键', middle: '中键' }[VK_MOUSE[vk]];
+    if (VK_MODS[vk]) return { shift: 'Shift', ctrl: 'Ctrl', alt: 'Alt', win: 'Win' }[VK_MODS[vk]];
+    return vkToKey(vk) || '';
+  }
+
+  return { runAction, executeStep, commands, sendKeys, mouseClick, pasteText, pasteImage, getMousePosition, record, eventsToSteps, vkLabel };
 }
 
 module.exports = {
