@@ -720,7 +720,7 @@ function KeyboardConnector() {
           {lang === 'zh'
             ? <p className="text-sm text-gray-500">技术支持 QQ：<span className="font-mono text-gray-800 font-bold text-base">1291285148</span></p>
             : <p className="text-sm text-gray-500">Tech Support: <a href="mailto:1291285148@qq.com" className="font-mono text-gray-800 font-bold text-base underline hover:text-indigo-600">1291285148@qq.com</a></p>}
-          <p className="text-xs text-gray-400">{t('支持 Chrome 89+ / Edge 89+ · 颖昱物联')}</p>
+          <p className="text-xs text-gray-400">{t('支持 Chrome 89+ / Edge 89+')}</p>
         </div>
         {/* Language toggle */}
         <div className="text-center mt-3">
