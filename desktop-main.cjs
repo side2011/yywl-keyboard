@@ -886,7 +886,14 @@ function setupActionsIpc() {
     platform: process.platform,
     appVersion: app.getVersion(),
     // 能力声明：网页据此判断当前安装包支持哪些新功能，避免选了却没效果
-    caps: { holdMode: true, chords: true, record: true, autostart: true },
+    caps: {
+      holdMode: true,
+      chords: true,
+      record: true,
+      autostart: true,
+      // 网页据此判断哪些步骤类型当前安装包能执行，避免配好了却跑不动
+      stepTypes: ['openPath', 'openUrl', 'runApp', 'pasteText', 'pasteImage', 'keyPress', 'keyTap', 'keyDown', 'keyUp', 'mouseClick', 'delay'],
+    },
     registered: registeredShortcuts.slice(),
     enabled: actionsConfig.enabled,
     slots: ACTION_SLOTS,
