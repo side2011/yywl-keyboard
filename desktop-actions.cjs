@@ -435,6 +435,11 @@ Write-Output ("{0},{1}" -f $p.X, $p.Y)`;
       }
       case 'pasteText': return pasteText(step.text);
       case 'pasteImage': return pasteImage(step.image);
+      case 'keyTap': {
+        // 单个按键（不带修饰键），比如 Enter / F5 / 方向键
+        if (!step.key) throw new Error('keyTap 缺少 key');
+        return sendKeys([step.key]);
+      }
       case 'keyPress': {
         // 支持单个组合（keys）和多个组合连发（chords: [['alt','x'], ['enter']]）
         if (Array.isArray(step.chords) && step.chords.length) {
