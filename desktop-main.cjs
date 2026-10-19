@@ -335,6 +335,16 @@ function loadConfig() {
   }
 }
 
+function saveConfig(patch) {
+  appConfig = { ...appConfig, ...patch };
+  try {
+    const file = path.join(app.getPath('userData'), 'config.json');
+    fs.writeFileSync(file, JSON.stringify(appConfig, null, 2));
+  } catch (e) {
+    console.warn('[config] 保存失败:', e.message);
+  }
+}
+
 // ---------- 内置静态服务器 ----------
 
 function createLocalServer() {
@@ -501,7 +511,12 @@ function startApp() {
 
     // 启动后延迟检查更新 (不阻塞界面; 离线时静默跳过)
     if (appConfig.autoUpdate !== false) {
-      setTimeout(() => { checkAllUpdates({ manual: false }); }, 6000);
+      setTimeout(() => {
+        const online = !(net && typeof net.isOnline === 'function') || net.isOnline();
+        console.log('[update] 启动自动检查更新，网络状态:', online ? 'online' : 'offline');
+        if (online) checkAllUpdates({ manual: false });
+        else console.log('[update] 当前无网络，跳过自动检查，正常使用本地功能');
+      }, 6000);
     }
   }).catch((e) => {
     console.error('本地服务启动失败:', e);
@@ -552,12 +567,29 @@ async function checkAllUpdates({ manual = false } = {}) {
       await checkPackageUpdate({ manual: true });
       return;
     }
-    // 自动检查时不打扰：托盘气泡提示一下，网页内容继续检查
-    try {
-      if (tray && process.platform === 'win32') {
-        tray.displayBalloon({ title: `发现新版本 ${latestPkg}`, content: '右键托盘 → 检查更新 即可升级' });
+    // 自动检查：同一版本只提示一次，避免每次启动都烦人
+    const promptKey = 'pkgPrompted:' + latestPkg;
+    if (!appConfig[promptKey]) {
+      saveConfig({ [promptKey]: true });
+      const { response } = await dialog.showMessageBox(mainWindow, {
+        type: 'info',
+        message: `发现新版本 ${latestPkg}`,
+        detail: `当前版本：${current}\n新版本：${latestPkg}\n\n新版本包含程序本身的改进（宏、托盘、更新器等）。\n现在下载并安装吗？下载期间不要关闭程序。`,
+        buttons: ['下载并安装', '稍后'],
+        defaultId: 0,
+        cancelId: 1,
+      });
+      if (response === 0) {
+        await checkPackageUpdate({ manual: true });
+        return;
       }
-    } catch { /* 忽略 */ }
+    } else {
+      try {
+        if (tray && process.platform === 'win32') {
+          tray.displayBalloon({ title: `发现新版本 ${latestPkg}`, content: '右键托盘 → 检查更新 即可升级' });
+        }
+      } catch { /* 忽略 */ }
+    }
   }
 
   // 2) 网页内容（程序已是最新或用户选了稍后）
@@ -743,6 +775,13 @@ function buildMenu() {
       label: '帮助',
       submenu: [
         { label: '检查更新…', click: () => checkAllUpdates({ manual: true }) },
+        {
+          id: 'autoUpdate',
+          label: '启动时自动检查更新',
+          type: 'checkbox',
+          checked: appConfig.autoUpdate !== false,
+          click: (item) => saveConfig({ autoUpdate: item.checked }),
+        },
         { label: '版本信息', click: showAbout },
       ],
     },
