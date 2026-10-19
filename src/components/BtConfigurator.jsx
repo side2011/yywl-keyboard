@@ -364,20 +364,22 @@ export default function BtConfigurator() {
 
       // ---- 保存后校验：读回来比对，别让"悄悄丢配置"蒙混过关 ----
       // 客户反馈过 4+1 / 6 键款"保存了但配置丢了"，所以写完必须回读确认。
-      const sameCfg = (a, b) => {
-        const norm = (c) => {
-          if (!c) return 'none';
-          return JSON.stringify({
-            mode: c.mode || 0,
-            keyCode: c.keyCode || 0,
-            modifierMask: c.modifierMask || 0,
-            mediaCode: c.mediaCode || 0,
-            mouse: c.mouse || null,
-            delay: c.delay || 0,
-          });
-        };
-        return norm(a) === norm(b);
+      // 只比对"当前模式真正会写进设备的字段"。
+      // 之前把 keyCode/groups 也算进去，导致多媒体键（mode=2）明明写对了，
+      // 只因内存里残留的 keyCode 不为 0 就报"校验失败"（误报）。
+      const cfgKeyOf = (c) => {
+        if (!c) return '0';
+        const mode = c.mode || 0;
+        if (mode === 1) return `1|${c.modifierMask || 0}|${c.keyCode || 0}`;
+        if (mode === 2) return `2|${c.mediaCode || 0}`;
+        if (mode === 3) {
+          const m = c.mouse || {};
+          return `3|${m.mod || 0}|${m.btn || 0}|${m.wheel || 0}|${m.behavior || 0}`;
+        }
+        if (mode === 5) return `5|${c.delay || 0}`;
+        return String(mode || 0);
       };
+      const sameCfg = (a, b) => cfgKeyOf(a) === cfgKeyOf(b);
       const badSlots = [];
       for (let l = 0; l < btLayerCount; l += 1) {
         let back = [];
