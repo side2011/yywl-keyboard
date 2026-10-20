@@ -97,6 +97,51 @@ function closeUpdWindow() {
   try { if (mainWindow && !mainWindow.isDestroyed()) mainWindow.setEnabled(true); } catch { /* 忽略 */ }
 }
 
+// 目录是否可写（用于判断能否原地覆盖更新）
+function isDirWritable(dir) {
+  try {
+    const probe = path.join(dir, '.yywl-write-' + Date.now());
+    fs.writeFileSync(probe, 'x');
+    fs.unlinkSync(probe);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// 用隐藏的 PowerShell 脚本：等旧进程退出 → robocopy 覆盖 → 启动新版 → 清理
+function scheduleInPlaceUpdate(newRoot, targetDir, exeName, versionText) {
+  const psPath = path.join(app.getPath('temp'), `yywl-apply-${Date.now()}.ps1`);
+  const logPath = path.join(app.getPath('temp'), 'yywl-update-apply.log');
+  const pid = process.pid;
+  const q = (s) => String(s).replace(/'/g, "''");
+  const ps = [
+    "$ErrorActionPreference = 'Stop'",
+    `$log = '${q(logPath)}'`,
+    "function L($m){ try { \"$([DateTime]::Now.ToString('HH:mm:ss')) $m\" | Out-File -FilePath $log -Append -Encoding utf8 } catch {} }",
+    `L '等待旧进程(PID ${pid})退出...'`,
+    "for ($i=0; $i -lt 300; $i++) { if (-not (Get-Process -Id " + pid + " -ErrorAction SilentlyContinue)) { break }; Start-Sleep -Milliseconds 300 }",
+    "Start-Sleep -Milliseconds 400",
+    `L '开始覆盖: ${q(newRoot)} -> ${q(targetDir)}'`,
+    `$rc = (Start-Process -FilePath 'robocopy.exe' -ArgumentList '${q(newRoot)}','${q(targetDir)}','/E','/R:2','/W:1','/NFL','/NDL','/NJH','/NJS' -Wait -PassThru).ExitCode`,
+    'L "robocopy 退出码: $rc"',
+    "Start-Sleep -Milliseconds 400",
+    `$exe = '${q(path.join(targetDir, exeName))}'`,
+    "if (Test-Path -LiteralPath $exe) { L '启动新版本...'; Start-Process -FilePath $exe } else { L '找不到新版本 exe' }",
+    `Remove-Item -LiteralPath '${q(newRoot)}' -Recurse -Force -ErrorAction SilentlyContinue`,
+    `Remove-Item -LiteralPath '${q(psPath)}' -Force -ErrorAction SilentlyContinue`,
+  ].join('\n');
+
+  fs.writeFileSync(psPath, '\ufeff' + ps, 'utf8');
+  const child = spawn('powershell', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-WindowStyle', 'Hidden', '-File', psPath], {
+    detached: true,
+    stdio: 'ignore',
+    windowsHide: true,
+  });
+  child.unref();
+  console.log('[update] 已安排原地更新脚本:', psPath, '目标目录:', targetDir, '版本:', versionText);
+}
+
 // ---------- 程序自身更新（安装包级别）----------
 // 网页内容能热更新，但主进程/Electron 本身换不了 —— 那些新功能（宏录制、托盘、
 // 窗口关闭保护）都在安装包里。这里做"下载 → 解压 → 启动新版"，
@@ -302,20 +347,40 @@ async function checkPackageUpdate({ manual = false } = {}) {
     return;
   }
 
-  // 成功：直接启动新版本并退出当前进程
-  updSet({ title: '正在启动新版本', text: '即将自动切换到新版本，配置和动作都会保留…', percent: 100, size: '', done: true });
+  // 关键：不是"在临时目录跑一下"，而是把新文件**覆盖到当前安装目录**再重启。
+  // 之前只 spawn 临时目录里的 exe，装好的程序还是旧版 → 客户关掉再开又变回旧版本。
+  const targetDir = path.dirname(process.execPath);
+  const exeName = path.basename(process.execPath);
+  const newRoot = path.dirname(launcher);
+
+  if (isDirWritable(targetDir)) {
+    updSet({ title: '正在安装新版本', text: '正在替换程序文件，完成后会自动重新打开…', percent: 100, size: '', done: true });
+    try {
+      scheduleInPlaceUpdate(newRoot, targetDir, exeName, latest);
+    } catch (e) {
+      closeUpdWindow();
+      pkgInstallBusy = false;
+      dialog.showMessageBox(mainWindow, {
+        type: 'error', message: '无法自动安装',
+        detail: `${e.message}\n\n新版本已解压在：\n${newRoot}\n请手动把里面的文件覆盖到：\n${targetDir}`,
+        buttons: ['知道了'],
+      });
+      return;
+    }
+    setTimeout(() => {
+      try { closeUpdWindow(); } catch { /* 忽略 */ }
+      app.isQuitting = true;
+      app.quit();
+    }, 800);
+    return;
+  }
+
+  // 安装目录不可写（装在 Program Files 又没用管理员运行）→ 退回"从临时目录运行"
+  updSet({ title: '正在启动新版本', text: '安装目录无写入权限，本次先从临时目录启动…', percent: 100, size: '', done: true });
   try {
     const child = spawn(launcher, [], { detached: true, stdio: 'ignore' });
     child.unref();
   } catch (e) {
-    closeUpdWindow();
-    shell.showItemInFolder(launcher);
-    pkgInstallBusy = false;
-    dialog.showMessageBox(mainWindow, {
-      type: 'warning', message: '新版本已就绪，但自动启动失败',
-      detail: `${e.message}\n\n请手动运行：\n${launcher}`, buttons: ['知道了'],
-    });
-    return;
   }
   // 给新进程一点时间起来，再退出当前实例（单实例锁会让旧进程先退）
   setTimeout(() => {
@@ -508,6 +573,22 @@ function startApp() {
     });
 
     createWindow();
+
+    // 清理上次更新残留的临时目录（超过 12 小时的一律删掉）
+    try {
+      const tmpDir = app.getPath('temp');
+      for (const name of fs.readdirSync(tmpDir)) {
+        if (!name.startsWith('yywl-update-')) continue;
+        const full = path.join(tmpDir, name);
+        try {
+          const st = fs.statSync(full);
+          if (st.isDirectory() && Date.now() - st.mtimeMs > 12 * 3600 * 1000) {
+            fs.rmSync(full, { recursive: true, force: true });
+            console.log('[update] 已清理旧更新目录:', full);
+          }
+        } catch { /* 忽略单个失败 */ }
+      }
+    } catch { /* 忽略 */ }
 
     // 启动后延迟检查更新 (不阻塞界面; 离线时静默跳过)
     if (appConfig.autoUpdate !== false) {
