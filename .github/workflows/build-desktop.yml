@@ -114,14 +114,42 @@ jobs:
               echo "=== ad-hoc 签名: $app ==="
               codesign --force --deep --sign - "$app"
               codesign --verify --deep --strict --verbose=2 "$app" && echo "签名校验通过"
+
               arch=$(basename "$dir")
               name=$(basename "$app" .app)
+
+              # 打一个"一键解除限制"的脚本一起发出去：
+              # 用户下载后双击它, 自动去掉 quarantine 标记并打开程序,
+              # 省得他们自己敲 xattr 命令。
+              stage="dist-desktop/pkg-$arch"
+              rm -rf "$stage"; mkdir -p "$stage"
+              cp -R "$app" "$stage/"
+              cat > "$stage/首次打开请双击我.command" <<'EOS'
+#!/bin/bash
+# 双击本文件，会自动解除 macOS 的"无法验证开发者"限制并打开程序。
+cd "$(dirname "$0")"
+APP=$(ls -d *.app 2>/dev/null | head -1)
+if [ -z "$APP" ]; then
+  echo "没找到 .app，请确认解压完整（.app 要和本文件在同一个文件夹里）"
+  read -n 1 -s -r -p "按任意键关闭..."
+  exit 1
+fi
+echo "正在解除系统限制：$APP"
+xattr -dr com.apple.quarantine "$APP" 2>/dev/null
+chmod +x "$APP/Contents/MacOS/"* 2>/dev/null
+echo "完成，正在打开..."
+open "$APP"
+echo "如果仍然打不开，请到 系统设置 → 隐私与安全性，拉到最下面点「仍要打开」。"
+sleep 2
+EOS
+              chmod +x "$stage/首次打开请双击我.command"
+
               out="dist-desktop/${name}-${arch}.zip"
               echo "=== 打包: $out ==="
-              ditto -c -k --sequesterRsrc --keepParent "$app" "$out"
+              ditto -c -k --sequesterRsrc --keepParent "$stage" "$out"
             done
           done
-          ls -lh dist-desktop/
+          ls -lh dist-desktop/*.zip
 
       - name: 列出产物
         shell: bash
