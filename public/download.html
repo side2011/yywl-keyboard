@@ -90,7 +90,16 @@
     <table>
       <tr><th style="width:110px">平台</th><th>步骤</th></tr>
       <tr><td>Windows</td><td>解压 zip → 双击 <code>YYWL键盘配置工具.exe</code>（免安装，不用管理员权限）</td></tr>
-      <tr><td>macOS</td><td>解压 → 把 .app 拖到「应用程序」→ 首次打开若提示「无法验证开发者」，<strong>右键（或按住 Control 点击）→ 打开 → 再点「打开」</strong>；<br>若提示「已损坏，应移到废纸篓」或双击毫无反应，打开「终端」执行下面这一行即可：<br><code>xattr -dr com.apple.quarantine /Applications/YYWL*.app</code></td></tr>
+      <tr><td>macOS</td><td>
+        <b>① 先选对版本</b>：左上角苹果菜单 →「关于本机」，Apple M 芯片选「Apple 芯片」版，Intel 选「Intel 芯片」版<br>
+        <b>② 解压</b>，把 .app 拖到「应用程序」<br>
+        <b>③ 首次打开被拦截时，任选一种</b>：<br>
+        &nbsp;&nbsp;• <b>最简单</b>：解压后先双击压缩包里的 <code>首次打开请双击我.command</code>，它会自动解除限制并打开程序<br>
+        &nbsp;&nbsp;• 右键（或按住 Control 点击）.app → <b>打开</b> → 弹窗里再点「打开」<br>
+        &nbsp;&nbsp;• 打开「系统设置 → 隐私与安全性」，拉到底部，点「仍要打开」，输入开机密码<br>
+        &nbsp;&nbsp;• 终端执行：<code>xattr -dr com.apple.quarantine /Applications/YYWL*.app</code><br>
+        若提示「已损坏，应移到废纸篓」，也用上面最后那条命令即可。
+      </td></tr>
       <tr><td>Linux</td><td>给 AppImage 加可执行权限：<code>chmod +x *.AppImage</code>，然后双击或命令行运行</td></tr>
     </table>
     <div class="warn">
