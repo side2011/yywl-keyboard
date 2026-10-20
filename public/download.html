@@ -90,12 +90,14 @@
     <table>
       <tr><th style="width:110px">平台</th><th>步骤</th></tr>
       <tr><td>Windows</td><td>解压 zip → 双击 <code>YYWL键盘配置工具.exe</code>（免安装，不用管理员权限）</td></tr>
-      <tr><td>macOS</td><td>解压 → 把 .app 拖到「应用程序」→ 首次打开若被拦截，<strong>右键 → 打开 → 再点「打开」</strong></td></tr>
+      <tr><td>macOS</td><td>解压 → 把 .app 拖到「应用程序」→ 首次打开若提示「无法验证开发者」，<strong>右键（或按住 Control 点击）→ 打开 → 再点「打开」</strong>；<br>若提示「已损坏，应移到废纸篓」或双击毫无反应，打开「终端」执行下面这一行即可：<br><code>xattr -dr com.apple.quarantine /Applications/YYWL*.app</code></td></tr>
       <tr><td>Linux</td><td>给 AppImage 加可执行权限：<code>chmod +x *.AppImage</code>，然后双击或命令行运行</td></tr>
     </table>
     <div class="warn">
-      ⚠️ 程序<strong>未做代码签名</strong>：Windows 首次运行可能提示"未知发布者"（点「更多信息」→「仍要运行」）；
-      macOS 首次打开需右键→打开。这只是系统安全提示，不代表文件有问题。
+      ⚠️ 程序<strong>未购买 Apple / Windows 代码签名证书</strong>（一年约 ¥700 / $99），所以：
+      Windows 首次运行会提示"未知发布者"（点「更多信息」→「仍要运行」）；
+      macOS 首次打开需右键→打开，M 系列芯片若提示"已损坏"请用上面的 <code>xattr</code> 命令。
+      这些只是系统的安全提示，<strong>不代表文件有问题</strong>。
     </div>
     <div class="info">
       ✅ 桌面版与网页版界面、功能完全一致，配置数据各自独立。<br>
