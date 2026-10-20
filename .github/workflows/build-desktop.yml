@@ -119,29 +119,12 @@ jobs:
               name=$(basename "$app" .app)
 
               # 打一个"一键解除限制"的脚本一起发出去：
-              # 用户下载后双击它, 自动去掉 quarantine 标记并打开程序,
-              # 省得他们自己敲 xattr 命令。
+              # 用户下载后双击它, 自动去掉 quarantine 标记并打开程序。
+              # 脚本内容用 base64 写入, 避免 heredoc 破坏 YAML 缩进。
               stage="dist-desktop/pkg-$arch"
               rm -rf "$stage"; mkdir -p "$stage"
               cp -R "$app" "$stage/"
-              cat > "$stage/首次打开请双击我.command" <<'EOS'
-#!/bin/bash
-# 双击本文件，会自动解除 macOS 的"无法验证开发者"限制并打开程序。
-cd "$(dirname "$0")"
-APP=$(ls -d *.app 2>/dev/null | head -1)
-if [ -z "$APP" ]; then
-  echo "没找到 .app，请确认解压完整（.app 要和本文件在同一个文件夹里）"
-  read -n 1 -s -r -p "按任意键关闭..."
-  exit 1
-fi
-echo "正在解除系统限制：$APP"
-xattr -dr com.apple.quarantine "$APP" 2>/dev/null
-chmod +x "$APP/Contents/MacOS/"* 2>/dev/null
-echo "完成，正在打开..."
-open "$APP"
-echo "如果仍然打不开，请到 系统设置 → 隐私与安全性，拉到最下面点「仍要打开」。"
-sleep 2
-EOS
+              echo 'IyEvYmluL2Jhc2gKIyDlj4zlh7vmnKzmlofku7bvvIzkvJroh6rliqjop6PpmaQgbWFjT1Mg55qEIuaXoOazlemqjOivgeW8gOWPkeiAhSLpmZDliLblubbmiZPlvIDnqIvluo/jgIIKY2QgIiQoZGlybmFtZSAiJDAiKSIKQVBQPSQobHMgLWQgKi5hcHAgMj4vZGV2L251bGwgfCBoZWFkIC0xKQppZiBbIC16ICIkQVBQIiBdOyB0aGVuCiAgZWNobyAi5rKh5om+5YiwIC5hcHDvvIzor7fnoa7orqTop6PljovlrozmlbTvvIguYXBwIOmcgOimgeWSjOacrOaWh+S7tuWcqOWQjOS4gOS4quaWh+S7tuWkuemHjO+8iSIKICByZWFkIC1uIDEgLXMgLXIgLXAgIuaMieS7u+aEj+mUruWFs+mXrS4uLiIKICBleGl0IDEKZmkKZWNobyAi5q2j5Zyo6Kej6Zmk57O757uf6ZmQ5Yi277yaJEFQUCIKeGF0dHIgLWRyIGNvbS5hcHBsZS5xdWFyYW50aW5lICIkQVBQIiAyPi9kZXYvbnVsbApjaG1vZCAreCAiJEFQUC9Db250ZW50cy9NYWNPUy8iKiAyPi9kZXYvbnVsbAplY2hvICLlrozmiJDvvIzmraPlnKjmiZPlvIAuLi4iCm9wZW4gIiRBUFAiCmVjaG8gIuWmguaenOS7jeeEtuaJk+S4jeW8gO+8jOivt+WIsCDns7vnu5/orr7nva4g4oaSIOmakOengeS4juWuieWFqOaAp++8jOaLieWIsOacgOS4i+mdoueCueOAjOS7jeimgeaJk+W8gOOAjeOAgiIKc2xlZXAgMgo=' | openssl base64 -d -A > "$stage/首次打开请双击我.command"
               chmod +x "$stage/首次打开请双击我.command"
 
               out="dist-desktop/${name}-${arch}.zip"
