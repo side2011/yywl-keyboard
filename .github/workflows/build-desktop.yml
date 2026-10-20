@@ -89,11 +89,39 @@ jobs:
       - name: 构建网页产物
         run: npm run build
 
-      - name: 打包桌面版
+      - name: 打包桌面版（Windows / Linux）
+        if: runner.os != 'macOS'
         run: ${{ matrix.package_cmd }}
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # macOS 单独一步：先出 .app，再做 ad-hoc 签名，最后 ditto 打包。
+      # 原因：electron-builder 在 identity='-' 时只把它当成证书名，直接跳过签名；
+      # 而 Apple Silicon 的 arm64 可执行文件**必须至少有签名**，否则双击被系统 kill。
+      - name: 打包 macOS（ad-hoc 签名）
+        if: runner.os == 'macOS'
+        shell: bash
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -e
+          npx electron-builder --mac dir --x64 --arm64 --publish never
+          shopt -s nullglob
+          for dir in dist-desktop/mac*/; do
+            for app in "$dir"*.app; do
+              echo "=== ad-hoc 签名: $app ==="
+              codesign --force --deep --sign - "$app"
+              codesign --verify --deep --strict --verbose=2 "$app" && echo "签名校验通过"
+              arch=$(basename "$dir")
+              name=$(basename "$app" .app)
+              out="dist-desktop/${name}-${arch}.zip"
+              echo "=== 打包: $out ==="
+              ditto -c -k --sequesterRsrc --keepParent "$app" "$out"
+            done
+          done
+          ls -lh dist-desktop/
 
       - name: 列出产物
         shell: bash
