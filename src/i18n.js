@@ -72,7 +72,7 @@ const en = {
   '等待操作...': 'Waiting for action...',
   '查看使用说明': 'View User Guide',
   '技术支持 QQ：': 'Tech Support QQ: ',
-  '支持 Chrome 89+ / Edge 89+': 'Supports Chrome 89+ / Edge 89+',
+  '支持 Chrome / Edge 111 及以上，或使用桌面版': 'Requires Chrome / Edge 111+ (or use the desktop app)',
   '读取设备信息失败: {msg}': 'Failed to read device info: {msg}',
   '正在读取设备信息…': 'Reading device info...',
   '您当前使用的浏览器不支持连接键盘所需的': 'Your current browser does not support the',
