@@ -108,3 +108,64 @@ select:focus, input:focus {
   .yy-cable { transform: none !important; }
   .yy-ready { opacity: 1 !important; }
 }
+
+/* ============================================================
+   老浏览器兜底（Chrome/Edge < 111，Safari < 16.4 等）
+   daisyUI 5 用 oklch() / color-mix() 定义颜色和边框，
+   老引擎不认识这些函数 → 边框/背景全部消失，界面像"没有画线"。
+   这里用普通 HEX/颜色名补回来，保证老浏览器也能看清结构。
+   ============================================================ */
+@supports not (color: oklch(0% 0 0)) {
+  html, body {
+    background: #f1f5f9 !important;
+    color: #1e293b !important;
+  }
+  /* 所有有边框的地方恢复成浅灰实线（宽度为 0 的地方不会显现） */
+  * {
+    border-color: #e2e8f0;
+  }
+  /* 卡片/面板背景 */
+  .card, [class*="bg-white"], [class*="bg-base-100"] {
+    background-color: #ffffff !important;
+  }
+  [class*="bg-base-200"] { background-color: #f8fafc !important; }
+  /* 主色按钮 */
+  .btn-primary, [class*="bg-primary"] {
+    background-color: #4f46e5 !important;
+    color: #ffffff !important;
+    border-color: #4f46e5 !important;
+  }
+  /* 选中态（紫色高亮块） */
+  [class*="bg-indigo-500"], [class*="bg-indigo-600"] {
+    background-color: #6366f1 !important;
+    color: #ffffff !important;
+  }
+  /* 输入框 */
+  input, select, textarea {
+    background-color: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+    color: #1e293b !important;
+  }
+  /* 分隔线与顶部栏 */
+  header, [class*="border-b"], [class*="border-t"] {
+    border-color: #e2e8f0 !important;
+  }
+}
+
+/* 老浏览器提示条（JS 检测到不支持时显示） */
+.legacy-browser-tip {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  z-index: 9999;
+  padding: 10px 16px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #7c2d12;
+  background: #ffedd5;
+  border-bottom: 1px solid #fdba74;
+  text-align: center;
+}
+.legacy-browser-tip b { font-weight: 700; }
+.legacy-browser-tip a { color: #7c2d12; text-decoration: underline; }
