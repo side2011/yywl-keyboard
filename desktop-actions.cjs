@@ -55,17 +55,33 @@ function buildSendKeys(keys) {
   return mods.join('') + rest.join('');
 }
 
+// 步骤里的键名 → xdotool 的 keysym。
+// 注意：'enter' / 'rctrl' 这类名字不是合法 keysym，直接传给 xdotool 会报错，
+// 所以这里显式映射一遍（Linux 上按错键名是最常见的失败原因）。
+const XDOTOOL_KEY = {
+  ctrl: 'ctrl', control: 'ctrl', rctrl: 'Control_R',
+  shift: 'shift', rshift: 'Shift_R',
+  alt: 'alt', ralt: 'Alt_R',
+  win: 'super', rwin: 'Super_R', cmd: 'ctrl', command: 'ctrl', meta: 'super',
+  enter: 'Return', return: 'Return', esc: 'Escape', escape: 'Escape',
+  space: 'space', tab: 'Tab', backspace: 'BackSpace', delete: 'Delete', insert: 'Insert',
+  up: 'Up', down: 'Down', left: 'Left', right: 'Right',
+  home: 'Home', end: 'End', pgup: 'Prior', pgdn: 'Next',
+};
+
+function toXdotoolKey(key) {
+  const lk = String(key).toLowerCase();
+  if (XDOTOOL_KEY[lk]) return XDOTOOL_KEY[lk];
+  if (/^f\d{1,2}$/.test(lk)) return lk.toUpperCase();
+  return lk; // 单字母/数字/组合键名
+}
+
 function buildXdotoolKey(keys) {
   const map = { ctrl: 'ctrl', control: 'ctrl', alt: 'alt', shift: 'shift', win: 'super', cmd: 'ctrl', command: 'ctrl', meta: 'super',
     enter: 'Return', return: 'Return', esc: 'Escape', escape: 'Escape', space: 'space', tab: 'Tab',
     backspace: 'BackSpace', delete: 'Delete', up: 'Up', down: 'Down', left: 'Left', right: 'Right',
     home: 'Home', end: 'End', pgup: 'Prior', pgdn: 'Next' };
-  return keys.map((k) => {
-    const lk = String(k).toLowerCase();
-    if (map[lk]) return map[lk];
-    if (/^f\d{1,2}$/.test(lk)) return lk.toUpperCase();
-    return String(k);
-  }).join('+');
+  return keys.map((k) => toXdotoolKey(k)).join('+');
 }
 
 function buildAppleScriptKeys(keys) {
@@ -497,6 +513,16 @@ Write-Output ("{0},{1}" -f $p.X, $p.Y)`;
   }
 
   async function keyHold(key, down) {
+    const action = down ? 'keydown' : 'keyup';
+
+    if (platform === 'linux') {
+      // 用 keysym 映射；'enter'/'rctrl' 这类名字直接传会报错
+      const sym = toXdotoolKey(key);
+      if (dryRun) { commands.push({ file: 'xdotool', args: [action, sym] }); return; }
+      await run('xdotool', [action, sym]);
+      return;
+    }
+
     const vk = keyToVk(key);
     if (vk === null) throw new Error(`不认识的按键：${key}`);
     if (dryRun) { commands.push({ file: 'keybd_event', args: [vk, down ? 'down' : 'up'] }); return; }
@@ -504,10 +530,6 @@ Write-Output ("{0},{1}" -f $p.X, $p.Y)`;
     if (platform === 'win32') {
       const ps = `Add-Type -TypeDefinition @"\nusing System;\nusing System.Runtime.InteropServices;\npublic class YywlKey {\n  [DllImport("user32.dll")] public static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, IntPtr dwExtraInfo);\n}\n"@\n[YywlKey]::keybd_event(${vk}, 0, ${down ? 0 : 2}, [IntPtr]::Zero)`;
       await run('powershell', ['-NoProfile', '-NonInteractive', '-Command', ps]);
-      return;
-    }
-    if (platform === 'linux') {
-      await run('xdotool', [down ? 'keydown' : 'keyup', String(key).toLowerCase()]);
       return;
     }
     // macOS: 修饰键能用 cliclick 的 kd:/ku:，其它键没有等价能力
