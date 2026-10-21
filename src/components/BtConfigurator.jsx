@@ -14,6 +14,7 @@ import {
 import BtVirtualKeyboard from './BtVirtualKeyboard';
 import ConfigListPanel from './ConfigListPanel';
 import toast from 'react-hot-toast';
+import { defaultKnobSwap, mapKnobSlot } from '../services/knob-order';
 
 // 模式: 0=未设置 1=键盘 2=多媒体 3=鼠标 5=延时
 const MODE = { NONE: 0, KEY: 1, MEDIA: 2, MOUSE: 3, DELAY: 5 };
@@ -115,8 +116,8 @@ export default function BtConfigurator() {
   useEffect(() => {
     try {
       const raw = localStorage.getItem(knobSwapKey);
-      const arr = raw ? JSON.parse(raw) : [];
-      setKnobSwap(Array.isArray(arr) ? arr.map(Boolean) : []);
+      const arr = raw ? JSON.parse(raw) : null;
+      setKnobSwap(Array.isArray(arr) ? arr.map(Boolean) : defaultKnobSwap(keyCount, knobCount));
     } catch { setKnobSwap([]); }
   }, [knobSwapKey]);
   const toggleKnobSwap = (n, next) => {
@@ -128,14 +129,8 @@ export default function BtConfigurator() {
     toast.success(next ? t('已把旋钮 {n} 左右对调，请点「保存到键盘」后重新读取确认', { n: n + 1 }) : t('旋钮 {n} 已恢复默认顺序', { n: n + 1 }), { id: 'knob-swap' });
   };
   // UI 槽位 ↔ 设备槽位（对调时把该旋钮的三个位置倒过来：左↔右，中不变）
-  const mapSlot = (i) => {
-    if (knobCount === 0 || i < keyCount) return i;
-    const rel = i - keyCount;
-    const n = Math.floor(rel / 3);
-    const k = rel % 3;
-    if (!knobSwap[n]) return i;
-    return keyCount + n * 3 + (2 - k);
-  };
+  // UI 槽位 ↔ 设备槽位（对调时把该旋钮的三个位置倒过来：左↔右，中不变）
+  const mapSlot = (i) => mapKnobSlot(i, keyCount, knobCount, knobSwap);
 
   const [currentLayer, setCurrentLayer] = useState(0); // 0..2
   const [keyConfigs, setKeyConfigs] = useState(() => Array.from({ length: totalSlots }, createDefaultConfig));
@@ -619,7 +614,11 @@ export default function BtConfigurator() {
           {/* 只有"自动判定支持多层"的型号才显示层数覆盖；2/3/4/5 键、4+1 一律只有 1 层 */}
           {knobCount > 0 && (
             <div className="mt-2 space-y-1">
-              <div className="text-gray-500">{t('某个旋钮左转/右转装反了，勾选对应的那一个：')}</div>
+              <div className="text-gray-500">
+                {defaultKnobSwap(keyCount, knobCount).some(Boolean)
+                  ? t('这款默认已开启左右对调（如与实物相反，取消勾选即可）：')
+                  : t('某个旋钮左转/右转装反了，勾选对应的那一个：')}
+              </div>
               {Array.from({ length: knobCount }, (_, n) => (
                 <label key={n} className="flex items-center gap-2 cursor-pointer select-none">
                   <input type="checkbox" checked={!!knobSwap[n]} onChange={(e) => toggleKnobSwap(n, e.target.checked)} className="cursor-pointer" />
