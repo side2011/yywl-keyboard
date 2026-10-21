@@ -667,18 +667,6 @@ function KeyboardConnector() {
 
               {!connected && (embedContext !== 'electron' || forceTry) && (
                 <>
-                  <div className="yy-connect-steps">
-                    <div className="row">
-                      <span className="s"><b>①</b> 插 USB 线</span>
-                      <span className="arrow">›</span>
-                      <span className="s"><b>②</b> 点「连接键盘」</span>
-                    </div>
-                    <div className="row">
-                      <span className="s"><b>③</b> 选设备 → 点「连接」</span>
-                      <span className="arrow">›</span>
-                      <span className="s"><b>④</b> 开始配置</span>
-                    </div>
-                  </div>
                 <button onClick={handleConnectClick} disabled={connecting}
                   className={`w-full py-3.5 rounded-xl text-base font-semibold text-white transition-all cursor-pointer ${
                     connecting ? 'bg-indigo-300 cursor-wait' : 'bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 shadow-lg shadow-indigo-200/50 active:scale-[0.98]'
