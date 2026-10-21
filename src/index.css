@@ -169,3 +169,70 @@ select:focus, input:focus {
 }
 .legacy-browser-tip b { font-weight: 700; }
 .legacy-browser-tip a { color: #7c2d12; text-decoration: underline; }
+
+/* ============================================================
+   连接引导弹窗 + 4 段循环动画（纯 CSS，无图片）
+   ============================================================ */
+.yy-guide-mask{position:fixed;inset:0;background:rgba(15,23,42,.55);display:flex;align-items:center;justify-content:center;z-index:200;padding:16px}
+.yy-guide-box{background:#fff;border-radius:18px;padding:22px 24px 18px;width:min(560px,94vw);max-height:88vh;overflow:auto;box-shadow:0 24px 70px rgba(0,0,0,.35)}
+.yy-guide-title{font-size:17px;font-weight:800;color:#1e293b;margin-bottom:4px}
+.yy-guide-sub{font-size:12.5px;color:#64748b;margin-bottom:12px}
+.yy-guide-anim{background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:8px 6px;margin-bottom:14px}
+.yy-guide-anim svg{width:100%;height:auto;display:block}
+/* 4 段轮流显示，每段 2 秒，总循环 8 秒 */
+.yy-guide-anim .yy-phase{opacity:0;animation:yyPhaseFade 8s infinite}
+.yy-guide-anim .yy-p1{animation-delay:0s}
+.yy-guide-anim .yy-p2{animation-delay:2s}
+.yy-guide-anim .yy-p3{animation-delay:4s}
+.yy-guide-anim .yy-p4{animation-delay:6s}
+@keyframes yyPhaseFade{
+  0%{opacity:0}
+  3%{opacity:1}
+  22%{opacity:1}
+  25%{opacity:0}
+  100%{opacity:0}
+}
+/* 光标轻微移动，示意"点击" */
+.yy-guide-anim .yy-cursor{animation:yyCursorTap 8s infinite}
+.yy-guide-anim .yy-c2{animation-delay:2s}
+.yy-guide-anim .yy-c3{animation-delay:4s}
+@keyframes yyCursorTap{
+  0%,100%{transform:translate(0,0)}
+  6%{transform:translate(-14px,-92px)}
+  10%{transform:translate(-10px,-86px)}
+  14%{transform:translate(-14px,-92px)}
+}
+.yy-guide-steps{list-style:none;margin:0 0 10px;padding:0}
+.yy-guide-steps li{display:flex;align-items:flex-start;gap:9px;font-size:13px;color:#334155;padding:5px 0;line-height:1.5}
+.yy-guide-num{flex:0 0 auto;width:20px;height:20px;border-radius:50%;background:#4f46e5;color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;margin-top:1px}
+.yy-guide-steps b{color:#4f46e5}
+.yy-guide-note{font-size:12.5px;color:#b45309;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:7px 10px;margin-bottom:6px}
+.yy-guide-note-2{color:#475569;background:#f1f5f9;border-color:#e2e8f0}
+.yy-guide-actions{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:12px;flex-wrap:wrap}
+.yy-guide-hide{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#64748b;cursor:pointer;user-select:none}
+.yy-guide-btns{display:flex;gap:8px;margin-left:auto}
+.yy-guide-btn{padding:9px 18px;border-radius:10px;border:1px solid #e2e8f0;background:#fff;color:#475569;font-size:13px;font-weight:600;cursor:pointer}
+.yy-guide-btn:hover{border-color:#c7d2fe;color:#4338ca}
+.yy-guide-btn-primary{background:#4f46e5;border-color:#4f46e5;color:#fff}
+.yy-guide-btn-primary:hover{background:#4338ca;color:#fff}
+
+/* 连接卡片里的 4 步提示条 */
+.yy-connect-steps{display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap;margin:10px 0 2px;font-size:11.5px;color:#64748b}
+.yy-connect-steps .s{display:inline-flex;align-items:center;gap:4px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:999px;padding:3px 9px}
+.yy-connect-steps .s b{color:#4f46e5;font-weight:700}
+.yy-connect-steps .arrow{color:#cbd5e1}
+
+/* 4 步提示条：窄卡片里自动两行，箭头不单独占行 */
+.yy-connect-steps{row-gap:4px}
+@media (max-width:560px){
+  .yy-connect-steps{font-size:11px}
+  .yy-connect-steps .s{padding:2px 7px}
+}
+
+/* 两行布局（每行两步） */
+.yy-connect-steps{display:flex;flex-direction:column;align-items:center;gap:5px}
+.yy-connect-steps .row{display:flex;align-items:center;gap:6px}
+
+/* 动画区域收紧，避免弹窗过高 */
+.yy-guide-anim{padding:4px 8px}
+.yy-guide-anim svg{max-height:132px}
