@@ -131,6 +131,7 @@ const en = {
   '这个型号只有 1 层配置': 'This model has a single layer only',
   '旋钮左右对调（左转/右转装反时勾选）': 'Swap knob left/right (tick if rotation is reversed)',
   '某个旋钮左转/右转装反了，勾选对应的那一个：': 'If a knob rotates the wrong way, tick the matching one:',
+  '这款默认已开启左右对调（如与实物相反，取消勾选即可）：': 'Left/right swap is ON by default for this model (untick if it is reversed on yours):',
   '左右对调': 'swap left/right',
   '已把旋钮 {n} 左右对调，请点「保存到键盘」后重新读取确认': 'Knob {n} swapped - click "Save to keypad" then read again',
   '旋钮 {n} 已恢复默认顺序': 'Knob {n} restored to default order',
