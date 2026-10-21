@@ -1,17 +1,17 @@
 {
-  "version": "1.2.1",
+  "version": "1.4.7",
   "webBuildId": "",
-  "updated": "2026-10-18",
+  "updated": "2026-10-21",
   "packages": [
     {
       "id": "win-x64",
       "platform": "windows",
       "arch": "x64",
       "label": "Windows 10 / 11（64 位）",
-      "file": "yywlkey-config-1.2.1-win-x64.zip",
+      "file": "yywlkey-config-1.4.7-win-x64.zip",
       "available": true,
-      "size": 121621039,
-      "sha256": "0FAC2A0492F68BA64DFB122E6F8DC80756263651DDD8EF63F5C039877486CEC5",
+      "size": 121642363,
+      "sha256": "D9E961F3A9252216FBBCC1A85FF1FA1A1453C76CB6D12D8BD87BBB0C173721A5",
       "note": "免安装绿色版，解压即用"
     },
     {
@@ -19,32 +19,32 @@
       "platform": "macos",
       "arch": "x64",
       "label": "macOS · Intel 芯片",
-      "file": "yywlkey-config-1.2.1-mac-x64.zip",
+      "file": "yywlkey-config-1.4.7-mac-x64.zip",
       "available": true,
-      "size": 110060261,
-      "sha256": "A98F4A3943678965226989C9F69341BE81DE723701BE9820D2E331405AA2FCFE",
-      "note": "右键 → 打开"
+      "size": 115005577,
+      "sha256": "DBDBE27D827713FFF155B523FC782DB57077D51F8DB077B17DAF55D130EABB94",
+      "note": "首次打开：右键 → 打开；或双击包内「首次打开请双击我.command」"
     },
     {
       "id": "mac-arm64",
       "platform": "macos",
       "arch": "arm64",
       "label": "macOS · Apple 芯片（M 系列）",
-      "file": "yywlkey-config-1.2.1-mac-arm64.zip",
+      "file": "yywlkey-config-1.4.7-mac-arm64.zip",
       "available": true,
-      "size": 105433068,
-      "sha256": "8764BB4A2C404DBE6153FD3569B4DCAB0D13D7BA86A03BC1AC7630D581E6DFA6",
-      "note": "右键 → 打开"
+      "size": 108031447,
+      "sha256": "60FFE4DE5B67D2094AA23375EBC10EEEFAFD1301EFDDB7A06D20A9F98BA16AF3",
+      "note": "首次打开：右键 → 打开；或双击包内「首次打开请双击我.command」"
     },
     {
       "id": "linux-x64",
       "platform": "linux",
       "arch": "x64",
       "label": "Linux（AppImage）",
-      "file": "yywlkey-config-1.2.1-linux-x64.AppImage",
+      "file": "yywlkey-config-1.4.7-linux-x64.AppImage",
       "available": true,
-      "size": 118506962,
-      "sha256": "46B27816BBEF3F577C7AF1A302D9B88E6BDF40D9E9C06215750766383791ECCC",
+      "size": 118531853,
+      "sha256": "D72CA5220B0CE99D7FD8AB8CC737CE98CD9552D4A8A7C82190EE4693BDC88889",
       "note": "chmod +x 后运行"
     },
     {
@@ -52,10 +52,10 @@
       "platform": "linux",
       "arch": "x64",
       "label": "国产系统 · x86_64（麒麟 / UOS 便携版）",
-      "file": "yywlkey-config-1.2.1-linux-x64-domestic.tar.gz",
+      "file": "yywlkey-config-1.4.7-linux-x64-domestic.tar.gz",
       "available": true,
-      "size": 116934343,
-      "sha256": "CD1DC1D632EB3D3EC9D83EA8DF51B685359203D2575A36B110314C1C7200253C",
+      "size": 116947485,
+      "sha256": "4110AAE2909165E37D235F96F275CB7D5E270CB372114E14D03F5B5A8346D37E",
       "note": "解压即用，无需安装"
     },
     {
@@ -63,10 +63,10 @@
       "platform": "linux",
       "arch": "arm64",
       "label": "国产系统 · ARM64（飞腾 / 鲲鹏）",
-      "file": "yywlkey-config-1.2.1-linux-arm64-domestic.tar.gz",
+      "file": "yywlkey-config-1.4.7-linux-arm64-domestic.tar.gz",
       "available": true,
-      "size": 121866636,
-      "sha256": "5C208E21B69DF5430299EA349365FED060193EBE1CB859D8D8BFEF895FE07269",
+      "size": 121887262,
+      "sha256": "8DDE6FF9AEC5AE6B9931C51ABFDA8B95D822F724D595E5EB563EB9B0995650A8",
       "note": "解压即用，无需安装"
     }
   ]
