@@ -51,7 +51,10 @@ const zhExpect = [
 ];
 for (const [name, kw] of zhExpect) check(name + '：' + kw, zh.includes(kw));
 check('4 段动画节点齐全', ['yy-p1', 'yy-p2', 'yy-p3', 'yy-p4'].every((c) => zh.includes(c)));
-check('三段步骤序号', ['①', '②', '③'].every((c) => zh.includes(c)));
+check('三段步骤序号（圆圈 1/2/3，不再重复 ①②③）',
+  ['yy-guide-num">1<', 'yy-guide-num">2<', 'yy-guide-num">3<'].every((c) => zh.includes(c))
+  && !zh.includes('①'));
+check('设备名说明是通用描述（不写死 USB Keyboard 一种）', zh.includes('你的键盘') && zh.includes('USB Keyboard / YYWL'));
 check('遮罩层 class', zh.includes('yy-guide-mask'));
 check('无障碍 aria-modal', zh.includes('aria-modal="true"'));
 check('对话框角色', zh.includes('role="dialog"'));
