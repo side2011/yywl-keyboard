@@ -109,10 +109,11 @@ export default function BtConfigurator() {
   const [knobSwap, setKnobSwap] = useState(() => {
     try {
       const raw = localStorage.getItem(knobSwapKey);
-      if (!raw) return [];
+      // 没有本地记录时用型号默认值（6+2 默认左右对调）
+      if (!raw) return defaultKnobSwap(keyCount, knobCount);
       const arr = JSON.parse(raw);
-      return Array.isArray(arr) ? arr.map(Boolean) : [];
-    } catch { return []; }
+      return Array.isArray(arr) ? arr.map(Boolean) : defaultKnobSwap(keyCount, knobCount);
+    } catch { return defaultKnobSwap(keyCount, knobCount); }
   });
   useEffect(() => {
     try {
@@ -272,6 +273,10 @@ export default function BtConfigurator() {
       for (let l = 0; l < btLayerCount; l++) {
         const configs = await handler.readLayer(l, totalSlots);
         // 补齐到 totalSlots 长度，并按 mapSlot 把设备槽位映射回界面槽位（旋钮左右对调时有用）
+        // 诊断：客户反馈"左右还是反"时，这一行能直接看出对调是否生效
+        console.log('[BtKnob] 层' + (l + 1) + ' keyCount=' + keyCount + ' knobCount=' + knobCount +
+          ' swap=' + JSON.stringify(knobSwap) +
+          ' 设备槽16~21=' + [6, 7, 8, 9, 10, 11].slice(0, knobCount * 3).map((s) => 'keyNo' + (16 + s - keyCount) + ':' + (configs[s] ? configs[s].keyCode : '?')).join(' '));
         const padded = Array.from({ length: totalSlots }, (_, i) => configs[i] || createDefaultConfig());
         const ui = new Array(totalSlots);
         for (let i = 0; i < totalSlots; i += 1) ui[mapSlot(i)] = padded[i];
