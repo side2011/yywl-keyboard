@@ -103,7 +103,8 @@ export default function BtConfigurator() {
   const [showLayerAdvanced, setShowLayerAdvanced] = useState(false);
   // 旋钮左右对调：个别固件把「左/右转」的存储顺序装反了，给客户一个一键纠正的开关。
   // 映射是自逆的（再调一次就还原），读写两侧用同一个函数即可。
-  const knobSwapKey = `bt-knob-swap:${modelId || 'bt'}-${keyCount}k${knobCount}r`;
+  // v2: 6+2 改为默认对调。键名升版，避免老版本里存下的「全部取消勾选」把新默认盖掉。
+    const knobSwapKey = `bt-knob-swap2:${modelId || 'bt'}-${keyCount}k${knobCount}r`;
   // 每个旋钮单独一个"左右对调"标记：不同固件/不同款式的装反情况不一定相同
   const [knobSwap, setKnobSwap] = useState(() => {
     try {
