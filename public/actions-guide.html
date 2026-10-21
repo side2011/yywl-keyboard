@@ -203,7 +203,14 @@
       <tr><td>字母、数字、F1–F12、方向键、Enter/Tab/空格等</td><td>鼠标滚轮</td></tr>
       <tr><td>操作之间的停顿（≥80ms 记成等待）</td><td>比 15ms 还快的极速连点（会合并）</td></tr>
     </table>
-    <div class="warn">⚠️ 录制目前<b>只支持 Windows</b>。macOS / Linux 上点录制会提示不支持，需要手动加步骤。</div>
+    <h3>macOS / Linux 怎么录</h3>
+<p>macOS 和国产 Linux 上，点 <span class="ui">⏺ 录制</span> 会打开<b>「录制按键序列」</b>窗口：</p>
+<div class="step"><div class="num">1</div><div class="body"><strong>直接在这个窗口里按键盘</strong><span>按下和松开都会被记录，间隔 ≥30 毫秒会自动生成「等待」步骤。</span></div></div>
+<div class="step"><div class="num">2</div><div class="body"><strong>按完点「完成」</strong><span>步骤会替换掉这个槽位原有内容；按 Esc 或「取消」放弃。</span></div></div>
+<div class="step"><div class="num">3</div><div class="body"><strong>想改就继续改</strong><span>录出来的是标准的「按下 / 等待 / 松开」步骤，可以随意增删、改时间。</span></div></div>
+<div class="info">💡 为什么不做"全系统录制"：那需要 macOS 的输入监控权限 / Linux 的 X11 抓取，权限弹窗和兼容问题很多。窗口内录制<b>不需要任何权限</b>，稳定可靠，录快捷键序列足够用。</div>
+<div class="warn">⚠️ <b>Windows</b> 上仍然是全系统录制（可以录鼠标点击、切到别的软件操作，按 F10 提前结束）。</div>
+<div class="warn">⚠️ macOS 上「按住 / 松开」目前只支持修饰键（Ctrl / Shift / Alt / Win，需要 <code>brew install cliclick</code>）。要按住普通字母或功能键，请改用「发送组合键」。</div>
   </div>
 
   <div class="card">
@@ -233,7 +240,8 @@
       <tr><th></th><th>Windows</th><th>macOS</th><th>国产 Linux</th></tr>
       <tr><td>打开/粘贴/组合键</td><td>✅</td><td>✅</td><td>✅</td></tr>
       <tr><td>鼠标点击</td><td>✅ 原生</td><td>需要 <code>cliclick</code></td><td>需要 <code>xdotool</code></td></tr>
-      <tr><td>宏录制</td><td>✅</td><td>❌</td><td>❌</td></tr>
+      <tr><td>宏录制</td><td>✅ 全系统（含鼠标）</td><td>✅ 窗口内按键序列</td><td>✅ 窗口内按键序列</td></tr>
+        <tr><td>按住/松开</td><td>✅ 任意键</td><td>⚠️ 仅修饰键（需 cliclick）</td><td>✅ 任意键（需 xdotool）</td></tr>
       <tr><td>额外要求</td><td>杀毒软件可能拦模拟输入</td><td>需授权「辅助功能」</td><td>需 X11，Wayland 有限制</td></tr>
     </table>
     <div class="tip">💡 macOS 首次运行会提示授权：<b>系统设置 → 隐私与安全性 → 辅助功能</b>，把「YYWL 键盘配置工具」勾上。鼠标点击还需要终端执行 <code>brew install cliclick</code>。</div>
