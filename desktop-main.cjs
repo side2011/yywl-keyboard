@@ -1011,6 +1011,8 @@ function setupActionsIpc() {
       chords: true,
       record: true,
       autostart: true,
+      // Windows 用系统级录制；macOS / Linux 用「窗口内按键序列录制」（无需原生钩子/权限）
+      recordMode: process.platform === 'win32' ? 'global' : 'inApp',
       // 网页据此判断哪些步骤类型当前安装包能执行，避免配好了却跑不动
       stepTypes: ['openPath', 'openUrl', 'runApp', 'pasteText', 'pasteImage', 'keyPress', 'keyTap', 'keyDown', 'keyUp', 'mouseClick', 'delay'],
     },
