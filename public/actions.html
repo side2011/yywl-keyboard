@@ -76,6 +76,14 @@
   .kbbtn{min-width:38px;padding:7px 9px;font-size:12px;font-weight:600;border:1px solid #e2e8f0;background:#f8fafc;color:#334155;border-radius:8px;cursor:pointer;transition:all .12s}
   .kbbtn:hover{background:#eef2ff;border-color:#a5b4fc;color:#4338ca}
   .kbd-foot{display:flex;justify-content:flex-end;margin-top:6px}
+  /* 窗口内录制：事件列表 */
+  .rec-list{max-height:210px;overflow:auto;border:1px solid #e2e8f0;border-radius:10px;background:#f8fafc;padding:6px 8px;margin-bottom:8px}
+  .rec-row{display:flex;align-items:center;gap:8px;padding:3px 0;font-size:12px}
+  .rec-badge{font-size:10px;font-weight:700;padding:1px 6px;border-radius:6px;color:#fff;min-width:34px;text-align:center}
+  .rec-badge.down{background:#22c55e}
+  .rec-badge.up{background:#94a3b8}
+  .rec-key{font-family:Consolas,monospace;font-weight:600;color:#1e293b}
+  .rec-gap{color:#94a3b8;font-size:11px;margin-left:auto}
   .hintSmall{font-size:11px;color:#94a3b8;margin-left:4px}
   .banner{margin-bottom:12px;padding:10px 14px;border-radius:10px;font-size:13px;line-height:1.7}
   .banner.warn2{background:#fef2f2;border:1px solid #fecaca;color:#991b1b}
@@ -287,6 +295,140 @@
   }
 
   // 录制宏的引导流程：先说明规则 → 3 秒倒计时 → 最小化窗口开始录
+  // ============================================================
+  // 窗口内按键序列录制（macOS / Linux 用）
+  // 不依赖任何原生代码：只监听本窗口的 keydown/keyup，把"按下-间隔-松开"
+  // 原样转成 keyDown / delay / keyUp 步骤。稳定、无权限要求、不会影响系统。
+  // ============================================================
+
+  // 时间线 → 步骤（与主进程 hold 模式同一套规则：间隔≥30ms 记等待，自动重复去重）
+  function timelineToSteps(timeline) {
+    var steps = [];
+    var held = {};
+    var lastT = null;
+    for (var i = 0; i < timeline.length; i += 1) {
+      var ev = timeline[i];
+      if (!ev || !ev.key) continue;
+      // 长按产生的自动重复：先跳过，既不记步骤也不产生等待（否则会刷出一堆 delay）
+      if (ev.down && held[ev.key]) continue;
+      if (lastT !== null) {
+        var gap = ev.t - lastT;
+        if (gap >= 30) steps.push({ type: 'delay', ms: Math.min(Math.round(gap), 3000) });
+      }
+      if (ev.down) {
+        held[ev.key] = true;
+        steps.push({ type: 'keyDown', key: ev.key });
+      } else {
+        delete held[ev.key];
+        steps.push({ type: 'keyUp', key: ev.key });
+      }
+      lastT = ev.t;
+    }
+    while (steps.length && steps[steps.length - 1].type === 'delay') steps.pop();
+    return steps;
+  }
+  window.__yywlTimelineToSteps = timelineToSteps; // 便于自测
+
+  // 把 KeyboardEvent 映射成我们步骤里用的键名（与物理录入 captureKeys 一致）
+  function eventKeyName(e) {
+    var k = normKey(e);
+    if (k) return k;
+    switch (e.code) {
+      case 'ControlLeft': return 'ctrl';
+      case 'ControlRight': return 'rctrl';
+      case 'ShiftLeft': return 'shift';
+      case 'ShiftRight': return 'rshift';
+      case 'AltLeft': return 'alt';
+      case 'AltRight': return 'ralt';
+      case 'MetaLeft': return 'win';
+      case 'MetaRight': return 'rwin';
+      default: return null;
+    }
+  }
+
+  function startInAppRecordFlow(onDone) {
+    var mask = el('div', 'capture-mask');
+    var box = el('div', 'capture-box');
+    box.appendChild(el('div', 'capture-title', '录制按键序列'));
+    box.appendChild(el('div', 'capture-sub',
+      '在这个窗口里直接按键盘，按下和松开都会被记录（间隔 ≥30ms 自动生成「等待」）。按 Esc 结束。'));
+
+    var list = el('div', 'rec-list');
+    box.appendChild(list);
+
+    var tip = el('div', 'capture-sub', '还没有按任何键…');
+    box.appendChild(tip);
+
+    var timeline = [];
+    var recorder = el('div', 'kbd-row');
+    var btnClear = el('button', 'btn', '清空');
+    var btnDone = el('button', 'btn primary', '完成');
+    var btnCancel = el('button', 'btn', '取消');
+    recorder.appendChild(btnClear);
+    recorder.appendChild(btnDone);
+    recorder.appendChild(btnCancel);
+    box.appendChild(recorder);
+
+    mask.appendChild(box);
+    document.body.appendChild(mask);
+    btnDone.focus();
+
+    function close() {
+      document.removeEventListener('keydown', onKeyDown, true);
+      document.removeEventListener('keyup', onKeyUp, true);
+      if (mask.parentNode) mask.parentNode.removeChild(mask);
+    }
+
+    function pushRow(ev) {
+      var row = el('div', 'rec-row');
+      row.appendChild(el('span', 'rec-badge ' + (ev.down ? 'down' : 'up'), ev.down ? '按下' : '松开'));
+      row.appendChild(el('span', 'rec-key', keyDisplay(ev.key)));
+      var t = timeline.length > 1 ? Math.round(ev.t - timeline[timeline.length - 2].t) : 0;
+      row.appendChild(el('span', 'rec-gap', t ? '+' + t + 'ms' : ''));
+      list.appendChild(row);
+      list.scrollTop = list.scrollHeight;
+      tip.textContent = '已记录 ' + timeline.length + ' 个事件（按下 ' + timeline.filter(function (x) { return x.down; }).length + ' 次）';
+    }
+
+    function onKeyDown(e) {
+      if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(); onDone([]); return; }
+      if (e.repeat) return;
+      var name = eventKeyName(e);
+      if (!name) return;
+      e.preventDefault();
+      e.stopPropagation();
+      var ev = { t: performance.now(), key: name, down: true };
+      timeline.push(ev);
+      pushRow(ev);
+    }
+
+    function onKeyUp(e) {
+      if (e.key === 'Escape') return;
+      var name = eventKeyName(e);
+      if (!name) return;
+      e.preventDefault();
+      e.stopPropagation();
+      var ev = { t: performance.now(), key: name, down: false };
+      timeline.push(ev);
+      pushRow(ev);
+    }
+
+    document.addEventListener('keydown', onKeyDown, true);
+    document.addEventListener('keyup', onKeyUp, true);
+
+    btnClear.addEventListener('click', function () {
+      timeline = [];
+      list.innerHTML = '';
+      tip.textContent = '已清空，重新按';
+    });
+    btnCancel.addEventListener('click', function () { close(); onDone([]); });
+    btnDone.addEventListener('click', function () {
+      var steps = timelineToSteps(timeline);
+      close();
+      onDone(steps);
+    });
+  }
+
   function startRecordFlow(onDone) {
     var mask = document.createElement('div');
     mask.className = 'capture-mask';
@@ -608,10 +750,30 @@
 
     // 录制宏：窗口会自动最小化，录完把步骤填进这个槽位
     var rec = el('button', 'btn rec', '⏺ 录制');
-    rec.title = '录制一段键盘 + 鼠标操作（按 F10 提前结束）';
+    rec.title = caps.recordMode === 'inApp'
+      ? '录制按键序列：在本窗口直接按，按下/松开/间隔都会记下来'
+      : '录制一段键盘 + 鼠标操作（按 F10 提前结束）';
     rec.addEventListener('click', function () {
       if (!api.record) { setStatus('当前桌面版 v' + (appVersion || '?') + ' 不支持录制，请重新安装 1.2.0 及以上版本', true); return; }
       var target = ensureSlot(n);
+      // macOS / Linux：用"窗口内按键序列录制"（不依赖原生钩子，稳定无权限要求）
+      if (caps.recordMode === 'inApp') {
+        var doInApp = function () {
+          startInAppRecordFlow(function (steps) {
+            if (!steps || !steps.length) return;
+            target.steps = steps;
+            setDirty();
+            render();
+            setStatus('已录制 ' + steps.length + ' 个步骤（按下/松开/等待），记得点「保存并生效」');
+          });
+        };
+        if ((target.steps || []).length) {
+          if (confirm('这个槽位已经有 ' + target.steps.length + ' 个步骤，录制会全部替换，继续吗？')) doInApp();
+        } else {
+          doInApp();
+        }
+        return;
+      }
       var startRec = function () {
         // 先弹说明 + 3 秒倒计时（在这个窗口里能看见），再最小化开始录
         startRecordFlow(function (opts) {
