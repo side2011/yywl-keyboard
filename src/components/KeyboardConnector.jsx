@@ -8,6 +8,7 @@ import { DEVICE_FILTERS, MODEL_NAMES, isBluetoothModel, BT_PIDS, VID, isAc632nDe
 import { isNewProtocolDevice, NEW_DEVICE_FILTERS } from '../services/new-protocol';
 import { isBtWirelessDevice, BtProtocolHandler } from '../services/bt-protocol';
 import toast from 'react-hot-toast';
+import ConnectGuideModal from './ConnectGuide';
 
 // 构建版本标记 (用于强制刷新浏览器缓存)
 const __BUILD_TAG = 'v20261013-macrolabel';
@@ -156,6 +157,18 @@ function KeyboardConnector() {
       if (!isNewProtocolDevice(device) || newProtoReady) navigate('/customize');
     }
   }, [device, modelId, newProtoReady, protocolVersion, navigate]);
+
+  const [guideOpen, setGuideOpen] = useState(false);
+  const [guideSkipped, setGuideSkipped] = useState(() => {
+    try { return localStorage.getItem('yywl-hide-picker-guide') === '1'; } catch { return false; }
+  });
+
+  // 点击「连接键盘」：先讲清楚"要在弹框里选设备"，再真正打开系统选择器
+  const handleConnectClick = () => {
+    if (connecting) return;
+    if (!guideSkipped && hidSupported) { setGuideOpen(true); return; }
+    connectToKeyboard();
+  };
 
   const connectToKeyboard = async () => {
     console.log('[YYWL] build:', __BUILD_TAG);
@@ -524,6 +537,13 @@ function KeyboardConnector() {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-6">
+      <ConnectGuideModal
+        open={guideOpen}
+        lang={lang}
+        onCancel={() => setGuideOpen(false)}
+        onHideForever={() => { try { localStorage.setItem('yywl-hide-picker-guide', '1'); } catch { /* 忽略 */ } setGuideSkipped(true); }}
+        onConfirm={() => { setGuideOpen(false); connectToKeyboard(); }}
+      />
       <div className="max-w-lg w-full">
         {(() => {
           if (!hidSupported) return (
@@ -646,7 +666,20 @@ function KeyboardConnector() {
               )}
 
               {!connected && (embedContext !== 'electron' || forceTry) && (
-                <button onClick={connectToKeyboard} disabled={connecting}
+                <>
+                  <div className="yy-connect-steps">
+                    <div className="row">
+                      <span className="s"><b>①</b> 插 USB 线</span>
+                      <span className="arrow">›</span>
+                      <span className="s"><b>②</b> 点「连接键盘」</span>
+                    </div>
+                    <div className="row">
+                      <span className="s"><b>③</b> 选设备 → 点「连接」</span>
+                      <span className="arrow">›</span>
+                      <span className="s"><b>④</b> 开始配置</span>
+                    </div>
+                  </div>
+                <button onClick={handleConnectClick} disabled={connecting}
                   className={`w-full py-3.5 rounded-xl text-base font-semibold text-white transition-all cursor-pointer ${
                     connecting ? 'bg-indigo-300 cursor-wait' : 'bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 shadow-lg shadow-indigo-200/50 active:scale-[0.98]'
                   }`}>
@@ -657,6 +690,7 @@ function KeyboardConnector() {
                     </span>
                   ) : t('连接键盘')}
                 </button>
+                </>
               )}
 
               {connected && (
