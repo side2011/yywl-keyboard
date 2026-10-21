@@ -8,7 +8,7 @@ const TEXT = {
     title: '接下来会弹出「选择设备」窗口',
     sub: '这是浏览器的安全授权，完成这步才能读取键盘配置',
     steps: [
-      ['1', '在列表里点一下', '「USB Keyboard」'],
+      ['1', '在列表里点一下', '你的键盘（名称可能是 USB Keyboard / YYWL 等）'],
       ['2', '再点右下角的', '【连接】'],
       ['3', '没看到设备？', '拔插 USB 线后重试'],
     ],
@@ -22,7 +22,7 @@ const TEXT = {
     title: 'A "Select a device" window will pop up',
     sub: 'That is the browser permission — you must finish it before reading the keypad',
     steps: [
-      ['1', 'Click the row', '"USB Keyboard"'],
+      ['1', 'Click your keypad in the list', '(the name may be "USB Keyboard", "YYWL", etc.)'],
       ['2', 'Then click', '"Connect"'],
       ['3', 'No device listed?', 'Unplug and re-plug the USB cable'],
     ],
@@ -67,7 +67,7 @@ function GuideAnimation() {
         <g className="yy-phase yy-p3">
           <rect x="18" y="26" width="180" height="72" rx="8" fill="#ffffff" stroke="#cbd5e1" />
           <rect x="26" y="34" width="164" height="22" rx="4" fill="#dbeafe" stroke="#3b82f6" />
-          <text x="34" y="49" fontSize="11" fill="#1d4ed8" fontWeight="600">USB Keyboard - 已配对</text>
+          <text x="34" y="49" fontSize="11" fill="#1d4ed8" fontWeight="600">你的键盘 · 已配对</text>
           <g className="yy-cursor yy-c3">
             <path d="M206 84 l0 18 l5 -5 l4 8 l5 -3 l-4 -8 l7 -1 z" fill="#1e293b" />
           </g>
