@@ -301,6 +301,18 @@
   // 原样转成 keyDown / delay / keyUp 步骤。稳定、无权限要求、不会影响系统。
   // ============================================================
 
+  // 该用"窗口内按键序列录制"还是"全系统录制"？
+  // 新安装包由主进程通过 caps.recordMode 告诉网页；
+  // 老安装包（1.4.7 及以前）没有这个字段，就按系统判断 —— 这样 macOS / Linux 用户
+  // 不用重装程序，靠网页热更新就能用上窗口内录制。
+  function useInAppRecorder() {
+    if (caps.recordMode === 'inApp') return true;
+    if (caps.recordMode === 'global') return false;
+    var ua = String(navigator.userAgent || '') + ' ' + String(navigator.platform || '');
+    if (/Windows/i.test(ua)) return false;  // Windows 老包继续用全系统录制（能录鼠标）
+    return true;                             // macOS / Linux 老包改用窗口内录制
+  }
+
   // 时间线 → 步骤（与主进程 hold 模式同一套规则：间隔≥30ms 记等待，自动重复去重）
   function timelineToSteps(timeline) {
     var steps = [];
@@ -750,14 +762,14 @@
 
     // 录制宏：窗口会自动最小化，录完把步骤填进这个槽位
     var rec = el('button', 'btn rec', '⏺ 录制');
-    rec.title = caps.recordMode === 'inApp'
+    rec.title = useInAppRecorder()
       ? '录制按键序列：在本窗口直接按，按下/松开/间隔都会记下来'
       : '录制一段键盘 + 鼠标操作（按 F10 提前结束）';
     rec.addEventListener('click', function () {
       if (!api.record) { setStatus('当前桌面版 v' + (appVersion || '?') + ' 不支持录制，请重新安装 1.2.0 及以上版本', true); return; }
       var target = ensureSlot(n);
       // macOS / Linux：用"窗口内按键序列录制"（不依赖原生钩子，稳定无权限要求）
-      if (caps.recordMode === 'inApp') {
+      if (useInAppRecorder()) {
         var doInApp = function () {
           startInAppRecordFlow(function (steps) {
             if (!steps || !steps.length) return;
