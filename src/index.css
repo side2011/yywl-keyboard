@@ -229,3 +229,7 @@ select:focus, input:focus {
 .yy-guide-auto-text{display:block;font-size:12.5px;color:#4f46e5;font-weight:600;margin-bottom:6px}
 .yy-guide-auto-bar{display:block;height:4px;border-radius:99px;background:#e2e8f0;overflow:hidden}
 .yy-guide-auto-bar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#6366f1,#8b5cf6);transition:width .95s linear}
+
+/* 倒计时结束后的"点任意位置继续" */
+.yy-guide-auto-ready{color:#dc2626 !important;animation:yyPulse 1.1s ease-in-out infinite}
+@keyframes yyPulse{0%,100%{opacity:1}50%{opacity:.45}}
