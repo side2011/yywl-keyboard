@@ -450,15 +450,62 @@ export default function NewProtoConfigurator() {
       cached[currentLayer] = keyConfigs;
       allLayerConfigsRef.current = cached;
       // 逐层保存到键盘
+      //
+      // ⚠ 层序必须**从高层往低层**（3→2→1）：
+      //   固件每次 SAVE_LAYER 之后会把"当前活动层"切到刚保存的那一层；
+      //   若按 1→2→3 保存，最后停在第三层，客户一上手看到的就是第 3 层配置。
+      //   倒序保存后，最后写入的是第 1 层，设备停在正常使用的第 1 层。
       const totalLayers = cached.length || 1;
-      for (let l = 0; l < totalLayers; l++) {
-        const layerCfgs = cached[l] || createDefaultConfig(keyCount);
+      for (let l = totalLayers - 1; l >= 0; l -= 1) {
+        // 防御：按设备实际键数补齐/截断，避免少写或多写
+        const raw = cached[l];
+        const layerCfgs = Array.from({ length: keyCount }, (_, i) => (raw && raw[i]) || createDefaultConfig(1)[0]);
         if (totalLayers > 1) {
           toast.loading(t('正在保存第{layer}层...', { layer: l + 1 }), { id: 'save' });
         }
-        await handler.saveAll(l, layerCfgs, l === totalLayers - 1 ? currentLayer : undefined);
+        await handler.saveAll(l, layerCfgs, undefined);
       }
-      toast.success(t('配置已成功保存到键盘！'), { id: 'save' });
+      // 全部保存完，再把活动层明确设成客户正在编辑的层（一般就是第 1 层）
+      try {
+        await handler.setActiveLayer(currentLayer);
+        console.log('[NewProto] 已设置活动层 =', currentLayer + 1);
+      } catch (err) {
+        console.warn('[NewProto] 设置活动层失败（不影响已保存内容）:', err.message);
+      }
+
+      // 保存后逐层回读校验：把"写进去但没进 flash"的按键找出来
+      const mismatchReport = [];
+      for (let l = 0; l < totalLayers; l += 1) {
+        let back = null;
+        try {
+          back = await handler.readLayer(l, keyCount);
+        } catch (err) {
+          console.warn('[NewProto] 回读校验失败 层' + (l + 1) + ':', err.message);
+          continue;
+        }
+        const want = Array.isArray(cached[l]) ? cached[l] : [];
+        const badKeys = [];
+        for (let i = 0; i < keyCount; i += 1) {
+          const a = want[i] || { mode: 0 };
+          const b = (back && back[i]) || { mode: 0 };
+          const same = (a.mode || 0) === (b.mode || 0)
+            && (a.keyCode || 0) === (b.keyCode || 0)
+            && (a.modifier || 0) === (b.modifier || 0)
+            && ((a.mediaCode && a.mediaCode[1]) || 0) === ((b.mediaCode && b.mediaCode[1]) || 0);
+          if (!same) badKeys.push(i + 1);
+        }
+        console.log('[NewProto] 保存校验 层' + (l + 1) + ': ' + keyCount + ' 键中 ' + badKeys.length + ' 个不一致' +
+          (badKeys.length ? ' -> 键' + badKeys.join(', 键') : ' ✓'));
+        if (badKeys.length) mismatchReport.push(t('第{layer}层：键{keys}', { layer: l + 1, keys: badKeys.join('、') }));
+      }
+
+      if (mismatchReport.length) {
+        toast.error(t('有按键没写进键盘：{detail}。请再点一次保存；若一直这样，把控制台的 [NewProto] 日志发给技术支持。', {
+          detail: mismatchReport.join('；'),
+        }), { id: 'save', duration: 12000 });
+      } else {
+        toast.success(t('配置已成功保存到键盘！'), { id: 'save' });
+      }
     } catch (e) {
       toast.error(t('保存到键盘失败: {msg}', { msg: e.message }), { id: 'save' });
     } finally {
