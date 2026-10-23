@@ -1,7 +1,7 @@
 // 连接前的引导弹窗：把"浏览器会弹出设备列表 → 要点设备 → 再点连接"讲清楚。
 // 客户最容易卡住的一步就是：点了「连接键盘」，弹框出来后不知道要选设备，
 // 于是停在"连接中"以为程序坏了。
-import { useEffect } from 'react';
+import { useEffect, useState, useRef } from 'react';
 
 const TEXT = {
   zh: {
@@ -14,6 +14,7 @@ const TEXT = {
     ],
     note: '点【取消】会停在当前页，不会进入配置页',
     ok: '我知道了，开始选择',
+  auto: '秒后自动继续（不用点按钮）',
     cancel: '取消',
     hide: '不再提示',
     noPicker: '如果没有任何弹窗出现，请改用 Chrome / Edge 浏览器打开',
@@ -28,6 +29,7 @@ const TEXT = {
     ],
     note: 'Clicking "Cancel" keeps you on this page',
     ok: 'Got it, open the picker',
+  auto: 's — continuing automatically',
     cancel: 'Cancel',
     hide: "Don't show again",
     noPicker: 'If no window appears at all, please open this page in Chrome / Edge',
@@ -96,6 +98,31 @@ export default function ConnectGuideModal({ open, lang = 'zh', onConfirm, onCanc
     return () => document.removeEventListener('keydown', onKey);
   }, [open, onCancel]);
 
+  // 倒计时自动继续：客户经常停在提示页不动，6 秒后自动进入设备选择
+  const AUTO_SECONDS = 6;
+  const [left, setLeft] = useState(AUTO_SECONDS);
+  const timerRef = useRef(null);
+  const confirmedRef = useRef(false);
+  useEffect(() => {
+    if (!open) return undefined;
+    setLeft(AUTO_SECONDS);
+    confirmedRef.current = false;
+    timerRef.current = setInterval(() => {
+      setLeft((n) => {
+        if (n <= 1) {
+          clearInterval(timerRef.current);
+          if (!confirmedRef.current) {
+            confirmedRef.current = true;
+            onConfirm();
+          }
+          return 0;
+        }
+        return n - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timerRef.current);
+  }, [open, onConfirm]);
+
   if (!open) return null;
 
   return (
@@ -118,6 +145,13 @@ export default function ConnectGuideModal({ open, lang = 'zh', onConfirm, onCanc
         <div className="yy-guide-note">⚠ {s.note}</div>
         <div className="yy-guide-note yy-guide-note-2">💡 {s.noPicker}</div>
 
+            {/* 倒计时提示：客户经常停在这里不动，明确告诉他们不用点也会继续 */}
+            {left > 0 && (
+              <div className="yy-guide-auto">
+                <span className="yy-guide-auto-text">{lang === 'en' ? `Continuing automatically in ${left}s — you can also tap the button` : `${left} 秒后自动继续，不用点按钮`}</span>
+                <span className="yy-guide-auto-bar"><i style={{ width: `${((AUTO_SECONDS - left) / AUTO_SECONDS) * 100}%` }} /></span>
+              </div>
+            )}
         <div className="yy-guide-actions">
           <label className="yy-guide-hide">
             <input type="checkbox" onChange={(e) => { if (e.target.checked && onHideForever) onHideForever(); }} />
@@ -125,7 +159,10 @@ export default function ConnectGuideModal({ open, lang = 'zh', onConfirm, onCanc
           </label>
           <div className="yy-guide-btns">
             <button type="button" className="yy-guide-btn" onClick={onCancel}>{s.cancel}</button>
-            <button type="button" className="yy-guide-btn yy-guide-btn-primary" onClick={onConfirm}>{s.ok}</button>
+            <button type="button" className="yy-guide-btn yy-guide-btn-primary"
+              onClick={() => { confirmedRef.current = true; onConfirm(); }}>
+              {s.ok}{left > 0 ? `（${left}）` : ''}
+            </button>
           </div>
         </div>
       </div>
