@@ -458,6 +458,7 @@ export default function KeyConfigPanel({ config, onChange, multiKeyOnly, multiKe
             </div>
           </div>
 
+          <div className="text-xs text-gray-500 mb-2">{t('方式一：单键 F13~F24（多数款式可用）')}</div>
           <div className="grid grid-cols-4 gap-2">
             {Array.from({ length: 12 }, (_, i) => {
               const code = 0x68 + i; // F13..F24（所有款式都支持，单个键码即可，不用组合键）
@@ -475,6 +476,34 @@ export default function KeyConfigPanel({ config, onChange, multiKeyOnly, multiKe
                       ? <span className="text-emerald-600 font-semibold" title={actionNames[i + 13]}>⚡ {actionNames[i + 13]}</span>
                       : <span className="text-gray-300">{t('未配置')}</span>}
                   </div>
+
+          {/* 方式二：Ctrl+Shift+Alt+F1~F12 —— 部分蓝牙模块不识别 F13~F24，用组合键绕过 */}
+          <div className="text-xs text-gray-500 mt-4 mb-2">
+            {t('方式二：Ctrl+Shift+Alt+F1~F12（蓝牙款不识别 F13 时用这组）')}
+          </div>
+          <div className="grid grid-cols-4 gap-2">
+            {Array.from({ length: 12 }, (_, i) => {
+              // Ctrl(0x01) + Shift(0x02) + Alt(0x04) + F1..F12(0x3A..0x45)
+              const code = 0x3A + i;
+              const mod = 0x01 | 0x02 | 0x04;
+              const isSel = config.keyCode === code && (config.modifier || 0) === mod;
+              return (
+                <button key={'alt' + i}
+                  onClick={() => { onChange({ ...config, mode: KEY_MODE.KEYBOARD, modifier: mod, keyCode: code }); }}
+                  className={`py-3 rounded-xl border-2 transition-all cursor-pointer ${
+                    isSel ? 'border-indigo-500 bg-indigo-50 shadow-sm' : 'border-gray-200 bg-white hover:border-indigo-300'
+                  }`}>
+                  <div className={`text-sm font-bold ${isSel ? 'text-indigo-700' : 'text-gray-700'}`}>{t('动作')} {i + 1}</div>
+                  <div className="text-[10px] text-gray-400 mt-0.5">Ctrl+Shift+Alt+F{i + 1}</div>
+                  <div className="text-[10px] mt-1 truncate px-1">
+                    {actionNames[i + 13]
+                      ? <span className="text-emerald-600 font-semibold" title={actionNames[i + 13]}>⚡ {actionNames[i + 13]}</span>
+                      : <span className="text-gray-300">{t('未配置')}</span>}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
                 </button>
               );
             })}
