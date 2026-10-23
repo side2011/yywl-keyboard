@@ -101,20 +101,21 @@ export default function ConnectGuideModal({ open, lang = 'zh', onConfirm, onCanc
   // 倒计时自动继续：客户经常停在提示页不动，6 秒后自动进入设备选择
   const AUTO_SECONDS = 6;
   const [left, setLeft] = useState(AUTO_SECONDS);
+  const [expired, setExpired] = useState(false);
   const timerRef = useRef(null);
   const confirmedRef = useRef(false);
   useEffect(() => {
     if (!open) return undefined;
     setLeft(AUTO_SECONDS);
+    setExpired(false);
     confirmedRef.current = false;
     timerRef.current = setInterval(() => {
       setLeft((n) => {
         if (n <= 1) {
           clearInterval(timerRef.current);
-          if (!confirmedRef.current) {
-            confirmedRef.current = true;
-            onConfirm();
-          }
+          // requestDevice 需要"用户手势"：定时器里直接调用会抛 NotAllowedError（客户看到红色报错），
+          // 所以倒计时结束只进入"等你点一下"的状态，点页面任何地方都能继续
+          setExpired(true);
           return 0;
         }
         return n - 1;
@@ -122,6 +123,22 @@ export default function ConnectGuideModal({ open, lang = 'zh', onConfirm, onCanc
     }, 1000);
     return () => clearInterval(timerRef.current);
   }, [open, onConfirm]);
+
+  // 倒计时结束后：点页面任何地方 / 按任意键都能继续（这样满足"用户手势"要求）
+  useEffect(() => {
+    if (!open || !expired) return undefined;
+    const fire = () => {
+      if (confirmedRef.current) return;
+      confirmedRef.current = true;
+      onConfirm();
+    };
+    window.addEventListener('pointerdown', fire, { once: true, capture: true });
+    window.addEventListener('keydown', fire, { once: true, capture: true });
+    return () => {
+      window.removeEventListener('pointerdown', fire, true);
+      window.removeEventListener('keydown', fire, true);
+    };
+  }, [open, expired, onConfirm]);
 
   if (!open) return null;
 
@@ -146,12 +163,16 @@ export default function ConnectGuideModal({ open, lang = 'zh', onConfirm, onCanc
         <div className="yy-guide-note yy-guide-note-2">💡 {s.noPicker}</div>
 
             {/* 倒计时提示：客户经常停在这里不动，明确告诉他们不用点也会继续 */}
-            {left > 0 && (
+            {(left > 0) ? (
               <div className="yy-guide-auto">
                 <span className="yy-guide-auto-text">{lang === 'en' ? `Continuing automatically in ${left}s — you can also tap the button` : `${left} 秒后自动继续，不用点按钮`}</span>
                 <span className="yy-guide-auto-bar"><i style={{ width: `${((AUTO_SECONDS - left) / AUTO_SECONDS) * 100}%` }} /></span>
               </div>
-            )}
+          ) : (
+            <div className="yy-guide-auto">
+              <span className="yy-guide-auto-text yy-guide-auto-ready">{lang === 'en' ? 'Tap anywhere on this page to open the device picker' : '👉 点一下页面任意位置，立即打开设备选择'}</span>
+            </div>
+          )}
         <div className="yy-guide-actions">
           <label className="yy-guide-hide">
             <input type="checkbox" onChange={(e) => { if (e.target.checked && onHideForever) onHideForever(); }} />
@@ -161,7 +182,7 @@ export default function ConnectGuideModal({ open, lang = 'zh', onConfirm, onCanc
             <button type="button" className="yy-guide-btn" onClick={onCancel}>{s.cancel}</button>
             <button type="button" className="yy-guide-btn yy-guide-btn-primary"
               onClick={() => { confirmedRef.current = true; onConfirm(); }}>
-              {s.ok}{left > 0 ? `（${left}）` : ''}
+              {left > 0 ? `${s.ok}（${left}）` : (lang === 'en' ? 'Tap here to continue' : '点这里继续')}
             </button>
           </div>
         </div>
