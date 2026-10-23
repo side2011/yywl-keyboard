@@ -481,6 +481,29 @@ export class BtProtocolHandler {
   get isV10() { return this._isV10; }
 
   // 读整层按键配置: 发 0xFA KeyNum KNNum Layer(1..3), 连续收 KeyNum 个报告
+  // 探测某一层是否存在（0xFB 不返回层数，只能问设备要一层的报告看有没有回应）
+  // 注意：不能用 readLayer 判断 —— 它对缺失的报告只是跳过、不报错，会误判成"有这层"
+  async probeLayer(layer /* 0 = 第1层 */) {
+    const l = layer + 1;
+    const keyNum = this._isV10 ? 25 : 15;
+    const knNum = this._isV10 ? 0 : 3;
+    await this._send(this._mk(0xFA, [keyNum, knNum, l]));
+    const deadline = Date.now() + 700;
+    while (Date.now() < deadline) {
+      try {
+        const d = await this._waitFor(x => x.length >= 4 && x[0] === 0xFA && x[2] === l, 250);
+        if (d && d[2] === l) {
+          console.log('[BtProto] 层' + l + ' 有回应（该层存在）');
+          return true;
+        }
+      } catch (e) {
+        break;
+      }
+    }
+    console.log('[BtProto] 层' + l + ' 无回应（判定该层不存在）');
+    return false;
+  }
+
   async readLayer(layer /* 0..2 UI层 */, totalActions) {
     // 自愈: 若 handler 未持有设备信息 (如切换协议时未传入), 先补读
     if (!this._info) {
