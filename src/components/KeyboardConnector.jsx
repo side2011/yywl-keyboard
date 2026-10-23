@@ -520,7 +520,15 @@ function KeyboardConnector() {
       // 权限/安全策略拦截: 内嵌 iframe 缺少 allow="hid"、或宿主环境限制设备访问
       if (error && (error.name === 'NotAllowedError' || error.name === 'SecurityError' || error.name === 'NotSupportedError')) {
         setFailCount(c => c + 1);
-        toast.error(t('当前窗口不允许访问 USB 设备，请用 Chrome 或 Edge 的独立标签页打开本页面'), { duration: 10000, id: 'hid-denied' });
+        // 区分两种原因：需要用户手势（浏览器要求手动点击） vs 窗口本身不允许
+        const msg = String(error.message || '');
+        const gestureIssue = /gesture|activation|user.*gesture|requires a user/i.test(msg);
+        toast.error(
+          gestureIssue
+            ? t('浏览器要求手动点击才能打开设备选择框，请再点一下「连接键盘」按钮')
+            : t('当前窗口不允许访问 USB 设备，请用 Chrome 或 Edge 的独立标签页打开本页面'),
+          { duration: 9000, id: 'hid-denied' },
+        );
         return;
       }
       // 某些浏览器（如微信浏览器）navigator.hid 可能存在但实际不可用
