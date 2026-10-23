@@ -694,6 +694,17 @@ function KeyboardConnector() {
                     }`}>
                     {wideMode ? t('恢复只显示小键盘设备') : t('找不到设备？列出全部同厂设备')}
                   </button>
+                    {guideSkipped && (
+                      <button type="button"
+                        onClick={() => {
+                          try { localStorage.removeItem('yywl-hide-picker-guide'); } catch { /* 忽略 */ }
+                          setGuideSkipped(false);
+                          setGuideOpen(true);
+                        }}
+                        className="ml-3 text-xs text-indigo-500 underline underline-offset-2 cursor-pointer hover:text-indigo-600">
+                        {t('再看一次连接提示')}
+                      </button>
+                    )}
                   {wideMode && (
                     <p className="mt-1.5 text-xs text-amber-600 leading-relaxed">
                       {t('宽松匹配已开启：会列出该厂商的全部 HID 设备（含鼠标/键盘），请选中带配置接口的小键盘')}
