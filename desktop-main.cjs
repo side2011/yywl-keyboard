@@ -921,11 +921,29 @@ function slotHotkey(slot, act) {
   return null;
 }
 
+// 每个槽位要注册的全部热键。
+// 背景：部分蓝牙模块透传不了 F13~F24（客户实测按键没反应），
+// 所以 1~12 号动作额外再注册一组 Ctrl+Shift+Alt+F1~F12 —— 键盘端配成该组合键即可绕开。
+function slotHotkeyList(slot, act) {
+  const list = [];
+  const primary = slotHotkey(slot, act);
+  if (primary) list.push(primary);
+  // 用户自定义了 hotkey 就只认那一个，避免"以为换了其实老热键还占着"
+  if (act && typeof act.hotkey === 'string' && act.hotkey.trim()) return list;
+  if (slot >= 1 && slot <= 12) {
+    const alt = `Control+Shift+Alt+F${slot}`;
+    if (!list.includes(alt)) list.push(alt);
+  }
+  return list;
+}
+
 // 可选热键清单：优先"没人用"的组合，占用率高的一律不放前面
 const HOTKEY_CANDIDATES = (() => {
   const list = [];
   for (let i = 13; i <= 24; i++) list.push(`F${i}`);
   for (let i = 1; i <= 12; i++) list.push(`Control+Alt+Shift+F${i}`);
+  // 蓝牙款优先用这组：部分蓝牙模块透传不了 F13~F24
+  for (let i = 1; i <= 12; i++) list.push(`Control+Shift+Alt+F${i}`);
   for (let i = 0; i <= 9; i++) list.push(`Control+Alt+Shift+${i}`);
   for (const ch of 'QWERTYUIOPASDFGHJKLZXCVBNM') list.push(`Control+Alt+Shift+${ch}`);
   for (let i = 1; i <= 12; i++) list.push(`Control+Shift+F${i}`);
@@ -943,23 +961,24 @@ function registerHotkeys() {
   if (!actionsConfig.enabled) return;
 
   for (const act of actionsConfig.actions) {
-    const acc = slotHotkey(act.slot, act);
-    if (!acc || act.enabled === false || !(act.steps || []).length) continue;
-    try {
-      const ok = globalShortcut.register(acc, () => {
-        executor.runAction(act)
-          .then((r) => { if (!r.ok) console.warn('[action] 执行失败:', act.name || act.slot, r.error); })
-          .catch((e) => console.warn('[action] 执行异常:', e.message));
-      });
-      if (ok) registeredShortcuts.push(acc);
-      else {
-        // 被别的程序占了：记下来，交由界面提示用户换一个
-        hotkeyConflicts.push({ slot: act.slot, hotkey: acc, name: act.name || '' });
-        console.warn('[action] 热键被占用:', acc);
+    const accs = slotHotkeyList(act.slot, act);
+    if (!accs.length || act.enabled === false || !(act.steps || []).length) continue;
+    for (const acc of accs) {
+      try {
+        const ok = globalShortcut.register(acc, () => {
+          executor.runAction(act)
+            .then((r) => { if (!r.ok) console.warn('[action] 执行失败:', act.name || act.slot, r.error); })
+            .catch((e) => console.warn('[action] 执行异常:', e.message));
+        });
+        if (ok) registeredShortcuts.push(acc);
+        else {
+          hotkeyConflicts.push({ slot: act.slot, hotkey: acc, name: act.name || '' });
+          console.warn('[action] 热键被占用:', acc);
+        }
+      } catch (e) {
+        hotkeyConflicts.push({ slot: act.slot, hotkey: acc, name: act.name || '', error: e.message });
+        console.warn('[action] 注册失败:', acc, e.message);
       }
-    } catch (e) {
-      hotkeyConflicts.push({ slot: act.slot, hotkey: acc, name: act.name || '', error: e.message });
-      console.warn('[action] 注册失败:', acc, e.message);
     }
   }
   console.log('[action] 已注册热键:', registeredShortcuts.join(', ') || '(无)');
