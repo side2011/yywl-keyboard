@@ -272,14 +272,18 @@ export default function BtConfigurator() {
     } catch { /* 忽略 */ }
     let count = 1;
     for (const l of [1, 2]) {
+      // probeLayer 只问"这层有没有回应"，不会把空报告当成"有这层"
+      let exists = false;
       try {
-        const cfgs = await handler.readLayer(l, totalSlots);
-        if (!Array.isArray(cfgs)) break;
-        count = l + 1;
+        exists = typeof handler.probeLayer === 'function'
+          ? await handler.probeLayer(l)
+          : Array.isArray(await handler.readLayer(l, totalSlots));
       } catch (e) {
-        console.log('[BtProto] 探测层' + (l + 1) + '：读不到，判定该层不存在 —', e.message);
-        break;
+        console.log('[BtProto] 探测层' + (l + 1) + '失败：', e.message);
+        exists = false;
       }
+      if (!exists) break;
+      count = l + 1;
     }
     try { localStorage.setItem(cacheKey, String(count)); } catch { /* 忽略 */ }
     console.log('[BtProto] 探测到层数 =', count, '（型号', modelId || 'bt', keyCount + 'k' + knobCount + 'r）');
