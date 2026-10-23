@@ -458,55 +458,53 @@ export default function KeyConfigPanel({ config, onChange, multiKeyOnly, multiKe
             </div>
           </div>
 
-          <div className="text-xs text-gray-500 mb-2">{t('方式一：单键 F13~F24（多数款式可用）')}</div>
-          <div className="grid grid-cols-4 gap-2">
+          {/* 12 个动作：每格给两种触发方式，避免两套按钮重复铺满整屏 */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
             {Array.from({ length: 12 }, (_, i) => {
-              const code = 0x68 + i; // F13..F24（所有款式都支持，单个键码即可，不用组合键）
-              const isSel = config.keyCode === code && !(config.modifier || 0);
+              const singleCode = 0x68 + i;        // F13..F24
+              const comboCode = 0x3A + i;         // F1..F12
+              const comboMod = 0x01 | 0x02 | 0x04; // Ctrl + Shift + Alt
+              const selSingle = config.keyCode === singleCode && !(config.modifier || 0);
+              const selCombo = config.keyCode === comboCode && (config.modifier || 0) === comboMod;
+              const name = actionNames[i + 13];
+              const cellCls = 'rounded-xl border-2 p-2 transition-all ' +
+                ((selSingle || selCombo) ? 'border-indigo-500 bg-indigo-50 shadow-sm' : 'border-gray-200 bg-white');
+              const singleCls = 'flex-1 py-1 rounded-md text-[11px] font-semibold transition-colors cursor-pointer ' +
+                (selSingle ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-indigo-100');
+              const comboCls = 'flex-1 py-1 rounded-md text-[11px] font-semibold transition-colors cursor-pointer ' +
+                (selCombo ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-indigo-100');
               return (
-                <button key={i}
-                  onClick={() => { onChange({ ...config, mode: KEY_MODE.KEYBOARD, modifier: 0, keyCode: code }); }}
-                  className={`py-3 rounded-xl border-2 transition-all cursor-pointer ${
-                    isSel ? 'border-indigo-500 bg-indigo-50 shadow-sm' : 'border-gray-200 bg-white hover:border-indigo-300'
-                  }`}>
-                  <div className={`text-sm font-bold ${isSel ? 'text-indigo-700' : 'text-gray-700'}`}>{t('动作')} {i + 1}</div>
-                  <div className="text-[10px] text-gray-400 mt-0.5">F{i + 13}</div>
-                  <div className="text-[10px] mt-1 truncate px-1">
-                    {actionNames[i + 13]
-                      ? <span className="text-emerald-600 font-semibold" title={actionNames[i + 13]}>⚡ {actionNames[i + 13]}</span>
+                <div key={i} className={cellCls}>
+                  <div className="text-sm font-bold text-gray-700 text-center">{t('动作')} {i + 1}</div>
+                  <div className="flex gap-1 mt-1.5">
+                    <button
+                      onClick={() => onChange({ ...config, mode: KEY_MODE.KEYBOARD, modifier: 0, keyCode: singleCode })}
+                      className={singleCls}>
+                      F{i + 13}
+                    </button>
+                    <button
+                      onClick={() => onChange({ ...config, mode: KEY_MODE.KEYBOARD, modifier: comboMod, keyCode: comboCode })}
+                      title={t('部分蓝牙模块不识别 F13~F24，用这组组合键替代')}
+                      className={comboCls}>
+                      C+S+A+F{i + 1}
+                    </button>
+                  </div>
+                  <div className="text-[10px] mt-1.5 truncate text-center px-1">
+                    {name
+                      ? <span className="text-emerald-600 font-semibold" title={name}>⚡ {name}</span>
                       : <span className="text-gray-300">{t('未配置')}</span>}
                   </div>
+                </div>
+              );
+            })}
+          </div>
 
-          {/* 方式二：Ctrl+Shift+Alt+F1~F12 —— 部分蓝牙模块不识别 F13~F24，用组合键绕过 */}
-          <div className="text-xs text-gray-500 mt-4 mb-2">
-            {t('方式二：Ctrl+Shift+Alt+F1~F12（蓝牙款不识别 F13 时用这组）')}
-          </div>
-          <div className="grid grid-cols-4 gap-2">
-            {Array.from({ length: 12 }, (_, i) => {
-              // Ctrl(0x01) + Shift(0x02) + Alt(0x04) + F1..F12(0x3A..0x45)
-              const code = 0x3A + i;
-              const mod = 0x01 | 0x02 | 0x04;
-              const isSel = config.keyCode === code && (config.modifier || 0) === mod;
-              return (
-                <button key={'alt' + i}
-                  onClick={() => { onChange({ ...config, mode: KEY_MODE.KEYBOARD, modifier: mod, keyCode: code }); }}
-                  className={`py-3 rounded-xl border-2 transition-all cursor-pointer ${
-                    isSel ? 'border-indigo-500 bg-indigo-50 shadow-sm' : 'border-gray-200 bg-white hover:border-indigo-300'
-                  }`}>
-                  <div className={`text-sm font-bold ${isSel ? 'text-indigo-700' : 'text-gray-700'}`}>{t('动作')} {i + 1}</div>
-                  <div className="text-[10px] text-gray-400 mt-0.5">Ctrl+Shift+Alt+F{i + 1}</div>
-                  <div className="text-[10px] mt-1 truncate px-1">
-                    {actionNames[i + 13]
-                      ? <span className="text-emerald-600 font-semibold" title={actionNames[i + 13]}>⚡ {actionNames[i + 13]}</span>
-                      : <span className="text-gray-300">{t('未配置')}</span>}
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-                </button>
-              );
-            })}
+          <div className="mt-2 text-[11px] text-gray-500 leading-relaxed">
+            {t('每格两种触发方式：')}
+            <b>F13~F24</b>
+            {t('（多数款式）或 ')}
+            <b>C+S+A+F1~F12</b>
+            {t('（= Ctrl+Shift+Alt，蓝牙模块不识别 F13~F24 时用这组）。两种都能触发同一个动作，桌面版会同时监听。')}
           </div>
           <div className="mt-3 p-2.5 rounded-lg bg-amber-50 border border-amber-200 text-xs text-amber-800 leading-relaxed">
             ⚠️ {t('需要桌面版在后台运行才生效；否则按下只会发出 F13~F24（多数软件没有反应）。')}
