@@ -876,16 +876,26 @@ export class NewProtocolHandler {
     console.log(`[NewProto] 逐键读取 ${totalActions} 个动作 (layer=${layer})...`);
     for (let i = 0; i < totalActions; i++) {
       try {
-        console.log(`[NewProto] >>> 发送 READ_KEY: layer=${layer} keyIdx=${i}`);
-        await this._sendPacket(CMD.READ_KEY, layer, i, []);
-        // 精确匹配: cmd + layer + keyIdx
-        // 注意: 宏按键设备可能直接返回 READ_MACRO (cmd=0x08) 而非 READ_KEY (cmd=0x03)
-        const body = await this._waitFor(b => {
-          if (b[0] === CMD.READ_KEY && b[1] === layer && b[2] === i) return true;
-          if (b[0] === CMD.READ_MACRO && b[1] === layer && b[2] === i) return true;
-          if (b[0] === CMD.NAK && b[1] === layer) return true;
-          return false;
-        }, 1500);
+        // 逐键读取带重试：设备刚插上时偶尔会超时，之前直接吞掉导致"按键空掉"
+        let body = null;
+        let lastErr = null;
+        for (let attempt = 1; attempt <= 3; attempt += 1) {
+          try {
+            await this._sendPacket(CMD.READ_KEY, layer, i, []);
+            body = await this._waitFor(b => {
+              if (b[0] === CMD.READ_KEY && b[1] === layer && b[2] === i) return true;
+              if (b[0] === CMD.READ_MACRO && b[1] === layer && b[2] === i) return true;
+              if (b[0] === CMD.NAK && b[1] === layer) return true;
+              return false;
+            }, 1500);
+            break;
+          } catch (err) {
+            lastErr = err;
+            console.warn('[NewProto] 键' + i + ' 读取超时(第' + attempt + '/3 次)' + (attempt < 3 ? ', 重试…' : ''));
+            if (attempt < 3) await new Promise(r => setTimeout(r, 150));
+          }
+        }
+        if (!body) throw lastErr || new Error('读取超时');
 
         const bodyHex = Array.from(body.slice(0, Math.min(body.length, 20))).map(b => b.toString(16).padStart(2, '0')).join(' ');
         console.log(`[NewProto] <<< 键${i} 原始响应 [${body.length}B]: ${bodyHex}`);
@@ -1015,7 +1025,12 @@ export class NewProtocolHandler {
         console.warn(`[NewProto] 键${i} 读取超时:`, e.message);
       }
     }
-    console.log('[NewProto] 逐键读取完成, configs:', configs.map((c, i) => `K${i + 1}:mode=${c.mode}`).join(', '));
+    const emptyKeys = configs.map((c2, i2) => (!c2 || !c2.mode ? i2 + 1 : 0)).filter(Boolean);
+    console.log('[NewProto] 逐键读取完成, configs:', configs.map((c2, i) => `K${i + 1}:mode=${c2.mode}`).join(', '));
+    if (emptyKeys.length) {
+      console.warn('[NewProto] 注意: 层' + (layer + 1) + ' 有 ' + emptyKeys.length + ' 个键读出来是空的 -> 键' + emptyKeys.join(', 键') +
+        '（可能是设备里本来就没配，也可能是读取超时；日志上方有"读取超时/NAK"字样可区分）');
+    }
     return configs;
   }
 
