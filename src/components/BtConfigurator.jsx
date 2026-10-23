@@ -91,6 +91,8 @@ export default function BtConfigurator() {
   // 层数覆盖按「型号 + 键数/旋钮数」分开记，避免把 6 键款的 3 层设置串到 4+1 款上
   const layerKey = `bt-layer-mode:${modelId || 'bt'}-${keyCount}k${knobCount}r`;
   const [layerOverride, setLayerOverride] = useState(null); // null=跟随自动, 1/3=人工指定
+  // 单键/小键数蓝牙款也可能有 3 层，0xFB 不返回层数，只能连上后去设备上试读探测
+  const [detectedLayers, setDetectedLayers] = useState(null);
   useEffect(() => {
     try {
       const v = Number(localStorage.getItem(layerKey));
@@ -99,7 +101,7 @@ export default function BtConfigurator() {
   }, [layerKey]);
   // 只有"自动判定支持多层"的型号才允许人工覆盖；2/3/4/5 键和 4+1 一律固定 1 层，
   // 免得之前测试时点过「3 层」的旧值残留在 localStorage 里又冒出来。
-  const btLayerCount = autoLayerCount > 1 ? (layerOverride ?? autoLayerCount) : 1;
+  const btLayerCount = autoLayerCount > 1 ? (layerOverride ?? autoLayerCount) : (detectedLayers ?? 1);
   const [showLayerAdvanced, setShowLayerAdvanced] = useState(false);
   // 旋钮左右对调：个别固件把「左/右转」的存储顺序装反了，给客户一个一键纠正的开关。
   // 映射是自逆的（再调一次就还原），读写两侧用同一个函数即可。
@@ -260,6 +262,30 @@ export default function BtConfigurator() {
     updateConfig({ mode: MODE.KEY, modifierMask: mask });
   };
 
+  // 探测真实层数：蓝牙 0xFB 不返回层数，只能试读第 2/3 层。
+  // 结果按「型号+键数+旋钮数」缓存，避免每次连接都多等两秒。
+  const probeLayerCount = async (handler) => {
+    const cacheKey = `bt-layer-probe:${modelId || 'bt'}-${keyCount}k${knobCount}r`;
+    try {
+      const cached = Number(localStorage.getItem(cacheKey));
+      if (cached === 1 || cached === 2 || cached === 3) return cached;
+    } catch { /* 忽略 */ }
+    let count = 1;
+    for (const l of [1, 2]) {
+      try {
+        const cfgs = await handler.readLayer(l, totalSlots);
+        if (!Array.isArray(cfgs)) break;
+        count = l + 1;
+      } catch (e) {
+        console.log('[BtProto] 探测层' + (l + 1) + '：读不到，判定该层不存在 —', e.message);
+        break;
+      }
+    }
+    try { localStorage.setItem(cacheKey, String(count)); } catch { /* 忽略 */ }
+    console.log('[BtProto] 探测到层数 =', count, '（型号', modelId || 'bt', keyCount + 'k' + knobCount + 'r）');
+    return count;
+  };
+
   // ---- 读取配置 ----
   const handleReadConfig = async () => {
     if (readingRef.current) return;
@@ -269,8 +295,15 @@ export default function BtConfigurator() {
     try {
       const handler = getNewHandler();
       if (!handler) throw new Error('Protocol handler not available');
+      // 自动判 1 层时先探测：单键/小键数款也可能有 3 层
+      let layerCount = btLayerCount;
+      if (autoLayerCount === 1 && detectedLayers === null) {
+        layerCount = await probeLayerCount(handler);
+        setDetectedLayers(layerCount);
+        if (layerCount > 1) toast.success(t('检测到该型号有 {n} 层配置', { n: layerCount }), { id: 'bt-layers' });
+      }
       const allLayers = [];
-      for (let l = 0; l < btLayerCount; l++) {
+      for (let l = 0; l < layerCount; l++) {
         const configs = await handler.readLayer(l, totalSlots);
         // 补齐到 totalSlots 长度，并按 mapSlot 把设备槽位映射回界面槽位（旋钮左右对调时有用）
         // 诊断：客户反馈"左右还是反"时，这一行能直接看出对调是否生效
@@ -288,7 +321,7 @@ export default function BtConfigurator() {
       setSelectedKey(0);
       // 读灯光 (V10 支持回读)
       const ledAll = [];
-      for (let l = 0; l < btLayerCount; l++) {
+      for (let l = 0; l < layerCount; l++) {
         const led = await handler.readLedLayer(l);
         ledAll.push(led);
       }
