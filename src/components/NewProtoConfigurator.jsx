@@ -537,15 +537,48 @@ export default function NewProtoConfigurator() {
   };
 
   // ---- 切换层 (从缓存中切换，不读取键盘) ----
-  const handleLayerChange = (newLayer) => {
+  // ---- 切换层 ----
+  // 正常情况下从缓存切；但如果缓存里这层是空的（读取超时/没读到），
+  // 就主动从键盘补读一次 —— 之前只能靠"切来切去碰运气"才显示出来。
+  const layerSwitchRef = useRef(0);
+  const handleLayerChange = async (newLayer) => {
     if (newLayer === currentLayer) return;
+    layerSwitchRef.current += 1;
+    const token = layerSwitchRef.current;
     setCurrentLayer(newLayer);
-    if (allLayerConfigsRef.current[newLayer]) {
-      setKeyConfigs(allLayerConfigsRef.current[newLayer]);
-    } else {
-      setKeyConfigs(createDefaultConfig(keyCount));
-    }
     setSelectedKey(0);
+
+    const cachedLayer = allLayerConfigsRef.current[newLayer];
+    const looksEmpty = !cachedLayer || cachedLayer.every((c) => !c || !c.mode);
+    if (!looksEmpty) {
+      setKeyConfigs(cachedLayer);
+      return;
+    }
+
+    setKeyConfigs(createDefaultConfig(keyCount));
+    const handler = getNewHandler();
+    if (!handler) return;
+    try {
+      setLoading(true);
+      setLoadingAction('read');
+      toast.loading(t('正在读取第{layer}层...', { layer: newLayer + 1 }), { id: 'layer-read' });
+      const configs = await handler.readLayer(newLayer, keyCount);
+      const padded = Array.from({ length: keyCount }, (_, i) => configs[i] || createDefaultConfig(1)[0]);
+      const cache = [...allLayerConfigsRef.current];
+      cache[newLayer] = padded;
+      allLayerConfigsRef.current = cache;
+      // 期间用户可能又切走了，只有仍停在这一层才更新界面
+      if (layerSwitchRef.current === token) setKeyConfigs(padded);
+      const filled = padded.filter((c) => c && c.mode).length;
+      console.log('[NewProto] 切换层补读 层' + (newLayer + 1) + ': ' + filled + '/' + keyCount + ' 键有内容');
+      toast.dismiss('layer-read');
+    } catch (err) {
+      console.warn('[NewProto] 切换层补读失败 层' + (newLayer + 1) + ':', err.message);
+      toast.error(t('第{layer}层读取失败：{msg}，可点「读取键盘配置」重试', { layer: newLayer + 1, msg: err.message }), { id: 'layer-read', duration: 8000 });
+    } finally {
+      setLoading(false);
+      setLoadingAction('');
+    }
   };
 
   // ---- 灯光读取/保存 ----
