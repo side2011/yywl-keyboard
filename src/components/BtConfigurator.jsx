@@ -323,11 +323,18 @@ export default function BtConfigurator() {
       setKeyConfigs(allLayers[0]);
       setCurrentLayer(0);
       setSelectedKey(0);
-      // 读灯光 (V10 支持回读)
+      // 读灯光 (V10 支持回读)；无灯款跳过，避免白等和报错
       const ledAll = [];
-      for (let l = 0; l < layerCount; l++) {
-        const led = await handler.readLedLayer(l);
-        ledAll.push(led);
+      if (hasLighting) {
+        for (let l = 0; l < layerCount; l++) {
+          try {
+            const led = await handler.readLedLayer(l);
+            ledAll.push(led);
+          } catch (e) {
+            console.warn('[BtProto] 读灯光失败(层' + (l + 1) + '):', e.message);
+            ledAll.push({ mode: 0, colors: null });
+          }
+        }
       }
       ledCacheRef.current = ledAll;
       setLedCache(ledAll);
@@ -396,8 +403,14 @@ export default function BtConfigurator() {
       const ledAll = [...ledCacheRef.current];
       ledAll[currentLayer] = { mode: ledMode, colors: ledColors };
       ledCacheRef.current = ledAll;
-      for (let l = 0; l < btLayerCount; l++) {
-        await handler.writeLedLayer(l, ledAll[l]?.mode ?? 0, ledAll[l]?.colors || ledColors);
+      if (hasLighting) {
+        for (let l = 0; l < btLayerCount; l++) {
+          try {
+            await handler.writeLedLayer(l, ledAll[l]?.mode ?? 0, ledAll[l]?.colors || ledColors);
+          } catch (e) {
+            console.warn('[BtProto] 写灯光失败(层' + (l + 1) + '):', e.message);
+          }
+        }
       }
 
       // ---- 保存后校验：读回来比对，别让"悄悄丢配置"蒙混过关 ----
@@ -574,7 +587,10 @@ export default function BtConfigurator() {
   };
 
   // 灯光作为右侧的一个"选项卡", 不再堆在左栏最底部(小屏会看不到)
-  const LED_TAB = 'led';
+  // 无灯光型号：单键蓝牙款、6 键蓝牙款（客户实测无灯珠，显示灯光页会误导）
+  const BT_NO_LED_KEYCOUNTS = [1, 6];
+  const hasLighting = !BT_NO_LED_KEYCOUNTS.includes(keyCount);
+    const LED_TAB = 'led';
   const EXT_TAB = 'ext';
   const tabs = [
     { label: t('键盘'), mode: MODE.KEY },
@@ -582,7 +598,7 @@ export default function BtConfigurator() {
     { label: t('多媒体'), mode: MODE.MEDIA },
     { label: t('延时'), mode: MODE.DELAY },
     { label: t('扩展'), mode: EXT_TAB },
-    { label: t('灯光'), mode: LED_TAB },
+    ...(hasLighting ? [{ label: t('灯光'), mode: LED_TAB }] : []),
   ];
 
   const isConnected = !!device;
