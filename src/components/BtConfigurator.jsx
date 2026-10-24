@@ -381,6 +381,23 @@ export default function BtConfigurator() {
       const cached = [...layerConfigsRef.current];
       cached[currentLayer] = keyConfigs;
       layerConfigsRef.current = cached;
+
+      // 不支持的手势动作（6+2 款的划屏/点赞）在写之前先清成"未设置"，
+      // 否则设备会整层拒写，最后表现为"12 个按键没写进键盘"。
+      let unsupportedCount = 0;
+      if (!supportsMouseGesture) {
+        const fixed = cached.map((layer) => (layer || []).map((cfg) => {
+          const isGesture = cfg && cfg.mode === MODE.MOUSE && (cfg.mouse?.behavior || 0) === 0x04;
+          if (!isGesture) return cfg;
+          unsupportedCount += 1;
+          return createDefaultConfig();
+        }));
+        for (let li = 0; li < fixed.length; li += 1) cached[li] = fixed[li];
+        layerConfigsRef.current = cached;
+        if (unsupportedCount) {
+          toast(t('{n} 个按键用了本机型不支持的鼠标手势，已改为「未设置」', { n: unsupportedCount }), { id: 'bt-save-unsupported', duration: 6000 });
+        }
+      }
       // 逐层写所有键
       // 15ms 对某些蓝牙固件太急，后面几层会出现"发了但没生效"——客户反馈的
       // "第二层没保存上"很可能就是这个。改成 40ms，并且旧协议每写完一层就确认一次。
@@ -597,7 +614,12 @@ export default function BtConfigurator() {
   // 无灯光型号：单键蓝牙款、6 键蓝牙款（客户实测无灯珠，显示灯光页会误导）
   const BT_NO_LED_KEYCOUNTS = [1, 6];
   const hasLighting = !BT_NO_LED_KEYCOUNTS.includes(keyCount);
-    const LED_TAB = 'led';
+    // 6+2 款协议未实现「划屏 / 抖音点赞」这类鼠标手势（behavior=0x04），
+  // 客户选这些动作保存会整层写失败（校验报『没写进键盘』），所以直接不显示。
+  const supportsMouseGesture = knobCount !== 2;
+  const mouseActions = BT_MOUSE_ACTIONS.filter((a) => supportsMouseGesture || a.behavior !== 0x04);
+
+  const LED_TAB = 'led';
   const EXT_TAB = 'ext';
   const tabs = [
     { label: t('键盘'), mode: MODE.KEY },
@@ -972,8 +994,13 @@ export default function BtConfigurator() {
             {activeTab === MODE.MOUSE && (
               <div>
                 <label className="text-base font-bold text-gray-700 mb-3 block">{t('选择鼠标动作')}</label>
+                {!supportsMouseGesture && (
+                  <div className="mb-3 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 leading-relaxed">
+                    {t('本机型（6+2 旋钮款）协议不支持「划屏 / 抖音点赞」这类手势动作，已隐藏；选了会导致整层保存失败。')}
+                  </div>
+                )}
                 <div className="grid grid-cols-4 gap-3">
-                  {BT_MOUSE_ACTIONS.map((ma) => {
+                  {mouseActions.map((ma) => {
                     const isSel = currentConfig.mouse &&
                       currentConfig.mouse.behavior === ma.behavior &&
                       currentConfig.mouse.mod === ma.mod &&
