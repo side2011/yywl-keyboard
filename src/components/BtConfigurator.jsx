@@ -83,10 +83,17 @@ export default function BtConfigurator() {
   const totalSlots = keyCount + knobCount * 3; // 每个旋钮占 3 个槽位 (左/中/右)
   // 层数：由系统按型号自动决定，客户不需要判断。
   //   固件版本号不可靠（实测 2/3/4/5 键报的版本号反而更高，6 键反而更低），
-  //   所以按「键数」查表：已知 6 键蓝牙款支持 3 层，其余 1 层。
-  //   只有极少数特殊情况才需要人工干预 —— 那个入口收在「固件信息」面板里。
-  const AUTO_LAYERS = { 6: 3 };
-  const autoLayerCount = AUTO_LAYERS[keyCount] || 1;
+  //   所以按「键数」查表（2026-10 客户确认的清单）：
+  //     有 3 层：单键 / 6 键（含 6+1、6+2 旋钮）/ 9 键 / 16 键
+  //     只有 1 层：2 / 3 / 4 / 5 键（含 4+1），其它款式暂时也按 1 层
+  //   新增型号由客户告知后再补进这张表；表里没有的键数才去设备上探测。
+  const BT_3LAYER_KEYCOUNTS = [1, 6, 9, 16];
+  const BT_1LAYER_KEYCOUNTS = [2, 3, 4, 5];
+  const autoLayerCount = BT_3LAYER_KEYCOUNTS.includes(keyCount)
+    ? 3
+    : (BT_1LAYER_KEYCOUNTS.includes(keyCount) ? 1 : 1);
+  // 表里没登记的键数（未来新款）才需要连上后探测
+  const layerKnown = BT_3LAYER_KEYCOUNTS.includes(keyCount) || BT_1LAYER_KEYCOUNTS.includes(keyCount);
 
   // 层数覆盖按「型号 + 键数/旋钮数」分开记，避免把 6 键款的 3 层设置串到 4+1 款上
   const layerKey = `bt-layer-mode:${modelId || 'bt'}-${keyCount}k${knobCount}r`;
@@ -301,7 +308,7 @@ export default function BtConfigurator() {
       if (!handler) throw new Error('Protocol handler not available');
       // 自动判 1 层时先探测：单键/小键数款也可能有 3 层
       let layerCount = btLayerCount;
-      if (autoLayerCount === 1 && detectedLayers === null) {
+      if (!layerKnown && autoLayerCount === 1 && detectedLayers === null) {
         layerCount = await probeLayerCount(handler);
         setDetectedLayers(layerCount);
         if (layerCount > 1) toast.success(t('检测到该型号有 {n} 层配置', { n: layerCount }), { id: 'bt-layers' });
