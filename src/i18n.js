@@ -37,6 +37,8 @@ const en = {
   '断开连接': 'Disconnect',
   '找不到设备？列出全部同厂设备': "Can't find your device? List all vendor devices",
   '再看一次连接提示': 'Show the connection guide again',
+  '{n} 个按键用了本机型不支持的鼠标手势，已改为「未设置」': '{n} key(s) used an unsupported mouse gesture; reset to Not set',
+  '本机型（6+2 旋钮款）协议不支持「划屏 / 抖音点赞」这类手势动作，已隐藏；选了会导致整层保存失败。': 'This model (6+2 knobs) does not support swipe/Douyin-like gestures; they are hidden because saving would fail.',
   '方式一：单键 F13~F24（多数款式可用）': 'Option 1: single key F13~F24 (works on most models)',
   '方式二：Ctrl+Shift+Alt+F1~F12（蓝牙款不识别 F13 时用这组）': 'Option 2: Ctrl+Shift+Alt+F1~F12 (use this when the Bluetooth module ignores F13)',
   '恢复只显示小键盘设备': 'Back to keypad-only list',
