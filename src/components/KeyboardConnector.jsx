@@ -47,6 +47,9 @@ async function hasKnownKeyboardOnline() {
 function KeyboardConnector() {
   const { t, lang, toggleLang } = useLang();
   const [connecting, setConnecting] = useState(false);
+  // 设备选择框已弹出、正在等客户选中 —— 这时按钮不能只写「连接中」
+  // （客户会以为程序在自己连，不知道要去弹框里选设备）
+  const [awaitingPick, setAwaitingPick] = useState(false);
   const [newProtoReady, setNewProtoReady] = useState(false); // 新协议设备信息已就绪
   const [readingInfo, setReadingInfo] = useState(false); // 已连接, 正在读取设备信息 (显示进度提示)
   const [wideMode, setWideMode] = useState(false); // 宽松匹配: 只按 VID 过滤 (新型号 PID 未登记时的兜底)
@@ -192,7 +195,10 @@ function KeyboardConnector() {
       if (!navigator.hid) { alert(t('请使用 Chrome 或 Edge 浏览器打开本页面。')); setConnecting(false); return; }
       const filters = wideMode ? VENDOR_FALLBACK_FILTERS : ALL_DEVICE_FILTERS;
       if (wideMode) console.log('[KeyboardConnector] 宽松匹配模式: 仅按 VID 过滤');
+      setAwaitingPick(true);
+      toast(t('已打开设备选择窗口：选中你的键盘 → 点【连接】'), { id: 'hid-picking', duration: 8000 });
       const devices = await navigator.hid.requestDevice({ filters });
+      setAwaitingPick(false);
       if (devices.length === 0) {
         // requestDevice 返回空有两种情况:
         // 1) 用户主动取消选择框 (键盘在线) → 温和提示, 不报错
@@ -534,7 +540,7 @@ function KeyboardConnector() {
       // 某些浏览器（如微信浏览器）navigator.hid 可能存在但实际不可用
       setFailCount(c => c + 1);
       toast.error(t('连接失败，请使用 Chrome 或 Edge 浏览器打开本页面。'), { id: 'hid-connect-fail' });
-    } finally { setConnecting(false); setReadingInfo(false); }
+    } finally { setConnecting(false); setAwaitingPick(false); setReadingInfo(false); }
   };
 
   const handleDisconnect = async () => { await disconnectDevice(); toast.success(t('设备已断开')); };
@@ -677,15 +683,24 @@ function KeyboardConnector() {
                 <>
                 <button onClick={handleConnectClick} disabled={connecting}
                   className={`w-full py-3.5 rounded-xl text-base font-semibold text-white transition-all cursor-pointer ${
-                    connecting ? 'bg-indigo-300 cursor-wait' : 'bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 shadow-lg shadow-indigo-200/50 active:scale-[0.98]'
+                    awaitingPick
+                      ? 'bg-amber-500 animate-pulse cursor-wait'
+                      : (connecting ? 'bg-indigo-300 cursor-wait' : 'bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 shadow-lg shadow-indigo-200/50 active:scale-[0.98]')
                   }`}>
-                  {connecting ? (
-                    <span className="flex items-center justify-center gap-2">
-                      <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
-                      {t('连接中...')}
-                    </span>
-                  ) : t('连接键盘')}
+                  {awaitingPick
+                    ? t('请在弹窗里选中设备，再点【连接】')
+                    : (connecting ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+                        {t('连接中...')}
+                      </span>
+                    ) : t('连接键盘'))}
                 </button>
+                {awaitingPick && (
+                  <p className="mt-2 text-center text-xs font-semibold text-amber-600 leading-relaxed">
+                    {t('设备选择窗口已打开（可能被压在浏览器窗口后面）：点一下设备 → 再点【连接】')}
+                  </p>
+                )}
                 </>
               )}
 
