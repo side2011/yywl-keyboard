@@ -37,6 +37,8 @@ const en = {
   '断开连接': 'Disconnect',
   '找不到设备？列出全部同厂设备': "Can't find your device? List all vendor devices",
   '再看一次连接提示': 'Show the connection guide again',
+  '这个键之后等': 'Wait after this key',
+  '（0 = 不等待，按键连发；对应 QT 延时页每格的数值）': '(0 = no wait, keys fire back-to-back; same as the QT delay page per slot)',
   '已忽略 {n} 个没选键的多键槽位': 'Ignored {n} multi-key slot(s) without a key selected',
   '多键合一（最多 18 个槽位，按顺序依次触发；每个键位和每个修饰键各占 1 个）': 'Multi-key (max 18 slots, triggered in order; each key and each modifier takes 1 slot)',
   '已用 {used}/18 槽位': '{used}/18 slots used',
