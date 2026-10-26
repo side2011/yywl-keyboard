@@ -151,6 +151,20 @@ export default function BtConfigurator() {
   const [actionNames, setActionNames] = useState({});
   useEffect(() => { fetchActionSummary().then((s) => setActionNames(toSlotMap(s))); }, []);
   const [activeTab, setActiveTab] = useState(1); // 1=键盘 2=多媒体 3=鼠标 5=延时
+
+  // 选中按键 / 切层时，选项卡跟着该按键的模式走
+  // （客户配了多键合一，点回这个键却停在"键盘"页，会以为没设置）
+  useEffect(() => {
+    const cfg = keyConfigs[selectedKey];
+    const m = cfg?.mode || 0;
+    if (m === MODE.KEY) setActiveTab(MODE.KEY);
+    else if (m === MODE.MEDIA) setActiveTab(MODE.MEDIA);
+    else if (m === MODE.MOUSE) setActiveTab(MODE.MOUSE);
+    else if (m === MODE.MULTI) setActiveTab(MODE.MULTI);
+    else if (m === MODE.DELAY) setActiveTab(MODE.DELAY);
+    else setActiveTab(MODE.KEY);
+    // 只依赖"选中哪个键/哪一层"，用户手动切 tab 时不要被拉回来
+  }, [selectedKey, currentLayer]);
   const [loading, setLoading] = useState(false);
   const [ledMode, setLedMode] = useState(0);
   const [ledColors, setLedColors] = useState(() => Array.from({ length: 16 }, () => ({ r: 255, g: 255, b: 255 })));
