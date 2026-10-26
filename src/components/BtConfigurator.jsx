@@ -154,17 +154,18 @@ export default function BtConfigurator() {
 
   // 选中按键 / 切层时，选项卡跟着该按键的模式走
   // （客户配了多键合一，点回这个键却停在"键盘"页，会以为没设置）
+  // 依赖里带上"当前键的模式"：首次读取配置后 selectedKey 没变，
+  // 只靠 [selectedKey, currentLayer] 不会触发，客户看到选项卡停在键盘页。
+  const selectedKeyMode = keyConfigs[selectedKey]?.mode || 0;
   useEffect(() => {
-    const cfg = keyConfigs[selectedKey];
-    const m = cfg?.mode || 0;
+    const m = selectedKeyMode;
     if (m === MODE.KEY) setActiveTab(MODE.KEY);
     else if (m === MODE.MEDIA) setActiveTab(MODE.MEDIA);
     else if (m === MODE.MOUSE) setActiveTab(MODE.MOUSE);
     else if (m === MODE.MULTI) setActiveTab(MODE.MULTI);
     else if (m === MODE.DELAY) setActiveTab(MODE.DELAY);
     else setActiveTab(MODE.KEY);
-    // 只依赖"选中哪个键/哪一层"，用户手动切 tab 时不要被拉回来
-  }, [selectedKey, currentLayer]);
+  }, [selectedKey, currentLayer, selectedKeyMode]);
   const [loading, setLoading] = useState(false);
   const [ledMode, setLedMode] = useState(0);
   const [ledColors, setLedColors] = useState(() => Array.from({ length: 16 }, () => ({ r: 255, g: 255, b: 255 })));
@@ -439,6 +440,25 @@ export default function BtConfigurator() {
       const cached = [...layerConfigsRef.current];
       cached[currentLayer] = keyConfigs;
       layerConfigsRef.current = cached;
+
+      // 多键合一里"添加了但没选键"的空槽位：直接丢掉，全空就当未设置清掉，
+      // 否则会写成空组 → 回读校验不一致 → 客户看到"有 1 个按键没写进键盘"。
+      let droppedEmptyMulti = 0;
+      {
+        const fixedMulti = cached.map((layer) => (layer || []).map((cfg) => {
+          if (!cfg || cfg.mode !== MODE.MULTI) return cfg;
+          const list = Array.isArray(cfg.multiKeys) ? cfg.multiKeys : [];
+          const kept = list.filter((mk) => mk && mk.keyCode);
+          droppedEmptyMulti += list.length - kept.length;
+          if (!kept.length) return createDefaultConfig();
+          return { ...cfg, multiKeys: kept };
+        }));
+        for (let li = 0; li < fixedMulti.length; li += 1) cached[li] = fixedMulti[li];
+        layerConfigsRef.current = cached;
+        if (droppedEmptyMulti) {
+          toast(t('已忽略 {n} 个没选键的多键槽位', { n: droppedEmptyMulti }), { id: 'bt-multi-empty', duration: 5000 });
+        }
+      }
 
       // 不支持的手势动作（6+2 款的划屏/点赞）在写之前先清成"未设置"，
       // 否则设备会整层拒写，最后表现为"12 个按键没写进键盘"。
