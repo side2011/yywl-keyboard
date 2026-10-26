@@ -551,6 +551,24 @@ function KeyboardConnector() {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-6">
+      {/* 方案A：设备选择框打开时盖一层遮罩，别让客户以为"程序在自己连" */}
+      {awaitingPick && (
+        <div className="yy-pick-mask" role="alertdialog" aria-live="assertive"
+          aria-label={lang === 'en' ? 'Select your device in the dialog' : '请在弹出的窗口中选择设备'}>
+          <div className="yy-pick-box">
+            <div className="yy-pick-emoji">👇</div>
+            <div className="yy-pick-title">
+              {lang === 'en' ? 'Select your device in the pop-up window' : '请在弹出的窗口中选择设备'}
+            </div>
+            <div className="yy-pick-sub">
+              {lang === 'en'
+                ? 'Click your keypad in the list, then click Connect. The window may be behind the browser.'
+                : '在列表里点一下你的键盘，再点【连接】。窗口可能被压在浏览器后面。'}
+            </div>
+            <div className="yy-pick-dots"><i /><i /><i /></div>
+          </div>
+        </div>
+      )}
       <ConnectGuideModal
         open={guideOpen}
         lang={lang}
