@@ -133,6 +133,29 @@ function createExecutor(deps, opts = {}) {
 
   // ---- 平台输入实现 ----
 
+  // Windows 输入事件走常驻 PowerShell 代理：
+  // 原来每次按键都 spawn 一个 powershell 并现场编译 C#，单次约 1000ms；
+  // 常驻后首次 ~900ms（只一次），之后每次 1~50ms。
+  let psWorker = null;
+  const getPsWorker = () => {
+    if (platform !== 'win32') return null;
+    if (!psWorker) psWorker = new PowerShellWorker();
+    return psWorker;
+  };
+  const runWin32Input = async (psLines) => {
+    const w = getPsWorker();
+    if (w) {
+      try {
+        await w.exec(psLines);
+        return;
+      } catch (e) {
+        // 代理异常就退回老路，保证功能不丢
+        console.warn('[actions] PowerShell 代理失败，退回单次 spawn:', e.message);
+      }
+    }
+    await run('powershell', ['-NoProfile', '-NonInteractive', '-Command', psLines]);
+  };
+
   async function sendKeys(keys) {
     if (!Array.isArray(keys) || !keys.length) throw new Error('keyPress 缺少 keys');
     if (platform === 'win32') {
@@ -143,23 +166,16 @@ function createExecutor(deps, opts = {}) {
         const mods = vks.slice(0, -1);
         const main = vks[vks.length - 1];
         const lines = [
-          'Add-Type -TypeDefinition @"',
-          'using System;',
-          'using System.Runtime.InteropServices;',
-          'public class YywlSend {',
-          '  [DllImport("user32.dll")] public static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, IntPtr dwExtraInfo);',
-          '}',
-          '"@',
           ...mods.map((v) => `[YywlSend]::keybd_event(${v}, 0, 0, [IntPtr]::Zero)`),
-          ...mods.map(() => 'Start-Sleep -Milliseconds 15'),
+          ...mods.map(() => 'Start-Sleep -Milliseconds 8'),
           `[YywlSend]::keybd_event(${main}, 0, 0, [IntPtr]::Zero)`,
-          'Start-Sleep -Milliseconds 25',
+          'Start-Sleep -Milliseconds 12',
           `[YywlSend]::keybd_event(${main}, 0, 2, [IntPtr]::Zero)`,
-          'Start-Sleep -Milliseconds 15',
+          'Start-Sleep -Milliseconds 8',
           ...[...mods].reverse().map((v) => `[YywlSend]::keybd_event(${v}, 0, 2, [IntPtr]::Zero)`),
         ];
         if (dryRun) { commands.push({ file: 'keybd_event-seq', args: vks }); return; }
-        await run('powershell', ['-NoProfile', '-NonInteractive', '-Command', lines.join('\n')]);
+        await runWin32Input(lines.join('\n'));
         return;
       }
       // 有 keyToVk 不认识的键（标点等）→ 退回 SendKeys
@@ -188,23 +204,15 @@ function createExecutor(deps, opts = {}) {
     if (platform === 'win32') {
       const btn = button === 'right' ? '0x0008' : button === 'middle' ? '0x0020' : '0x0002';
       const up = button === 'right' ? '0x0010' : button === 'middle' ? '0x0040' : '0x0004';
+      if (dryRun) { commands.push({ file: 'mouse_event-seq', args: [x, y, btn, up] }); return; }
       const ps = `
-Add-Type -AssemblyName System.Windows.Forms
-Add-Type -TypeDefinition @"
-using System;
-using System.Runtime.InteropServices;
-public class YywlMouse {
-  [DllImport("user32.dll")] public static extern bool SetCursorPos(int x, int y);
-  [DllImport("user32.dll")] public static extern void mouse_event(uint f, uint dx, uint dy, uint d, int e);
-}
-"@
-[YywlMouse]::SetCursorPos(${Math.round(x)}, ${Math.round(y)}) | Out-Null
-Start-Sleep -Milliseconds 60
-[YywlMouse]::mouse_event(${btn}, 0, 0, 0, 0)
-Start-Sleep -Milliseconds 40
-[YywlMouse]::mouse_event(${up}, 0, 0, 0, 0)`;
-      await run('powershell', ['-NoProfile', '-NonInteractive', '-Command', ps]);
-      return;
+[YywlSend]::SetCursorPos(${Math.round(x)}, ${Math.round(y)}) | Out-Null
+Start-Sleep -Milliseconds 10
+[YywlSend]::mouse_event(${btn}, 0, 0, 0, 0)
+Start-Sleep -Milliseconds 8
+[YywlSend]::mouse_event(${up}, 0, 0, 0, 0)`;
+      await runWin32Input(ps);
+      return;turn;
     }
     if (platform === 'darwin') {
       // 优先用 cliclick (brew install cliclick), 没有则给出明确指引
@@ -226,7 +234,7 @@ Start-Sleep -Milliseconds 40
       if (!img || img.isEmpty()) throw new Error(`无法读取图片: ${imagePath}`);
       deps.clipboard.writeImage(img);
     }
-    await new Promise((r) => setTimeout(r, 120)); // 等剪贴板写入
+    await new Promise((r) => setTimeout(r, 15)); // Electron 剪贴板是同步写入，给 15ms 足够
     await pasteFromClipboard();
   }
 
@@ -234,7 +242,8 @@ Start-Sleep -Milliseconds 40
     if (typeof text !== 'string' || !text) throw new Error('pasteText 缺少文本');
     if (dryRun) commands.push({ file: 'clipboard.writeText', args: [text.slice(0, 40)] });
     else deps.clipboard.writeText(text);
-    await new Promise((r) => setTimeout(r, 120));
+    // Electron 的剪贴板写入是同步的，这里只留一点点余量（原来是 120ms）
+    await new Promise((r) => setTimeout(r, 15));
     await pasteFromClipboard();
   }
 
@@ -528,8 +537,8 @@ Write-Output ("{0},{1}" -f $p.X, $p.Y)`;
     if (dryRun) { commands.push({ file: 'keybd_event', args: [vk, down ? 'down' : 'up'] }); return; }
 
     if (platform === 'win32') {
-      const ps = `Add-Type -TypeDefinition @"\nusing System;\nusing System.Runtime.InteropServices;\npublic class YywlKey {\n  [DllImport("user32.dll")] public static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, IntPtr dwExtraInfo);\n}\n"@\n[YywlKey]::keybd_event(${vk}, 0, ${down ? 0 : 2}, [IntPtr]::Zero)`;
-      await run('powershell', ['-NoProfile', '-NonInteractive', '-Command', ps]);
+      // 走常驻代理：按住/松开是宏里最频繁的步骤，每次 spawn 会让宏明显变慢
+      await runWin32Input(`[YywlSend]::keybd_event(${vk}, 0, ${down ? 0 : 2}, [IntPtr]::Zero)`);
       return;
     }
     // macOS: 修饰键能用 cliclick 的 kd:/ku:，其它键没有等价能力
@@ -631,7 +640,14 @@ Write-Output ("{0},{1}" -f $p.X, $p.Y)`;
     return vkToKey(vk) || '';
   }
 
-  return { runAction, executeStep, commands, sendKeys, mouseClick, pasteText, pasteImage, getMousePosition, record, eventsToSteps, vkLabel };
+  // 启动时预热：把 PowerShell + C# 编译那 ~900ms 放到后台，客户第一次用时就不卡
+  const warmUp = () => {
+    const w = getPsWorker();
+    if (w) w.start().catch(() => { /* 忽略：真失败时后续会退回 spawn */ });
+  };
+  const dispose = () => { if (psWorker) psWorker.stop(); };
+
+  return { runAction, executeStep, commands, sendKeys, mouseClick, pasteText, pasteImage, getMousePosition, record, eventsToSteps, vkLabel, warmUp, dispose };
 }
 
 module.exports = {
