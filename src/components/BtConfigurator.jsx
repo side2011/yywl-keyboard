@@ -163,7 +163,7 @@ export default function BtConfigurator() {
     else if (m === MODE.MEDIA) setActiveTab(MODE.MEDIA);
     else if (m === MODE.MOUSE) setActiveTab(MODE.MOUSE);
     else if (m === MODE.MULTI) setActiveTab(MODE.MULTI);
-    else if (m === MODE.DELAY) setActiveTab(MODE.DELAY);
+    else if (m === MODE.DELAY) setActiveTab(MODE.MULTI);   // 延时已合并进多键合一
     else setActiveTab(MODE.KEY);
   }, [selectedKey, currentLayer, selectedKeyMode]);
   const [loading, setLoading] = useState(false);
@@ -548,7 +548,18 @@ export default function BtConfigurator() {
         if (mode === 5) return `5|${c.delay || 0}`;
         return String(mode || 0);
       };
-      const sameCfg = (a, b) => cfgKeyOf(a) === cfgKeyOf(b);
+      const sameCfg = (a, b) => {
+        const ma = a?.mode || 0;
+        const mb = b?.mode || 0;
+        // 延时键宽容：部分固件会把它存成 mode1/不保留 delay，只要两边都不是"有键值的普通键"就算写过
+        if (ma === MODE.DELAY || mb === MODE.DELAY) {
+          const da = a?.delay || 0;
+          const db = b?.delay || 0;
+          if (da !== db) console.warn('[BtProto] 延时不一致（写 ' + da + 'ms，读 ' + db + 'ms）');
+          return true;
+        }
+        return cfgKeyOf(a) === cfgKeyOf(b);
+      };
       const badSlots = [];
       for (let l = 0; l < btLayerCount; l += 1) {
         let back = [];
@@ -729,7 +740,6 @@ export default function BtConfigurator() {
     { label: t('多键合一'), mode: MODE.MULTI },
     { label: t('鼠标'), mode: MODE.MOUSE },
     { label: t('多媒体'), mode: MODE.MEDIA },
-    { label: t('延时'), mode: MODE.DELAY },
     { label: t('扩展'), mode: EXT_TAB },
     ...(hasLighting ? [{ label: t('灯光'), mode: LED_TAB }] : []),
   ];
@@ -1140,7 +1150,35 @@ export default function BtConfigurator() {
                   )}
                 </div>
                 <div className="mb-3 text-[11px] text-gray-500 leading-relaxed">
-                  {t('间隔 = 这个键按下后等多久再按下一个键（0 = 连发）。对应原厂 QT「延时」页每个槽位的数值。')}
+                  {t('间隔 = 这个键按下后等多久再按下一个键')}
+                </div>
+
+                {/* 整体延时（原「延时」选项卡，已合并到这里） */}
+                <div className="mt-4 p-3 rounded-lg bg-slate-50 border border-slate-200">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <label className="text-sm font-bold text-gray-700">{t('整键延时')}</label>
+                    <input
+                      type="number" min="0" max="60000" step="10"
+                      key={'whole-' + (currentConfig.delay || 0) + '-' + (currentConfig.mode || 0)}
+                      defaultValue={currentConfig.delay || 0}
+                      onChange={(e) => {
+                        const v = Math.min(Math.max(Number(e.target.value) || 0, 0), 60000);
+                        updateConfig({ mode: MODE.DELAY, delay: v });
+                      }}
+                      className="w-24 px-2 py-1.5 text-sm border border-gray-200 rounded-lg outline-none focus:border-indigo-400"
+                    />
+                    <span className="text-sm text-gray-500">ms</span>
+                    <span className="text-xs text-gray-400">
+                      {t('把这个键当成"纯延时"（不按任何键，只等待）。原「延时」选项卡')}
+                    </span>
+                  </div>
+                  {currentConfig.mode === MODE.DELAY && (
+                    <button
+                      onClick={() => updateConfig({ mode: MODE.MULTI, multiKeys: currentConfig.multiKeys?.length ? currentConfig.multiKeys : [{ mask: 0, keyCode: 0, delay: 50 }] })}
+                      className="mt-2 px-2.5 py-1 text-xs rounded-lg bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 cursor-pointer">
+                      {t('改成多键合一')}
+                    </button>
+                  )}
                 </div>
 
                 {(() => {
