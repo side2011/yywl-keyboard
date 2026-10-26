@@ -17,7 +17,7 @@ import toast from 'react-hot-toast';
 import { defaultKnobSwap, mapKnobSlot } from '../services/knob-order';
 
 // 模式: 0=未设置 1=键盘 2=多媒体 3=鼠标 5=延时
-const MODE = { NONE: 0, KEY: 1, MEDIA: 2, MOUSE: 3, DELAY: 5 };
+const MODE = { NONE: 0, KEY: 1, MEDIA: 2, MOUSE: 3, MULTI: 4, DELAY: 5 };
 
 function createDefaultConfig() {
   return { mode: 0, modifierMask: 0, keyCode: 0, mediaCode: 0, mouse: null, delay: 0 };
@@ -146,6 +146,7 @@ export default function BtConfigurator() {
   const [currentLayer, setCurrentLayer] = useState(0); // 0..2
   const [keyConfigs, setKeyConfigs] = useState(() => Array.from({ length: totalSlots }, createDefaultConfig));
   const [selectedKey, setSelectedKey] = useState(0);
+  const [multiIndex, setMultiIndex] = useState(0);
   // 桌面版里已配置的扩展动作（网页版拿不到 → 空对象）
   const [actionNames, setActionNames] = useState({});
   useEffect(() => { fetchActionSummary().then((s) => setActionNames(toSlotMap(s))); }, []);
@@ -267,6 +268,37 @@ export default function BtConfigurator() {
   const toggleModifier = (bit) => {
     const mask = (currentConfig.modifierMask || 0) ^ bit;
     updateConfig({ mode: MODE.KEY, modifierMask: mask });
+  };
+
+  // ---- 多键合一 ----
+  // 一个按键里按顺序放多个键（协议：mode 1 + 多个组，最多 18 个组）
+  const currentMultiKeys = () => {
+    const list = currentConfig.multiKeys;
+    if (Array.isArray(list) && list.length) return list;
+    // 从普通单键切过来时，把当前键作为第一个
+    if (currentConfig.keyCode) return [{ mask: currentConfig.modifierMask || 0, keyCode: currentConfig.keyCode }];
+    return [];
+  };
+  const addMultiKey = () => {
+    const list = [...currentMultiKeys()];
+    if (list.length >= 18) return;
+    list.push({ mask: 0, keyCode: 0 });
+    updateConfig({ mode: MODE.MULTI, multiKeys: list });
+    setMultiIndex(list.length - 1);
+  };
+  const setMultiKeyField = (idx, patch) => {
+    const list = [...currentMultiKeys()];
+    const target = Math.min(Math.max(idx, 0), list.length - 1);
+    list[target] = { ...list[target], ...patch };
+    updateConfig({ mode: MODE.MULTI, multiKeys: list });
+  };
+  const removeMultiKey = () => {
+    const list = [...currentMultiKeys()];
+    if (!list.length) return;
+    const idx = Math.min(Math.max(multiIndex, 0), list.length - 1);
+    list.splice(idx, 1);
+    updateConfig({ mode: MODE.MULTI, multiKeys: list });
+    setMultiIndex(Math.max(0, idx - 1));
   };
 
   // 探测真实层数：蓝牙 0xFB 不返回层数，只能试读第 2/3 层。
@@ -451,6 +483,10 @@ export default function BtConfigurator() {
           const m = c.mouse || {};
           return `3|${m.mod || 0}|${m.btn || 0}|${m.wheel || 0}|${m.behavior || 0}`;
         }
+        if (mode === 4) {
+          const list = Array.isArray(c.multiKeys) ? c.multiKeys : [];
+          return '4|' + list.map((mk) => `${mk.mask || 0}:${mk.keyCode || 0}`).join(',');
+        }
         if (mode === 5) return `5|${c.delay || 0}`;
         return String(mode || 0);
       };
@@ -623,6 +659,7 @@ export default function BtConfigurator() {
   const EXT_TAB = 'ext';
   const tabs = [
     { label: t('键盘'), mode: MODE.KEY },
+    { label: t('多键合一'), mode: MODE.MULTI },
     { label: t('鼠标'), mode: MODE.MOUSE },
     { label: t('多媒体'), mode: MODE.MEDIA },
     { label: t('延时'), mode: MODE.DELAY },
@@ -968,6 +1005,81 @@ export default function BtConfigurator() {
                 </div>
               </div>
             )}
+
+            {/* 多键合一：一个按键里按顺序装最多 18 个键（蓝牙协议就是 mode 1 + 多个组） */}
+            {activeTab === MODE.MULTI && (
+              <div>
+                <label className="text-base font-bold text-gray-700 block mb-2">
+                  {t('多键合一（最多 18 个键位，按顺序依次触发；修饰键也占名额）')}
+                </label>
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {(currentConfig.multiKeys || []).map((mk, idx) => {
+                    const mods = BT_MOD_TOKENS
+                      .filter((m) => (mk.mask || 0) & m.bit)
+                      .map((m) => t(m.label).replace('左', '').replace('右', ''))
+                      .join('+');
+                    const keyLabel = mk.keyCode ? keyCodeToLabel(mk.keyCode) : t('未选择');
+                    return (
+                      <button key={idx} onClick={() => setMultiIndex(idx)}
+                        className={`px-3 py-2 text-sm rounded-lg border transition-colors cursor-pointer ${
+                          multiIndex === idx
+                            ? 'bg-indigo-600 text-white border-indigo-600'
+                            : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300'
+                        }`}>
+                        {idx + 1}. {mods ? mods + '+' : ''}{keyLabel}
+                      </button>
+                    );
+                  })}
+                  {(currentConfig.multiKeys || []).length < 18 && (
+                    <button onClick={addMultiKey}
+                      className="px-3 py-2 text-sm rounded-lg border-2 border-dashed border-indigo-300 text-indigo-600 hover:bg-indigo-50 cursor-pointer">
+                      + {t('添加按键')}
+                    </button>
+                  )}
+                </div>
+
+                {(() => {
+                  const list = currentConfig.multiKeys || [];
+                  const cur = list[multiIndex] || list[0];
+                  if (!cur) {
+                    return <div className="text-sm text-gray-400">{t('还没有按键，先点上面的「添加按键」')}</div>;
+                  }
+                  return (
+                    <div>
+                      <label className="text-sm font-bold text-gray-700 block mb-2">
+                        {t('第 {n} 个按键的修饰键（可多选）', { n: multiIndex + 1 })}
+                      </label>
+                      <div className="flex flex-wrap gap-2 mb-3">
+                        {BT_MOD_TOKENS.map((m) => {
+                          const active = (cur.mask || 0) & m.bit;
+                          return (
+                            <button key={m.token}
+                              onClick={() => setMultiKeyField(multiIndex, { mask: (cur.mask || 0) ^ m.bit })}
+                              className={`px-4 py-2 text-base rounded-lg border transition-colors cursor-pointer ${
+                                active ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300'
+                              }`}>
+                              {t(m.label)}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <div className="mb-2 text-base font-bold text-gray-700">
+                        {t('按键:')} <span className="text-indigo-600 font-semibold">
+                          {cur.keyCode ? keyCodeToLabel(cur.keyCode) : t('未选择')}
+                        </span>
+                      </div>
+                      <BtVirtualKeyboard selectedCode={cur.keyCode}
+                        onSelect={(code) => setMultiKeyField(multiIndex, { keyCode: code })} t={t} />
+                      <button onClick={removeMultiKey}
+                        className="mt-4 px-3 py-1.5 text-xs rounded-lg bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 cursor-pointer">
+                        {t('删除这个按键')}
+                      </button>
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
+
 
             {/* 多媒体 */}
             {activeTab === MODE.MEDIA && (
