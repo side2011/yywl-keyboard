@@ -1087,6 +1087,7 @@ export default function BtConfigurator() {
                             : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300'
                         }`}>
                         {idx + 1}. {mods ? mods + '+' : ''}{keyLabel}
+                        {(mk.delay || 0) > 0 ? ' (' + mk.delay + 'ms)' : ''}
                       </button>
                     );
                   })}
@@ -1127,6 +1128,20 @@ export default function BtConfigurator() {
                         {t('按键:')} <span className="text-indigo-600 font-semibold">
                           {cur.keyCode ? keyCodeToLabel(cur.keyCode) : t('未选择')}
                         </span>
+                      </div>
+                      <div className="mb-3 flex items-center gap-2 flex-wrap">
+                        <label className="text-sm font-bold text-gray-700">{t('这个键之后等')}</label>
+                        <input
+                          type="number" min="0" max="3000" step="10"
+                          value={cur.delay || 0}
+                          onChange={(e) => {
+                            const v = Math.min(Math.max(Number(e.target.value) || 0, 0), 3000);
+                            setMultiKeyField(multiIndex, { delay: v });
+                          }}
+                          className="w-24 px-2 py-1.5 text-sm border border-gray-200 rounded-lg outline-none focus:border-indigo-400"
+                        />
+                        <span className="text-sm text-gray-500">ms</span>
+                        <span className="text-xs text-gray-400">{t('（0 = 不等待，按键连发；对应 QT 延时页每格的数值）')}</span>
                       </div>
                       <BtVirtualKeyboard selectedCode={cur.keyCode}
                         onSelect={(code) => setMultiKeyField(multiIndex, { keyCode: code })} t={t} />
