@@ -639,6 +639,15 @@ export default function BtConfigurator() {
           a.behavior === (cfg.mouse?.behavior || 0x01) && a.mod === cfg.mouse?.mod && a.btn === cfg.mouse?.btn && a.wheel === cfg.mouse?.wheel);
         return t('鼠标: ') + (ma ? ma.label : t('未知'));
       }
+      case MODE.MULTI: {
+        const list = Array.isArray(cfg.multiKeys) ? cfg.multiKeys : [];
+        if (!list.length) return t('未设置');
+        const text = list.slice(0, 3).map((mk) => {
+          const mods = BT_MOD_TOKENS.filter((m) => (mk.mask || 0) & m.bit).map((m) => t(m.label)).join('+');
+          return (mods ? mods + '+' : '') + (mk.keyCode ? keyCodeToLabel(mk.keyCode) : '?');
+        }).join(' → ');
+        return t('多键: ') + text + (list.length > 3 ? ` …(共${list.length})` : '');
+      }
       case MODE.DELAY:
         return t('延时: ') + (cfg.delay || 0) + 'ms';
       default:
