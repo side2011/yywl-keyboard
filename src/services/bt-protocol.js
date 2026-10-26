@@ -164,7 +164,9 @@ function buildGroupsFromConfig(cfg, isV10) {
       const code = mk.keyCode || 0;
       if (isV10) {
         BT_MOD_TOKENS.forEach((m) => { if (mask & m.bit) groups.push({ delay: 0, value: m.token }); });
-        if (code) groups.push({ delay: 0, value: code });
+        // 延时挂在这个键位的"值槽"上：QT 的 delay_spinBox_N 就是按槽位下标写
+        // [6+index*3]=高字节 / [7+index*3]=低字节，客户可设 0~数千 ms
+        if (code) groups.push({ delay: Math.min(Math.max(mk.delay || 0, 0), 60000), value: code });
       } else if (mask || code) {
         groups.push({ mask, value: code });
       }
@@ -373,7 +375,11 @@ export function parseBtKeyRecord(data, isV10) {
       for (const g of cfg.groups) {
         const bit = TOKEN_TO_BIT[g.value];
         if (bit !== undefined) { pendingMask |= bit; continue; }
-        if (g.value) { seq.push({ mask: pendingMask, keyCode: g.value }); pendingMask = 0; }
+        if (g.value) {
+          // 每个槽位自带 16bit 延时（QT 延时页面按槽位设置）
+          seq.push({ mask: pendingMask, keyCode: g.value, delay: g.delay || 0 });
+          pendingMask = 0;
+        }
       }
     } else {
       for (const g of cfg.groups) {
