@@ -596,7 +596,13 @@ export class BtProtocolHandler {
     }
     const keyNo = this._actionIdxToKeyNo(actionIdx);
     const rec = serializeBtKeyRecord(cfg, keyNo, layer + 1, this._isV10);
-    if (rec) await this._send(rec);
+    if (rec) {
+      const grpCount = this._isV10 ? rec[5] : rec[9];
+      console.log('[BtProto] 写键 keyNo=' + keyNo + ' 层=' + (layer + 1) +
+        ' mode=' + rec[3] + ' 组数=' + grpCount +
+        ' 前32字节=' + Array.from(rec.slice(0, 32)).map((b) => b.toString(16).padStart(2, '0')).join(' '));
+      await this._send(rec);
+    }
   }
 
   // 清除单个按键
