@@ -156,6 +156,23 @@ export const BT_LED_COLORS = [
 // 从 HID keyCode + modifierMask 构建 V10 组列表
 function buildGroupsFromConfig(cfg, isV10) {
   const groups = [];
+  if (cfg.mode === 4) {
+    // 多键合一：multiKeys = [{ mask, keyCode }, ...]（最多 18 个）
+    const list = Array.isArray(cfg.multiKeys) ? cfg.multiKeys.slice(0, 18) : [];
+    for (const mk of list) {
+      const mask = mk.mask || 0;
+      const code = mk.keyCode || 0;
+      if (isV10) {
+        BT_MOD_TOKENS.forEach((m) => { if (mask & m.bit) groups.push({ delay: 0, value: m.token }); });
+        if (code) groups.push({ delay: 0, value: code });
+      } else if (mask || code) {
+        groups.push({ mask, value: code });
+      }
+      if (groups.length >= 18) break;
+    }
+    if (!groups.length) groups.push(isV10 ? { delay: 0, value: 0x00 } : { mask: 0, value: 0 });
+    return groups.slice(0, 18);
+  }
   if (cfg.mode === 1) {
     // 基础/组合键: 修饰token组 + 键值组
     if (isV10) {
@@ -216,7 +233,8 @@ export function serializeBtKeyRecord(cfg, keyNo, layer /* 1..3 */, isV10) {
     rec[0] = 0xFD;
     rec[1] = keyNo & 0xFF;
     rec[2] = layer & 0xFF;
-    rec[3] = cfg.mode & 0xFF;
+    // 多键合一（UI mode=4）在协议里就是 mode 1 + 多个组
+    rec[3] = (cfg.mode === 4 ? 1 : cfg.mode) & 0xFF;
     rec[4] = (cfg.mode === 3 ? (cfg.mouse?.behavior || 0x01) : (cfg.mode === 5 ? 0x01 : 0x01)) & 0xFF;
     const groups = buildGroupsFromConfig(cfg, true);
     rec[5] = Math.min(groups.length, 18);
@@ -232,7 +250,7 @@ export function serializeBtKeyRecord(cfg, keyNo, layer /* 1..3 */, isV10) {
     rec[0] = 0xFD;
     rec[1] = keyNo & 0xFF;
     rec[2] = layer & 0xFF;
-    rec[3] = cfg.mode & 0xFF;
+    rec[3] = (cfg.mode === 4 ? 1 : cfg.mode) & 0xFF;
     if (cfg.mode === 5) {
       rec[4] = (cfg.delay || 0) & 0xFF;
       rec[5] = ((cfg.delay || 0) >> 8) & 0xFF;
@@ -347,6 +365,29 @@ export function parseBtKeyRecord(data, isV10) {
     }
   }
   // 归一化为 UI 结构
+  // 多键合一：mode 1 的组里出现 >=2 个"非修饰 token"的值，说明这个键存了多个按键
+  if (cfg.mode === 1) {
+    const seq = [];
+    if (isV10) {
+      let pendingMask = 0;
+      for (const g of cfg.groups) {
+        const bit = TOKEN_TO_BIT[g.value];
+        if (bit !== undefined) { pendingMask |= bit; continue; }
+        if (g.value) { seq.push({ mask: pendingMask, keyCode: g.value }); pendingMask = 0; }
+      }
+    } else {
+      for (const g of cfg.groups) {
+        if (g.mask || g.value) seq.push({ mask: g.mask || 0, keyCode: g.value || 0 });
+      }
+    }
+    if (seq.length >= 2) {
+      cfg.mode = 4;
+      cfg.multiKeys = seq.slice(0, 18);
+      cfg.modifierMask = seq[0].mask;
+      cfg.keyCode = seq[0].keyCode;
+      return cfg;
+    }
+  }
   if (cfg.mode === 1) {
     let mask = 0;
     let keyCode = 0;
