@@ -441,6 +441,18 @@ export default function BtConfigurator() {
       cached[currentLayer] = keyConfigs;
       layerConfigsRef.current = cached;
 
+      // 诊断：打印多键合一的延时，客户反馈"设置不生效"时一眼能看出带没带上
+      try {
+        cached.forEach((layer, li) => {
+          (layer || []).forEach((cfg, ki) => {
+            if (cfg && cfg.mode === MODE.MULTI) {
+              console.log('[BtMulti] 层' + (li + 1) + ' 键' + (ki + 1) + ' 延时=' +
+                JSON.stringify((cfg.multiKeys || []).map((mk) => mk.delay ?? 50)));
+            }
+          });
+        });
+      } catch { /* 忽略 */ }
+
       // 多键合一里"添加了但没选键"的空槽位：直接丢掉，全空就当未设置清掉，
       // 否则会写成空组 → 回读校验不一致 → 客户看到"有 1 个按键没写进键盘"。
       let droppedEmptyMulti = 0;
@@ -1090,17 +1102,27 @@ export default function BtConfigurator() {
                       }`}>
                         {idx + 1}. {mods ? mods + '+' : ''}{keyLabel}
                         </button>
+                        {isV10 && (<>
                         <label className="text-xs text-gray-500">{t('间隔')}</label>
                         <input
+                          key={'delay-' + idx + '-' + (mk.delay ?? 50)}
                           type="number" min="0" max="3000" step="10"
-                          value={mk.delay ?? 50}
+                          defaultValue={mk.delay ?? 50}
                           onChange={(e) => {
-                        const v = Math.min(Math.max(Number(e.target.value) || 0, 0), 3000);
-                        setMultiKeyField(idx, { delay: v });
+                            const v = Math.min(Math.max(Number(e.target.value) || 0, 0), 3000);
+                            setMultiKeyField(idx, { delay: v });
+                          }}
+                          onBlur={(e) => {
+                            const v = Math.min(Math.max(Number(e.target.value) || 0, 0), 3000);
+                            setMultiKeyField(idx, { delay: v });
                           }}
                           className="w-20 px-2 py-1 text-sm border border-gray-200 rounded-lg outline-none focus:border-indigo-400"
                         />
                         <span className="text-xs text-gray-500">ms</span>
+                        </>)}
+                        {!isV10 && (
+                          <span className="text-xs text-amber-600">{t('旧协议固件不支持逐键间隔，需要间隔请插入「延时」动作')}</span>
+                        )}
                         {multiIndex === idx && (
                           <button onClick={removeMultiKey}
                             className="ml-auto px-2.5 py-1 text-xs rounded-lg bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 cursor-pointer">
