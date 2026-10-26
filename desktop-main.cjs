@@ -999,6 +999,8 @@ function probeHotkey(acc) {
 
 function setupActionsIpc() {
   executor = createExecutor({ clipboard, nativeImage, shell });
+  // 预热 Windows 输入代理：首次编译 C# 大约 900ms，放后台做，客户按键时就是 1~20ms
+  setTimeout(() => { try { executor.warmUp && executor.warmUp(); } catch { /* 忽略 */ } }, 1200);
 
   ipcMain.handle('actions:load', () => actionsConfig);
   ipcMain.handle('actions:save', (_e, data) => saveActions(data || {}));
@@ -1362,6 +1364,7 @@ if (!gotTheLock) {
 // 从托盘菜单退出时才真正结束进程
 app.on('before-quit', () => {
   app.isQuitting = true;
+  try { if (executor && executor.dispose) executor.dispose(); } catch { /* 忽略 */ }
   try { if (server) server.close(); } catch { /* 忽略 */ }
 });
 
