@@ -279,9 +279,21 @@ export default function BtConfigurator() {
     if (currentConfig.keyCode) return [{ mask: currentConfig.modifierMask || 0, keyCode: currentConfig.keyCode }];
     return [];
   };
+  // 原厂 QT：PHY2_KEY_Value[...][8+j*3]，j 上限 18 —— 一个按键最多占 18 个槽位，
+  // 每个键位自己占 1 个槽位，带的修饰键各占 1 个（Ctrl+Shift+C = 3 个槽位）。
+  const multiSlotUsed = (list) => (list || []).reduce((n, mk) => {
+    let bits = mk.mask || 0;
+    let count = 1;                       // 键码本身
+    while (bits) { count += bits & 1; bits >>= 1; }
+    return n + count;
+  }, 0);
+  const multiSlotLeft = 18 - multiSlotUsed(currentMultiKeys());
   const addMultiKey = () => {
     const list = [...currentMultiKeys()];
-    if (list.length >= 18) return;
+    if (multiSlotUsed(list) >= 18) {
+      toast.error(t('已经用满 18 个槽位（每个键位 + 每个修饰键各占 1 个）'), { id: 'bt-multi-full' });
+      return;
+    }
     list.push({ mask: 0, keyCode: 0 });
     updateConfig({ mode: MODE.MULTI, multiKeys: list });
     setMultiIndex(list.length - 1);
@@ -1018,9 +1030,14 @@ export default function BtConfigurator() {
             {/* 多键合一：一个按键里按顺序装最多 18 个键（蓝牙协议就是 mode 1 + 多个组） */}
             {activeTab === MODE.MULTI && (
               <div>
-                <label className="text-base font-bold text-gray-700 block mb-2">
-                  {t('多键合一（最多 18 个键位，按顺序依次触发；修饰键也占名额）')}
-                </label>
+                <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
+                  <label className="text-base font-bold text-gray-700">
+                    {t('多键合一（最多 18 个槽位，按顺序依次触发；每个键位和每个修饰键各占 1 个）')}
+                  </label>
+                  <span className={`text-xs font-semibold ${multiSlotLeft > 0 ? 'text-gray-400' : 'text-red-500'}`}>
+                    {t('已用 {used}/18 槽位', { used: 18 - multiSlotLeft })}
+                  </span>
+                </div>
                 <div className="flex flex-wrap gap-2 mb-4">
                   {(currentConfig.multiKeys || []).map((mk, idx) => {
                     const mods = BT_MOD_TOKENS
@@ -1039,7 +1056,7 @@ export default function BtConfigurator() {
                       </button>
                     );
                   })}
-                  {(currentConfig.multiKeys || []).length < 18 && (
+                  {multiSlotLeft > 0 && (
                     <button onClick={addMultiKey}
                       className="px-3 py-2 text-sm rounded-lg border-2 border-dashed border-indigo-300 text-indigo-600 hover:bg-indigo-50 cursor-pointer">
                       + {t('添加按键')}
