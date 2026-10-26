@@ -196,9 +196,11 @@ function KeyboardConnector() {
       const filters = wideMode ? VENDOR_FALLBACK_FILTERS : ALL_DEVICE_FILTERS;
       if (wideMode) console.log('[KeyboardConnector] 宽松匹配模式: 仅按 VID 过滤');
       setAwaitingPick(true);
-      toast(t('已打开设备选择窗口：选中你的键盘 → 点【连接】'), { id: 'hid-picking', duration: 8000 });
+      toast(t('已打开设备选择窗口：选中你的键盘 → 点【连接】'), { id: 'hid-picking', duration: 5000 });
       const devices = await navigator.hid.requestDevice({ filters });
       setAwaitingPick(false);
+      // 选完设备（不论成功/取消）立刻收掉这条提示，别跟着进配置页
+      try { toast.dismiss('hid-picking'); } catch { /* 忽略 */ }
       if (devices.length === 0) {
         // requestDevice 返回空有两种情况:
         // 1) 用户主动取消选择框 (键盘在线) → 温和提示, 不报错
@@ -540,7 +542,12 @@ function KeyboardConnector() {
       // 某些浏览器（如微信浏览器）navigator.hid 可能存在但实际不可用
       setFailCount(c => c + 1);
       toast.error(t('连接失败，请使用 Chrome 或 Edge 浏览器打开本页面。'), { id: 'hid-connect-fail' });
-    } finally { setConnecting(false); setAwaitingPick(false); setReadingInfo(false); }
+    } finally {
+      setConnecting(false);
+      setAwaitingPick(false);
+      setReadingInfo(false);
+      try { toast.dismiss('hid-picking'); } catch { /* 忽略 */ }
+    }
   };
 
   const handleDisconnect = async () => { await disconnectDevice(); toast.success(t('设备已断开')); };
