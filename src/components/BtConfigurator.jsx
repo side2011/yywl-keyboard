@@ -291,7 +291,7 @@ export default function BtConfigurator() {
     const list = currentConfig.multiKeys;
     if (Array.isArray(list) && list.length) return list;
     // 从普通单键切过来时，把当前键作为第一个
-    if (currentConfig.keyCode) return [{ mask: currentConfig.modifierMask || 0, keyCode: currentConfig.keyCode }];
+    if (currentConfig.keyCode) return [{ mask: currentConfig.modifierMask || 0, keyCode: currentConfig.keyCode, delay: 50 }];
     return [];
   };
   // 原厂 QT：PHY2_KEY_Value[...][8+j*3]，j 上限 18 —— 一个按键最多占 18 个槽位，
@@ -309,7 +309,7 @@ export default function BtConfigurator() {
       toast.error(t('已经用满 18 个槽位（每个键位 + 每个修饰键各占 1 个）'), { id: 'bt-multi-full' });
       return;
     }
-    list.push({ mask: 0, keyCode: 0 });
+    list.push({ mask: 0, keyCode: 0, delay: 50 });   // 默认间隔 50ms
     updateConfig({ mode: MODE.MULTI, multiKeys: list });
     setMultiIndex(list.length - 1);
   };
@@ -1072,7 +1072,7 @@ export default function BtConfigurator() {
                     {t('已用 {used}/18 槽位', { used: 18 - multiSlotLeft })}
                   </span>
                 </div>
-                <div className="flex flex-wrap gap-2 mb-4">
+                <div className="space-y-2 mb-4">
                   {(currentConfig.multiKeys || []).map((mk, idx) => {
                     const mods = BT_MOD_TOKENS
                       .filter((m) => (mk.mask || 0) & m.bit)
@@ -1080,23 +1080,45 @@ export default function BtConfigurator() {
                       .join('+');
                     const keyLabel = mk.keyCode ? keyCodeToLabel(mk.keyCode) : t('未选择');
                     return (
-                      <button key={idx} onClick={() => setMultiIndex(idx)}
-                        className={`px-3 py-2 text-sm rounded-lg border transition-colors cursor-pointer ${
-                          multiIndex === idx
-                            ? 'bg-indigo-600 text-white border-indigo-600'
-                            : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300'
-                        }`}>
+                      <div key={idx}
+                        className={`flex items-center gap-2 flex-wrap px-3 py-2 rounded-lg border transition-colors ${
+                        multiIndex === idx ? 'border-indigo-500 bg-indigo-50' : 'border-gray-200 bg-white'
+                      }`}>
+                        <button onClick={() => setMultiIndex(idx)}
+                          className={`px-3 py-1.5 text-sm rounded-lg transition-colors cursor-pointer ${
+                        multiIndex === idx ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-indigo-100'
+                      }`}>
                         {idx + 1}. {mods ? mods + '+' : ''}{keyLabel}
-                        {(mk.delay || 0) > 0 ? ' (' + mk.delay + 'ms)' : ''}
-                      </button>
+                        </button>
+                        <label className="text-xs text-gray-500">{t('间隔')}</label>
+                        <input
+                          type="number" min="0" max="3000" step="10"
+                          value={mk.delay ?? 50}
+                          onChange={(e) => {
+                        const v = Math.min(Math.max(Number(e.target.value) || 0, 0), 3000);
+                        setMultiKeyField(idx, { delay: v });
+                          }}
+                          className="w-20 px-2 py-1 text-sm border border-gray-200 rounded-lg outline-none focus:border-indigo-400"
+                        />
+                        <span className="text-xs text-gray-500">ms</span>
+                        {multiIndex === idx && (
+                          <button onClick={removeMultiKey}
+                            className="ml-auto px-2.5 py-1 text-xs rounded-lg bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 cursor-pointer">
+                        {t('删除')}
+                          </button>
+                        )}
+                      </div>
                     );
                   })}
                   {multiSlotLeft > 0 && (
                     <button onClick={addMultiKey}
                       className="px-3 py-2 text-sm rounded-lg border-2 border-dashed border-indigo-300 text-indigo-600 hover:bg-indigo-50 cursor-pointer">
-                      + {t('添加按键')}
+                      + {t('添加按键')}（默认间隔 50ms）
                     </button>
                   )}
+                </div>
+                <div className="mb-3 text-[11px] text-gray-500 leading-relaxed">
+                  {t('间隔 = 这个键按下后等多久再按下一个键（0 = 连发）。对应原厂 QT「延时」页每个槽位的数值。')}
                 </div>
 
                 {(() => {
@@ -1128,20 +1150,6 @@ export default function BtConfigurator() {
                         {t('按键:')} <span className="text-indigo-600 font-semibold">
                           {cur.keyCode ? keyCodeToLabel(cur.keyCode) : t('未选择')}
                         </span>
-                      </div>
-                      <div className="mb-3 flex items-center gap-2 flex-wrap">
-                        <label className="text-sm font-bold text-gray-700">{t('这个键之后等')}</label>
-                        <input
-                          type="number" min="0" max="3000" step="10"
-                          value={cur.delay || 0}
-                          onChange={(e) => {
-                            const v = Math.min(Math.max(Number(e.target.value) || 0, 0), 3000);
-                            setMultiKeyField(multiIndex, { delay: v });
-                          }}
-                          className="w-24 px-2 py-1.5 text-sm border border-gray-200 rounded-lg outline-none focus:border-indigo-400"
-                        />
-                        <span className="text-sm text-gray-500">ms</span>
-                        <span className="text-xs text-gray-400">{t('（0 = 不等待，按键连发；对应 QT 延时页每格的数值）')}</span>
                       </div>
                       <BtVirtualKeyboard selectedCode={cur.keyCode}
                         onSelect={(code) => setMultiKeyField(multiIndex, { keyCode: code })} t={t} />
