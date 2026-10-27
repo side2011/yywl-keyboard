@@ -11,12 +11,12 @@ import App from './App.jsx'
 import { installLogCapture } from './services/log-buffer'
 
 // 把协议/动作相关日志留一份在内存里，出错时能一键导出给技术支持
-installLogCapture()
+installLogCapture();
 
 // 老浏览器检测：daisyUI 5 的样式依赖 oklch()/color-mix()（Chrome 111+）。
 // 老引擎会把颜色和边框全丢掉，界面看起来"没有轮廓线"，客户会以为程序坏了。
 // 这里检测到就直接挂一条醒目的提示，并给出升级/用桌面版的建议。
-(function warnLegacyBrowser() {
+;(function warnLegacyBrowser() {
   try {
     const ok = window.CSS && CSS.supports && CSS.supports('color', 'oklch(0% 0 0)');
     if (ok) return;
