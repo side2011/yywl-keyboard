@@ -801,7 +801,7 @@ function KeyboardConnector() {
               className="inline-flex items-center gap-2 px-6 py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-sm rounded-xl border-2 border-indigo-200 transition-colors cursor-pointer">
               {lang === 'en' ? 'View User Guide' : '📖 查看使用说明'}
             </a>
-            <button onClick={() => navigate('/keytest')}
+            <button onClick={() => window.open(`${import.meta.env.BASE_URL}keytest`, '_blank', 'noopener')}
               className="inline-flex items-center gap-2 px-6 py-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold text-sm rounded-xl border-2 border-emerald-200 transition-colors cursor-pointer">
               {lang === 'en' ? '🎯 Key Test' : '🎯 按键测试'}
             </button>
