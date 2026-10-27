@@ -12,6 +12,7 @@ import {
   BT_KEYCODE_LABELS,
 } from '../services/bt-protocol';
 import BtVirtualKeyboard from './BtVirtualKeyboard';
+import { downloadLogs } from '../services/log-buffer';
 import ConfigListPanel from './ConfigListPanel';
 import toast from 'react-hot-toast';
 import { defaultKnobSwap, mapKnobSlot } from '../services/knob-order';
@@ -607,8 +608,10 @@ export default function BtConfigurator() {
         }
         if (stillBad) {
           console.error('[BtConfigurator] 重试后仍有', stillBad, '个槽位没写进去');
+          // 自动导出日志文件：客户不用开控制台，直接把 txt 发过来
+          const logFileName = downloadLogs('bt-save');
           toast.error(
-            t('保存后校验失败：有 {n} 个按键没写进键盘，请再点一次「保存到键盘」；若一直这样请把控制台日志发给技术支持', { n: stillBad }),
+            t('保存后校验失败：有 {n} 个按键没写进键盘。已自动导出日志文件 {file}（在「下载」文件夹），请把它发给技术支持', { n: stillBad, file: logFileName || 'yywl-bt-save.txt' }),
             { id: 'bt-save', duration: 8000 },
           );
           return;
@@ -773,6 +776,10 @@ export default function BtConfigurator() {
           <button onClick={() => window.open(`${import.meta.env.BASE_URL}keytest`, '_blank', 'noopener')}
             className="px-3 py-1 text-sm font-semibold border-2 border-emerald-200 rounded-lg text-emerald-600 hover:border-emerald-400 hover:text-emerald-700 hover:bg-emerald-50 transition-colors cursor-pointer bg-white">
             {lang === 'en' ? '🎯 Key Test' : '🎯 按键测试'}
+          </button>
+          <button onClick={() => { const n = downloadLogs('bt'); toast.success(t('日志已导出：{file}', { file: n || 'yywl-bt.txt' }), { id: 'log-export' }); }}
+            className="px-3 py-1 text-sm font-semibold border-2 border-slate-200 rounded-lg text-slate-600 hover:border-slate-400 hover:text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer bg-white">
+            {lang === 'en' ? '📄 Export Log' : '📄 导出日志'}
           </button>
           <button onClick={toggleLang}
             className="px-3 py-1 text-sm font-semibold border-2 border-gray-300 rounded-lg text-gray-600 hover:border-indigo-400 hover:text-indigo-600 transition-colors cursor-pointer bg-white">
