@@ -611,16 +611,16 @@ export default function BtConfigurator() {
           // 自动导出日志文件：客户不用开控制台，直接把 txt 发过来
           const logFileName = downloadLogs('bt-save');
           toast.error(
-            t('保存后校验失败：有 {n} 个按键没写进键盘。已自动导出日志文件 {file}（在「下载」文件夹），请把它发给技术支持', { n: stillBad, file: logFileName || 'yywl-bt-save.txt' }),
+            t('有 {n} 个按键没保存上，请再点一次「保存到键盘」。如果一直这样，请点右上角「导出日志」把文件发给我们', { n: stillBad, file: logFileName || 'yywl-bt-save.txt' }),
             { id: 'bt-save', duration: 8000 },
           );
           return;
         }
-        toast.success(t('配置已保存并校验通过（首次有 {n} 个按键没写进去，已自动重写）', { n: badSlots.length }), { id: 'bt-save' });
+        toast.success(t('配置已保存到键盘'), { id: 'bt-save' });
         return;
       }
 
-      toast.success(t('配置已保存到键盘，并已回读校验通过！'), { id: 'bt-save' });
+      toast.success(t('配置已保存到键盘'), { id: 'bt-save' });
     } catch (e) {
       console.error('[BtConfigurator] 保存失败:', e);
       toast.error(t('保存到键盘失败: {msg}', { msg: e.message }), { id: 'bt-save' });
