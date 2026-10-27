@@ -10,6 +10,7 @@ import {
   KEY_MODE, KEYCODE_LABELS, MODIFIERS,
   BROWSER_CODE_TO_HID, BROWSER_MOD_TO_BIT, BROWSER_MACRO_KEY_TO_HID,
 } from '../services/hid-constants';
+import { downloadLogs } from '../services/log-buffer';
 import {
   NEW_MOUSE_ACTIONS, NEW_MEDIA_KEYS, MACRO_STEP, MACRO_STEP_LABELS,
   serializeMacro, deserializeMacro, getNewProtoRgbModes,
@@ -500,7 +501,9 @@ export default function NewProtoConfigurator() {
       }
 
       if (mismatchReport.length) {
-        toast.error(t('有按键没写进键盘：{detail}。请再点一次保存；若一直这样，把控制台的 [NewProto] 日志发给技术支持。', {
+        const logFileName = downloadLogs('newproto-save');
+        toast.error(t('有按键没保存上：{detail}。请再点一次保存；如果一直这样，请点右上角「导出日志」把文件发给我们（{file}）。', {
+          file: logFileName || 'yywl-newproto-save.txt',
           detail: mismatchReport.join('；'),
         }), { id: 'save', duration: 12000 });
       } else {
@@ -871,6 +874,11 @@ export default function NewProtoConfigurator() {
             className="px-3 py-1 text-sm font-semibold border-2 border-emerald-200 rounded-lg text-emerald-600 hover:border-emerald-400 hover:text-emerald-700 hover:bg-emerald-50 transition-colors cursor-pointer bg-white">
             {lang === 'en' ? '🎯 Key Test' : '🎯 按键测试'}
           </button>
+          <button onClick={() => { const n = downloadLogs('newproto'); toast.success(t('日志已导出：{file}', { file: n || 'yywl-newproto.txt' }), { id: 'log-export' }); }}
+            className="px-3 py-1 text-sm font-semibold border-2 border-slate-200 rounded-lg text-slate-600 hover:border-slate-400 hover:text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer bg-white">
+            {lang === 'en' ? '📄 Export Log' : '📄 导出日志'}
+          </button>
+
           <button onClick={toggleLang}
             className="px-3 py-1 text-sm font-semibold border-2 border-gray-300 rounded-lg text-gray-600 hover:border-indigo-400 hover:text-indigo-600 transition-colors cursor-pointer bg-white">
             {lang === 'zh' ? 'English' : '中文'}
