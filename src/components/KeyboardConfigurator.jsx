@@ -353,7 +353,7 @@ const KeyboardConfigurator = () => {
             {lang === 'en' ? '⬇ Download App' : '⬇ 软件下载'}
           </a>
           )}
-          <button onClick={() => navigate('/keytest')}
+          <button onClick={() => window.open(`${import.meta.env.BASE_URL}keytest`, '_blank', 'noopener')}
             className="px-3 py-1 text-sm font-semibold border-2 border-emerald-200 rounded-lg text-emerald-600 hover:border-emerald-400 hover:text-emerald-700 hover:bg-emerald-50 transition-colors cursor-pointer bg-white">
             {lang === 'en' ? '🎯 Key Test' : '🎯 按键测试'}
           </button>
