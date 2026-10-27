@@ -37,6 +37,8 @@ const en = {
   '断开连接': 'Disconnect',
   '找不到设备？列出全部同厂设备': "Can't find your device? List all vendor devices",
   '再看一次连接提示': 'Show the connection guide again',
+  '日志已导出：{file}': 'Log exported: {file}',
+  '保存后校验失败：有 {n} 个按键没写进键盘。已自动导出日志文件 {file}（在「下载」文件夹），请把它发给技术支持': 'Verification failed: {n} key(s) not written. A log file {file} was saved to your Downloads folder — please send it to support.',
   '整键延时': 'Whole-key delay',
   '把这个键当成"纯延时"（不按任何键，只等待）。原「延时」选项卡': 'Make this key a pure delay (no key, just wait). Former Delay tab',
   '改成多键合一': 'Switch to multi-key',
