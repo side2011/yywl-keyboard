@@ -147,6 +147,8 @@ export default function BtConfigurator() {
   const [keyConfigs, setKeyConfigs] = useState(() => Array.from({ length: totalSlots }, createDefaultConfig));
   const [selectedKey, setSelectedKey] = useState(0);
   const [multiIndex, setMultiIndex] = useState(0);
+  // 延时输入框的草稿值：清空或前导零时不被数字回写打断
+  const [delayDraft, setDelayDraft] = useState({});
   // 桌面版里已配置的扩展动作（网页版拿不到 → 空对象）
   const [actionNames, setActionNames] = useState({});
   useEffect(() => { fetchActionSummary().then((s) => setActionNames(toSlotMap(s))); }, []);
@@ -1115,16 +1117,23 @@ export default function BtConfigurator() {
                         {isV10 && (<>
                         <label className="text-xs text-gray-500">{t('间隔')}</label>
                         <input
-                          key={'delay-' + idx + '-' + (mk.delay ?? 50)}
+                          key={idx}
                           type="number" min="0" max="3000" step="10"
-                          defaultValue={mk.delay ?? 50}
+                          value={delayDraft['row' + idx] ?? (mk.delay ?? 50)}
                           onChange={(e) => {
-                            const v = Math.min(Math.max(Number(e.target.value) || 0, 0), 3000);
+                            const raw = e.target.value;
+                            setDelayDraft((prev) => ({ ...prev, ['row' + idx]: raw }));
+                            const v = Math.min(Math.max(Number(raw) || 0, 0), 3000);
                             setMultiKeyField(idx, { delay: v });
                           }}
                           onBlur={(e) => {
                             const v = Math.min(Math.max(Number(e.target.value) || 0, 0), 3000);
                             setMultiKeyField(idx, { delay: v });
+                            setDelayDraft((prev) => {
+                              const next = { ...prev };
+                              delete next['row' + idx];
+                              return next;
+                            });
                           }}
                           className="w-20 px-2 py-1 text-sm border border-gray-200 rounded-lg outline-none focus:border-indigo-400"
                         />
@@ -1159,11 +1168,18 @@ export default function BtConfigurator() {
                     <label className="text-sm font-bold text-gray-700">{t('整键延时')}</label>
                     <input
                       type="number" min="0" max="60000" step="10"
-                      key={'whole-' + (currentConfig.delay || 0) + '-' + (currentConfig.mode || 0)}
-                      defaultValue={currentConfig.delay || 0}
+                      key={'whole'}
+                      value={delayDraft.whole ?? (currentConfig.delay || 0)}
                       onChange={(e) => {
+                        const raw = e.target.value;
+                        setDelayDraft((prev) => ({ ...prev, whole: raw }));
+                        const v = Math.min(Math.max(Number(raw) || 0, 0), 60000);
+                        updateConfig({ mode: MODE.DELAY, delay: v });
+                      }}
+                      onBlur={(e) => {
                         const v = Math.min(Math.max(Number(e.target.value) || 0, 0), 60000);
                         updateConfig({ mode: MODE.DELAY, delay: v });
+                        setDelayDraft((prev) => { const next = { ...prev }; delete next.whole; return next; });
                       }}
                       className="w-24 px-2 py-1.5 text-sm border border-gray-200 rounded-lg outline-none focus:border-indigo-400"
                     />
