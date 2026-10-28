@@ -378,7 +378,8 @@ function KeyboardConnector() {
               </div>
 
               <div className="border-t border-gray-200 pt-3">
-                <p className="font-semibold text-amber-700 mb-1">如果提示「无 root 权限 / 不是 sudoer」</p>
+                <p className="text-gray-600 text-xs mb-1">✅ 成功会显示「权限配置完成」；出现 <code>No root privileges</code> 说明<strong>没成功</strong>，按下面处理</p>
+<p className="font-semibold text-amber-700 mb-1">如果提示「无 root 权限 / 不是 sudoer」</p>
                 <p className="text-gray-600 text-xs mb-1">① <strong>控制中心 → 通用 → 开发者模式</strong>，开启后再跑一次修复工具</p>
                 <p className="text-gray-600 text-xs mb-1">② 或让 IT 管理员执行上面那条命令（一条就够）</p>
                 <p className="text-gray-600 text-xs mb-2">③ 或先试<strong>桌面版</strong>（下载页有 Linux 版，安装包自带运行环境）</p>
