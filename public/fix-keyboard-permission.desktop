@@ -1,8 +1,8 @@
 [Desktop Entry]
 Type=Application
 Name=修复键盘权限
-Comment=配置udev规则以允许浏览器访问键盘设备
-Exec=bash -c 'echo "SUBSYSTEM==\"hidraw\", ATTRS{idVendor}==\"413d\", MODE=\"0666\"" | sudo tee /etc/udev/rules.d/99-yywl-keyboard.rules > /dev/null && echo "SUBSYSTEM==\"hidraw\", ATTRS{idVendor}==\"8808\", MODE=\"0666\"" | sudo tee -a /etc/udev/rules.d/99-yywl-keyboard.rules > /dev/null && echo "SUBSYSTEM==\"hidraw\", ATTRS{idVendor}==\"514c\", MODE=\"0666\"" | sudo tee -a /etc/udev/rules.d/99-yywl-keyboard.rules > /dev/null && echo "SUBSYSTEM==\"hidraw\", ATTRS{idVendor}==\"1189\", MODE=\"0666\"" | sudo tee -a /etc/udev/rules.d/99-yywl-keyboard.rules > /dev/null && sudo udevadm control --reload-rules && sudo udevadm trigger && echo "" && echo "✅ 权限配置完成！请拔插键盘USB线后重新连接。" && sleep 5'
+Comment=配置 udev 规则，让浏览器/桌面版可以访问小键盘（需要管理员密码）
+Exec=bash -c 'RULES=/etc/udev/rules.d/99-yywl-keyboard.rules; printf "SUBSYSTEM==\"hidraw\", ATTRS{idVendor}==\"413d\", MODE=\"0666\"\nSUBSYSTEM==\"hidraw\", ATTRS{idVendor}==\"8808\", MODE=\"0666\"\nSUBSYSTEM==\"hidraw\", ATTRS{idVendor}==\"514c\", MODE=\"0666\"\nSUBSYSTEM==\"hidraw\", ATTRS{idVendor}==\"1189\", MODE=\"0666\"\n" > /tmp/yywl-udev.tmp; echo "==== YYWL 键盘权限修复 ===="; if command -v pkexec >/dev/null 2>&1; then echo "[1/2] 正在申请管理员权限（弹窗里输入管理员密码，不是 root 密码）..."; pkexec bash -c "cp /tmp/yywl-udev.tmp $RULES && udevadm control --reload-rules && udevadm trigger"; RC=$?; else echo "[1/2] 未找到 pkexec，改用 sudo"; sudo bash -c "cp /tmp/yywl-udev.tmp $RULES && udevadm control --reload-rules && udevadm trigger"; RC=$?; fi; echo ""; if [ $RC -eq 0 ]; then echo "✅ 权限配置完成！"; echo "请拔插键盘 USB 线，然后回到配置页面点「连接键盘」。"; else echo "❌ 配置失败（错误码 $RC）"; echo "常见原因：当前账号没有管理员权限，或取消了密码框。"; echo ""; echo "可以这样做："; echo "  1) 控制中心 → 通用 → 开发者模式，开启后再运行本工具；"; echo "  2) 让 IT 管理员执行下面这条命令："; echo "     sudo cp /tmp/yywl-udev.tmp $RULES && sudo udevadm control --reload-rules && sudo udevadm trigger"; echo "  3) 或先试桌面版（下载页有 Linux 版本）。"; fi; echo ""; echo "按回车关闭窗口..."; read _'
 Icon=preferences-system
 Terminal=true
 Categories=System;
