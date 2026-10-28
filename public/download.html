@@ -116,7 +116,8 @@
 
   <!-- 国产操作系统（信创）说明 -->
   <div class="card domestic" id="domesticCard">
-    <h2>🀄 国产操作系统（信创）用户</h2>
+    <span id="domestic"></span>
+      <h2>🀄 国产操作系统（信创）用户</h2>
     <p id="domesticBrand" style="display:none;font-size:.88rem;color:#b45309;font-weight:700;margin-bottom:6px"></p>
     <p style="font-size:.9rem;color:#475569">
       麒麟、统信 UOS、深度等国产系统本质上是 Linux，但<strong>直接跑 AppImage 经常起不来</strong>
@@ -179,6 +180,7 @@
     </div>
 
     <div class="warn">
+      <span id="linux-manual"></span>
       ⚠️ <strong>国产系统上的常见问题</strong><br>
       · <strong>安全中心拦截</strong>：麒麟/UOS 的「安全中心」「应用防护」可能拦截未知程序，需在弹窗里选「允许」或加白名单。<br>
       · <strong>提示 noexec</strong>：/home 被设成禁止执行程序（等保加固常见），按 <code>run.sh</code> 的提示把目录拷到 <code>/opt</code> 即可，只需一次管理员密码。<br>
