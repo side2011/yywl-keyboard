@@ -50,9 +50,10 @@ jobs:
             #   AppImage      —— 通用 Linux
             #   dir(x64/arm64) —— 打「国产系统便携版」tar.gz 的原料 (不用 FUSE)
             package_cmd: |
-              npx electron-builder --linux AppImage --x64 --publish never &&
+              npx electron-builder --linux AppImage deb --x64 --publish never &&
+              npx electron-builder --linux deb --arm64 --publish never --config.directories.output=dist-desktop-arm64 &&
               npx electron-builder --linux dir --x64 --publish never --config.directories.output=dist-desktop-x64 &&
-              npx electron-builder --linux dir --arm64 --publish never --config.directories.output=dist-desktop-arm64
+              npx electron-builder --linux dir --arm64 --publish never --config.directories.output=dist-desktop-arm64-dir
 
     steps:
       - name: 检出代码
@@ -194,7 +195,10 @@ jobs:
                 esac
               done ;;
             Linux)
-              for f in dist-desktop/*.AppImage; do cp "$f" "release/download/yywlkey-config-$VERSION-linux-x64.AppImage"; done ;;
+              for f in dist-desktop/*.AppImage; do cp "$f" "release/download/yywlkey-config-$VERSION-linux-x64.AppImage"; done
+              # deb：双击安装即自动写好 udev 规则（小白友好），x64 与 arm64 都发
+              for f in dist-desktop/*x64*.deb; do cp "$f" "release/download/yywlkey-config-$VERSION-linux-x64.deb"; done
+              for f in dist-desktop-arm64/*.deb; do cp "$f" "release/download/yywlkey-config-$VERSION-domestic-arm64.deb"; done ;;
           esac
           ls -lh release/download/
 
