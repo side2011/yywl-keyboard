@@ -1,7 +1,7 @@
 {
   "name": "yywl-keyboard-app",
   "private": true,
-  "version": "1.4.10",
+  "version": "1.4.11",
   "description": "YYWL 多功能小键盘配置工具（网页版 / Electron 桌面版）",
   "author": "YYWL <1291285148@qq.com>",
   "type": "module",
@@ -34,7 +34,7 @@
       "desktop-main.cjs",
       "desktop-updater.cjs",
       "desktop-actions.cjs",
-    "ps-worker.cjs",
+      "ps-worker.cjs",
       "desktop-preload.cjs",
       "update-progress-preload.cjs",
       "package.json"
@@ -57,7 +57,8 @@
     },
     "linux": {
       "target": [
-        "AppImage"
+        "AppImage",
+        "deb"
       ],
       "category": "Utility",
       "icon": "build/icon.png",
@@ -72,7 +73,24 @@
     "npmRebuild": false,
     "asarUnpack": [
       "node_modules/node-hid/**"
-    ]
+    ],
+    "deb": {
+      "afterInstall": "build/linux/after-install.sh",
+      "afterRemove": "build/linux/after-remove.sh",
+      "category": "Utility",
+      "priority": "optional",
+      "depends": [
+        "libgtk-3-0",
+        "libnotify4",
+        "libnss3",
+        "libxss1",
+        "libxtst6",
+        "xdg-utils",
+        "libatspi2.0-0",
+        "libuuid1",
+        "libsecret-1-0"
+      ]
+    }
   },
   "dependencies": {
     "node-hid": "^3.4.0"
