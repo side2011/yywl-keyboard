@@ -174,7 +174,19 @@
       ⚠️ <strong>国产系统上的常见问题</strong><br>
       · <strong>安全中心拦截</strong>：麒麟/UOS 的「安全中心」「应用防护」可能拦截未知程序，需在弹窗里选「允许」或加白名单。<br>
       · <strong>提示 noexec</strong>：/home 被设成禁止执行程序（等保加固常见），按 <code>run.sh</code> 的提示把目录拷到 <code>/opt</code> 即可，只需一次管理员密码。<br>
-      · <strong>连不上键盘</strong>：先跑 <code>./install-hid.sh</code>（写 udev 规则），再拔插一次键盘。<br>
+      · <strong>连不上键盘（权限）</strong>：Linux 需要一条 udev 规则，<strong>不是管理员账号也能装，但要输一次管理员密码</strong>：
+        <div style="margin:8px 0 4px 1.2em;font-size:.86rem;line-height:1.9">
+          <div>① 下载 <a href="fix-keyboard-permission.sh" download><strong>fix-keyboard-permission.sh</strong></a> 或 <a href="fix-keyboard-permission.desktop" download><strong>修复键盘权限.desktop</strong></a></div>
+          <div>② 右键 → 属性 → 权限 → 勾选「允许作为程序执行」</div>
+          <div>③ 双击运行；弹窗里输入<strong>管理员密码</strong>（不是 root 密码）</div>
+          <div>④ 拔插键盘 USB 线，重新打开配置页</div>
+          <div style="color:#b45309;margin-top:4px">若提示「无 root 权限 / 不是 sudoer」：<br>
+            · 控制中心 → 通用 → <strong>开发者模式</strong>，开启后再运行一次；<br>
+            · 或让 IT 管理员执行脚本里那条命令（一条就够）；<br>
+            · 或<strong>临时以管理员身份启动桌面版</strong>：<code>pkexec ./YYWL快速配置</code>（AppImage 同理），不改 udev 也能用。
+          </div>
+        </div>
+      · <strong>桌面版也一样要这条规则</strong>：桌面版读设备走 hidraw，权限规则和浏览器共用同一条 udev 规则；配好后浏览器和桌面版都能用。<br>
       · <strong>龙芯（loongarch64）</strong>：Electron 暂无官方支持，请把 <code>uname -m</code> 结果发给我们。
     </div>
   </div>
