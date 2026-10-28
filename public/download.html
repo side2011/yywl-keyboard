@@ -121,7 +121,7 @@
     <p style="font-size:.9rem;color:#475569">
       麒麟、统信 UOS、深度等国产系统本质上是 Linux，但<strong>直接跑 AppImage 经常起不来</strong>
       （缺 FUSE、/home 被设成 noexec、系统禁用了 user namespace 导致沙箱报错）。
-      所以这里单独做了 <strong>国产系统便携版</strong>：解压即用，不用安装、不用 FUSE、不依赖沙箱。
+      所以这里单独做了两个包：<strong>（推荐）deb 一键安装版</strong> —— 双击安装、输一次密码，<strong>权限自动配好</strong>，装完从开始菜单打开就能连键盘；以及<strong>便携版</strong>（解压即用，但需要手动配权限）。
     </p>
 
     <div class="grid" id="domesticPkgs" style="margin-top:14px"></div>
@@ -129,6 +129,14 @@
     <div class="oslist">
       <span>银河麒麟 V10</span><span>中标麒麟 NeoKylin</span><span>openKylin</span>
       <span>统信 UOS</span><span>深度 deepin</span><span>优麒麟 UbuntuKylin</span>
+<div style="margin-top:12px;padding:12px 14px;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:10px;font-size:.88rem;line-height:1.95">
+        <strong style="color:#047857">✅ 最省事：下载 deb 双击安装（推荐给不熟悉命令行的用户）</strong><br>
+        ① 下载 <strong>deb 一键安装版</strong>（下面「国产系统」栏里）<br>
+        ② 双击安装包 → 输入<strong>管理员密码</strong> → 等待完成<br>
+        ③ 从<strong>开始菜单</strong>打开「YYWL 键盘配置工具」，插上键盘直接点连接即可<br>
+        <span style="color:#475569">安装包会自动写好 udev 权限规则，不用打开终端、不用复制命令。</span>
+      </div>
+
       <span>中科方德</span><span>红旗 Linux</span><span>麒麟信安</span><span>普华 / 一铭 / 新支点</span>
     </div>
 
@@ -406,7 +414,7 @@
     (function () {
       var wrap = $('domesticPkgs');
       if (!wrap) return;
-      var list = mf.packages.filter(function (p) { return /-domestic$/.test(p.id); });
+      var list = mf.packages.filter(function (p) { return /-domestic$|-deb$/.test(p.id); });
       if (!list.length) return;
       list.forEach(function (p) {
         var el = document.createElement('div');
