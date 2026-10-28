@@ -47,6 +47,8 @@ async function hasKnownKeyboardOnline() {
 function KeyboardConnector() {
   const { t, lang, toggleLang } = useLang();
   const [connecting, setConnecting] = useState(false);
+  // Linux / 国产系统：优先引导装 deb（双击安装即自动配好 udev 权限）
+  const isLinuxClient = /linux/i.test(navigator.userAgent || '') && !/android/i.test(navigator.userAgent || '');
   // 设备选择框已弹出、正在等客户选中 —— 这时按钮不能只写「连接中」
   // （客户会以为程序在自己连，不知道要去弹框里选设备）
   const [awaitingPick, setAwaitingPick] = useState(false);
@@ -719,6 +721,29 @@ function KeyboardConnector() {
                       </div>
                     </>
                   )}
+                </div>
+              )}
+
+              {!connected && isLinuxClient && (
+                <div className="mb-3 rounded-xl border-2 border-emerald-200 bg-emerald-50 p-3">
+                  <div className="text-sm font-bold text-emerald-800 mb-1">
+                    💡 Linux / 国产系统用户：建议装 deb 版（一次性配好权限）
+                  </div>
+                  <div className="text-xs text-emerald-700 leading-relaxed mb-2">
+                    双击安装包 → 输入管理员密码 → 装完从开始菜单打开，就能直接连键盘，
+                    <strong>不用开终端、不用敲命令</strong>。
+                  </div>
+                  <div className="flex gap-2 flex-wrap">
+                    <a href={`${import.meta.env.BASE_URL}download.html#domestic`}
+                      className="px-3 py-1.5 text-xs font-bold rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition-colors">
+                      ⬇ 下载 deb 安装包
+                    </a>
+                    <button type="button"
+                      onClick={() => window.open(`${import.meta.env.BASE_URL}download.html#linux-manual`, '_blank', 'noopener')}
+                      className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-white text-emerald-700 border border-emerald-300 hover:bg-emerald-100 transition-colors">
+                      查看手动配置方法
+                    </button>
+                  </div>
                 </div>
               )}
 
