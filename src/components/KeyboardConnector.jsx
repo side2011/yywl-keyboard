@@ -347,33 +347,50 @@ function KeyboardConnector() {
         if (!hasVendorIface) {
           toast.error(t('选中的设备没有配置接口（可能是 USB 无线接收器或普通键鼠），请插入小键盘后重新连接'), { duration: 10000, id: 'hid-no-iface' });
         } else if (isLinux) {
-          const udevCmd = `sudo bash -c 'cat > /etc/udev/rules.d/99-yywl-keyboard.rules << EOF\nSUBSYSTEM=="hidraw", ATTRS{idVendor}=="413d", MODE="0666"\nSUBSYSTEM=="hidraw", ATTRS{idVendor}=="8808", MODE="0666"\nSUBSYSTEM=="hidraw", ATTRS{idVendor}=="514c", MODE="0666"\nSUBSYSTEM=="hidraw", ATTRS{idVendor}=="1189", MODE="0666"\nEOF\n' && sudo udevadm control --reload-rules && sudo udevadm trigger`;
+          // 两条命令：pkexec（弹管理员密码框，不需要 sudo 权限）/ sudo（有 sudo 权限时更直接）
+          const rulesText = 'SUBSYSTEM=="hidraw", ATTRS{idVendor}=="413d", MODE="0666"\n'
+            + 'SUBSYSTEM=="hidraw", ATTRS{idVendor}=="8808", MODE="0666"\n'
+            + 'SUBSYSTEM=="hidraw", ATTRS{idVendor}=="514c", MODE="0666"\n'
+            + 'SUBSYSTEM=="hidraw", ATTRS{idVendor}=="1189", MODE="0666"\n';
+          const udevCmd = `bash -c 'printf "%s" "${rulesText.replace(/"/g, '\\"').replace(/\n/g, '\\n')}" > /tmp/yywl-udev.tmp; if command -v pkexec >/dev/null 2>&1; then pkexec bash -c "cp /tmp/yywl-udev.tmp /etc/udev/rules.d/99-yywl-keyboard.rules && udevadm control --reload-rules && udevadm trigger"; else sudo bash -c "cp /tmp/yywl-udev.tmp /etc/udev/rules.d/99-yywl-keyboard.rules && udevadm control --reload-rules && udevadm trigger"; fi'`;
           const copyCmd = () => { navigator.clipboard.writeText(udevCmd).then(() => toast.success('命令已复制，请粘贴到终端运行')).catch(() => {}); };
           toast((tToast) => (
             <div className="text-sm leading-relaxed max-w-md">
               <p className="font-bold text-red-600 mb-2">检测到 Linux 系统，需配置 udev 权限才能访问键盘</p>
-              <p className="font-semibold text-gray-800 mb-1">方法一：下载修复工具</p>
+
+              <p className="font-semibold text-gray-800 mb-1">方法一：下载修复工具（推荐）</p>
               <a href={`${import.meta.env.BASE_URL}fix-keyboard-permission.desktop`} download
-                className="block w-full text-center py-2.5 bg-emerald-600 text-white rounded-lg font-semibold hover:bg-emerald-700 transition-colors mb-3">
-                 下载 修复键盘权限.desktop
+                className="block w-full text-center py-2.5 bg-emerald-600 text-white rounded-lg font-semibold hover:bg-emerald-700 transition-colors mb-2">
+                下载 修复键盘权限.desktop
               </a>
-              <p className="text-gray-600 text-xs mb-1">下载后操作：</p>
               <p className="text-gray-600 text-xs mb-1">① 右键文件 → 属性 → 权限 → 勾选"允许作为程序执行"</p>
-              <p className="text-gray-600 text-xs mb-3">② 双击运行，输入密码即可</p>
-              <p className="text-gray-500 text-xs mb-3">如右键无权限选项，请用方法二 ↓</p>
+              <p className="text-gray-600 text-xs mb-2">② 双击运行，弹窗里输入<strong>管理员密码</strong>（不是 root 密码）</p>
+
               <div className="border-t border-gray-200 pt-3 mb-2">
-                <p className="font-semibold text-gray-800 mb-1">方法二：手动复制命令到终端</p>
-                <p className="text-gray-600 text-xs mb-2">① 右键桌面 → 打开终端 &nbsp; ② 点击下方复制按钮 &nbsp; ③ 终端中右键粘贴 → 回车 → 输密码</p>
-                <div className="bg-gray-800 rounded-lg p-2.5 mb-2">
-                  <code className="text-green-400 text-xs break-all leading-relaxed select-all">{udevCmd}</code>
+                <p className="font-semibold text-gray-800 mb-1">方法二：复制命令到终端</p>
+                <p className="text-gray-600 text-xs mb-2">右键桌面 → 打开终端 → 点下面按钮 → 粘贴回车，输入管理员密码</p>
+                <div className="bg-gray-800 rounded-lg p-2.5 mb-2 max-h-28 overflow-auto">
+                  <code className="text-green-400 text-[11px] break-all leading-relaxed select-all">{udevCmd}</code>
                 </div>
                 <button onClick={copyCmd} className="w-full py-2 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition-colors text-sm">
                   复制命令
                 </button>
               </div>
-              <p className="text-gray-500 text-xs mt-2">⚠ 配置完成后请拔插键盘USB线，再重新连接</p>
+
+              <div className="border-t border-gray-200 pt-3">
+                <p className="font-semibold text-amber-700 mb-1">如果提示「无 root 权限 / 不是 sudoer」</p>
+                <p className="text-gray-600 text-xs mb-1">① <strong>控制中心 → 通用 → 开发者模式</strong>，开启后再跑一次修复工具</p>
+                <p className="text-gray-600 text-xs mb-1">② 或让 IT 管理员执行上面那条命令（一条就够）</p>
+                <p className="text-gray-600 text-xs mb-2">③ 或先试<strong>桌面版</strong>（下载页有 Linux 版，安装包自带运行环境）</p>
+                <a href={`${import.meta.env.BASE_URL}download.html`}
+                  className="block w-full text-center py-2 bg-white border-2 border-indigo-200 text-indigo-600 rounded-lg font-semibold hover:bg-indigo-50 transition-colors text-sm mb-2">
+                  ⬇ 去下载桌面版（Linux）
+                </a>
+              </div>
+
+              <p className="text-gray-500 text-xs mt-2">⚠ 配置完成后请拔插键盘USB线，再重新点「连接键盘」</p>
             </div>
-          ), { duration: 30000, id: 'linux-udev' });
+          ), { duration: 60000, id: 'linux-udev' });
         } else {
           toast.error(t('无法连接设备接口，请尝试：1.关闭其他配置软件或浏览器标签 2.拔插键盘USB线后重试'), { duration: 6000, id: 'hid-iface-fail' });
         }
