@@ -180,6 +180,11 @@
           <div>② 右键 → 属性 → 权限 → 勾选「允许作为程序执行」</div>
           <div>③ 双击运行；弹窗里输入<strong>管理员密码</strong>（不是 root 密码）</div>
           <div>④ 拔插键盘 USB 线，重新打开配置页</div>
+          <div style="margin-top:6px;padding:8px 10px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;font-size:.84rem">
+            <strong>怎么判断成没成功：</strong><br>
+            · 成功 → 窗口里显示 <code>✅ 权限配置完成</code>，之后 <code>ls -l /dev/hidraw*</code> 权限是 <code>crw-rw-rw-</code><br>
+            · 没成功 → 出现 <code>No root privileges</code> / <code>认证失败</code>，说明当前账号没有管理员权限，规则没写进去
+          </div>
           <div style="color:#b45309;margin-top:4px">若提示「无 root 权限 / 不是 sudoer」：<br>
             · 控制中心 → 通用 → <strong>开发者模式</strong>，开启后再运行一次；<br>
             · 或让 IT 管理员执行脚本里那条命令（一条就够）；<br>
