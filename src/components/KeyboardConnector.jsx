@@ -340,6 +340,26 @@ function KeyboardConnector() {
         configDevice = devices.find(dev => dev.opened && dev.collections?.some(c => c.outputReports?.length > 0));
         if (configDevice) console.log('[KeyboardConnector] 选中设备: 兜底 (有 outputReports)');
       }
+      // 补救：客户在系统选择框里可能只选中了键盘的"输入接口"（没有厂商配置接口），
+      // 而键盘真正的配置接口在浏览器已授权的设备里 —— 直接改用那个，别让客户来回选。
+      if (!configDevice) {
+        try {
+          const granted = await navigator.hid.getDevices();
+          const vendorPages = (d) => (d.collections || []).some(c2 => c2.usagePage === 0xFF00 || c2.usagePage === 0xffa0);
+          const better = granted.find(vendorPages);
+          if (better) {
+            try { if (!better.opened) await better.open(); } catch { /* ignore */ }
+            if (better.opened) {
+              console.log('[KeyboardConnector] 自动改用带配置接口的已授权设备:', better.productName);
+              toast(t('已自动切换到键盘的配置接口'), { id: 'hid-rescue', duration: 4000 });
+              configDevice = better;
+            }
+          }
+        } catch (e) {
+          console.warn('[KeyboardConnector] getDevices 读取已授权设备失败:', e?.message);
+        }
+      }
+
       if (!configDevice) {
         console.error('[KeyboardConnector] 无法打开设备接口, devices:', devices.map(d => ({ vid: d.vendorId?.toString(16), pid: d.productId?.toString(16), opened: d.opened, name: d.productName })));
         // 选中的设备完全没有厂商配置接口 → 多半是选错设备了 (USB 无线接收器 / 普通键鼠)
@@ -347,7 +367,22 @@ function KeyboardConnector() {
         const ua = navigator.userAgent || '';
         const isLinux = /linux/i.test(ua) && !/android/i.test(ua);
         if (!hasVendorIface) {
-          toast.error(t('选中的设备没有配置接口（可能是 USB 无线接收器或普通键鼠），请插入小键盘后重新连接'), { duration: 10000, id: 'hid-no-iface' });
+          toast.error((tt) => (
+            <div className="text-sm leading-relaxed max-w-sm">
+              <p className="font-bold mb-1">{t('没有找到键盘的配置接口')}</p>
+              <p className="text-xs mb-2">{t('常见原因：① 系统列表里有两个同名设备，选到了"键盘输入"那个；② 键盘走的是无线接收器；③ 没插 USB 线。')}</p>
+              <div className="flex gap-2">
+                <button onClick={() => { toast.dismiss(tt.id); handleConnectClick(); }}
+                  className="px-3 py-1.5 rounded-lg bg-indigo-600 text-white text-xs font-bold">
+                  {t('重新选择设备')}
+                </button>
+                <button onClick={() => { toast.dismiss(tt.id); setWideMode(true); setTimeout(() => handleConnectClick(), 60); }}
+                  className="px-3 py-1.5 rounded-lg border border-indigo-300 text-indigo-600 text-xs font-semibold bg-white">
+                  {t('列出全部同厂设备')}
+                </button>
+              </div>
+            </div>
+          ), { duration: 20000, id: 'hid-no-iface' });
         } else if (isLinux) {
           // 两条命令：pkexec（弹管理员密码框，不需要 sudo 权限）/ sudo（有 sudo 权限时更直接）
           const rulesText = 'SUBSYSTEM=="hidraw", ATTRS{idVendor}=="413d", MODE="0666"\n'
