@@ -538,6 +538,14 @@ export default function BtConfigurator() {
       const cfgKeyOf = (c) => {
         if (!c) return '0';
         const mode = c.mode || 0;
+        // 空配置的几种写法都归一成 '0'：
+        //   mode=0（界面未设置） / mode=1 无修饰无键（设备里清空后的记录）
+        const noMod = !(c.modifierMask || 0);
+        const noKey = !(c.keyCode || 0);
+        const noMulti = !(Array.isArray(c.multiKeys) ? c.multiKeys.length : 0);
+        if (mode === 0) return '0';
+        if (mode === 1 && noMod && noKey && noMulti) return '0';
+        if (mode === 4 && noMulti) return '0';
         if (mode === 1) return `1|${c.modifierMask || 0}|${c.keyCode || 0}`;
         if (mode === 2) return `2|${c.mediaCode || 0}`;
         if (mode === 3) {
