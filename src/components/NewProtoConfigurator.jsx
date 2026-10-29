@@ -394,7 +394,11 @@ export default function NewProtoConfigurator() {
     });
   }, [selectedKey, currentLayer]);
 
-  const toggleModifier = (bit) => updateConfig({ modifier: (currentConfig.modifier || 0) ^ bit });
+  // 只勾修饰键也要算"键盘"配置（原来没设 mode，导致左栏一直显示未设置）
+  const toggleModifier = (bit) => updateConfig({
+    mode: KEY_MODE.KEYBOARD,
+    modifier: (currentConfig.modifier || 0) ^ bit,
+  });
 
   // 自动切换 tab 到当前配置的 mode
   useEffect(() => {
@@ -530,7 +534,13 @@ export default function NewProtoConfigurator() {
   };
 
   const handleClearAll = () => {
-    setKeyConfigs(createDefaultConfig(keyCount));
+    const fresh = createDefaultConfig(keyCount);
+    setKeyConfigs(fresh);
+    // 同步到层缓存，否则切到别的层再切回来，旧配置又冒出来
+    const cached = [...allLayerConfigsRef.current];
+    cached[currentLayer] = fresh;
+    allLayerConfigsRef.current = cached;
+    setSelectedKey(0);
     toast.success(t('已清除全部按键配置'));
   };
 
@@ -785,12 +795,16 @@ export default function NewProtoConfigurator() {
     if (!cfg || cfg.mode === 0) return t('未设置');
     switch (cfg.mode) {
       case KEY_MODE.KEYBOARD: {
-        let label = '';
-        if (cfg.modifier) {
-          const mods = MODIFIERS.filter(m => cfg.modifier & m.bit).map(m => t(m.label));
-          label = mods.join('+') + '+';
+        const mods = cfg.modifier
+          ? MODIFIERS.filter(m => cfg.modifier & m.bit).map(m => t(m.label))
+          : [];
+        const keyLabel = cfg.keyCode ? keyCodeToLabel(cfg.keyCode) : '';
+        if (!keyLabel) {
+          // 只勾了修饰键：明确告诉客户还差一个按键，不要显示成未设置
+          if (!mods.length) return t('未设置');
+          return t('修饰键: ') + mods.join('+') + t('（还没选按键）');
         }
-        return t('键盘: ') + label + keyCodeToLabel(cfg.keyCode);
+        return t('键盘: ') + (mods.length ? mods.join('+') + '+' : '') + keyLabel;
       }
       case KEY_MODE.MOUSE: {
         const action = NEW_MOUSE_ACTIONS.find(a => a.code === (cfg.mouseButton || 0));
