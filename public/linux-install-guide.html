@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>国产系统安装说明 · YYWL 键盘配置工具</title>
+<style>
+  :root { --ink:#0f172a; --gray:#475569; --line:#e2e8f0; --brand:#4f46e5; --ok:#059669; --warn:#b45309; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:#f1f5f9; color:var(--ink); font:15px/1.75 "Microsoft YaHei","PingFang SC",system-ui,sans-serif; }
+  .wrap { max-width:900px; margin:0 auto; padding:24px 18px 60px; }
+  h1 { font-size:24px; margin:8px 0 4px; }
+  .sub { color:var(--gray); font-size:14px; margin-bottom:20px; }
+  .card { background:#fff; border:1px solid var(--line); border-radius:14px; padding:20px 22px; margin-bottom:16px; }
+  h2 { font-size:18px; margin:0 0 12px; }
+  h3 { font-size:15px; margin:16px 0 8px; }
+  ol, ul { padding-left:22px; margin:8px 0; }
+  li { margin:6px 0; }
+  code { background:#f1f5f9; border:1px solid var(--line); border-radius:6px; padding:1px 6px; font-size:13px; }
+  pre { background:#0f172a; color:#a5f3fc; padding:14px 16px; border-radius:10px; overflow:auto; font-size:12.5px; line-height:1.7; }
+  .tip { background:#ecfdf5; border:1px solid #a7f3d0; color:#065f46; border-radius:10px; padding:12px 14px; margin:12px 0; }
+  .warn { background:#fffbeb; border:1px solid #fde68a; color:#92400e; border-radius:10px; padding:12px 14px; margin:12px 0; }
+  .bad { background:#fef2f2; border:1px solid #fecaca; color:#991b1b; border-radius:10px; padding:12px 14px; margin:12px 0; }
+  .path { display:inline-block; background:#eef2ff; border:1px solid #c7d2fe; color:#3730a3; border-radius:8px; padding:2px 8px; font-weight:600; }
+  table { width:100%; border-collapse:collapse; margin:10px 0; font-size:14px; }
+  th, td { border:1px solid var(--line); padding:8px 10px; text-align:left; vertical-align:top; }
+  th { background:#f8fafc; font-weight:700; }
+  a { color:var(--brand); }
+  .back { display:inline-block; margin-bottom:14px; font-size:13px; color:var(--gray); text-decoration:none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="download.html">← 返回下载页</a>
+  <h1>国产系统（麒麟 / 统信 UOS / deepin）安装说明</h1>
+  <div class="sub">装不上的 90% 是下面两种情况，按对应步骤处理即可。</div>
+
+  <div class="card">
+    <h2>情况一：提示「安装包没有有效的数字签名，已被禁止安装」</h2>
+    <div class="bad">
+      <strong>这不是安装包损坏。</strong>统信 UOS / 麒麟默认只允许「应用商店签名过」的安装包，
+      我们这类小厂商软件默认被安全策略拦截，需要手动放行一次。
+    </div>
+
+    <h3>方法 A：用提示里的「前往」按钮放行（推荐，最简单）</h3>
+    <ol>
+      <li>在报错弹窗上点 <strong>「前往」</strong>（会跳到安全中心）</li>
+      <li>依次进入：<span class="path">安全中心 → 安全工具 → 应用安全</span></li>
+      <li>找到「应用安装/运行控制」或「软件安装拦截」，把
+          <strong>「YYWL 键盘配置工具」</strong>（或本次安装包）设为 <strong>允许 / 信任</strong></li>
+      <li>回到安装包，<strong>再双击一次</strong>即可正常安装</li>
+    </ol>
+
+    <h3>方法 B：安全中心里降低「应用安全」拦截等级</h3>
+    <ol>
+      <li>打开 <span class="path">安全中心</span>（开始菜单里搜索「安全中心」）</li>
+      <li>进入 <span class="path">安全工具 → 应用安全</span></li>
+      <li>把「软件安装控制 / 应用安全防护」临时调成
+          <strong>宽松 / 仅提醒</strong>（装完可以调回去）</li>
+      <li>重新双击安装包安装</li>
+    </ol>
+
+    <div class="warn">
+      ⚠️ 如果安全中心的开关是<strong>灰色的、改不了</strong>：说明贵公司 IT 下发了统一策略。
+      这时请联系 IT，用下面「情况三」的方式部署（一条命令，之后所有电脑都不用再折腾）。
+    </div>
+
+    <h3>方法 C：改用「免安装便携版」（不需要安装，绕开签名校验）</h3>
+    <ol>
+      <li>在下载页下载 <strong>国产系统 · 便携版（tar.gz）</strong></li>
+      <li>解压到任意目录（例如 <code>~/yywl</code> 或 <code>/opt/yywl</code>）</li>
+      <li>双击目录里的 <code>run.sh</code>（或终端执行 <code>bash run.sh</code>）</li>
+      <li>如果提示「权限不足/连不上键盘」，按下面「情况二」补一条权限规则</li>
+    </ol>
+  </div>
+
+  <div class="card">
+    <h2>情况二：软件能打开，但点「连接键盘」连不上</h2>
+    <p>这是 Linux 的设备权限问题（不是软件坏了）。装 <strong>deb 版会自动配好</strong>；
+       用便携版则需要补一条规则，二选一：</p>
+
+    <h3>① 双击脚本（需要管理员密码）</h3>
+    <ol>
+      <li>下载 <a href="fix-keyboard-permission.sh" download>fix-keyboard-permission.sh</a></li>
+      <li>右键 → 属性 → 权限 → 勾选「允许作为程序执行」</li>
+      <li>双击运行，弹窗里输入<strong>管理员密码</strong>（不是 root 密码）</li>
+      <li>拔插键盘 USB 线，再点「连接键盘」</li>
+    </ol>
+
+    <h3>② 让 IT 执行一条命令（一次配置，这台机器所有账号都能用）</h3>
+    <pre>sudo tee /etc/udev/rules.d/99-yywl-keyboard.rules &gt;/dev/null &lt;&lt;'EOF'
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="413d", MODE="0666"
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="8808", MODE="0666"
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="514c", MODE="0666"
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="1189", MODE="0666"
+SUBSYSTEM=="usb", ATTRS{idVendor}=="413d", MODE="0666"
+SUBSYSTEM=="usb", ATTRS{idVendor}=="8808", MODE="0666"
+SUBSYSTEM=="usb", ATTRS{idVendor}=="514c", MODE="0666"
+SUBSYSTEM=="usb", ATTRS{idVendor}=="1189", MODE="0666"
+EOF
+sudo udevadm control --reload-rules &amp;&amp; sudo udevadm trigger</pre>
+
+    <div class="tip">
+      ✅ 验证是否生效：终端执行 <code>ls -l /dev/hidraw*</code>，
+      权限变成 <code>crw-rw-rw-</code> 就对了（拔插键盘后看）。
+    </div>
+
+    <div class="warn">
+      ⚠️ 如果执行时报 <code>No root privileges</code>：说明当前账号不是管理员。
+      请用管理员账号执行，或让 IT 帮忙。
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>情况三：公司电脑统一管理（推荐给 IT）</h2>
+    <p>IT 只需要做一次，之后所有同事的电脑都不用再折腾：</p>
+    <table>
+      <tr><th>做法</th><th>说明</th></tr>
+      <tr>
+        <td><strong>装机镜像预置 udev 规则</strong></td>
+        <td>把上面那段规则文件写进镜像的 <code>/etc/udev/rules.d/</code>，
+            新装的机器天然可访问键盘（浏览器与桌面版都能用）。</td>
+      </tr>
+      <tr>
+        <td><strong>内网分发 deb</strong></td>
+        <td>下载 deb 安装包，内网软件中心/共享盘分发；安装时由管理员密码确认，
+            安装脚本会自动写 udev 规则。</td>
+      </tr>
+      <tr>
+        <td><strong>签名白名单</strong></td>
+        <td>若贵司启用了强制签名策略，可把我们的包加入信任列表，
+            或由 IT 用内部证书重签后分发。</td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>还有问题？</h2>
+    <p>把这几样发给我们，定位最快：</p>
+    <ul>
+      <li>系统版本：<code>cat /etc/os-release</code> 的输出</li>
+      <li>权限状态：<code>ls -l /dev/hidraw*</code> 的输出</li>
+      <li>软件日志：<code>~/.config/YYWL键盘配置工具/logs/</code> 里的文件（如果有）</li>
+      <li>技术支持 QQ：<strong>1291285148</strong></li>
+    </ul>
+  </div>
+</div>
+</body>
+</html>
