@@ -980,11 +980,22 @@ export default function BtConfigurator() {
                   </div>
                 );
               }
-              // 无旋钮款: 4 键是单排 4 个 (与实物一致), 其余每行 3 个
+              // 无旋钮款布局对齐实物:
+              //   4 键 = 单排 4 个
+              //   16 键 = 4×4 方阵（客户指定）
+              //   其余 = 每行 3 个
               if (totalSlots === 4) {
                 return (
                   <div className="grid grid-cols-4 gap-2">
                     {Array.from({ length: totalSlots }, (_, i) => renderSlot(i))}
+                  </div>
+                );
+              }
+              if (totalSlots === 16) {
+                // 4×4 方阵：列多了，卡片变窄 → 内边距和字号收一点
+                return (
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {Array.from({ length: totalSlots }, (_, i) => renderSlot(i, 'min-w-0 px-1.5'))}
                   </div>
                 );
               }
