@@ -44,12 +44,35 @@ if [ -n "$APP_BIN" ]; then
     sed -i "s|^Exec=.*|Exec=\"$APP_BIN\" --no-sandbox %U|" "$DESKTOP"
   fi
 
-  # 2) 终端也能启动：/usr/bin/yywl-config
+  # 2) 终端也能启动：/usr/bin/yywl-config（并把输出写进日志，方便排查）
   cat > /usr/bin/yywl-config <<EOF
 #!/bin/bash
-exec "$APP_BIN" --no-sandbox "\$@"
+# YYWL 键盘配置工具启动器（安装脚本生成）
+# 失败时把输出写到 ~/.yywl-launch.log，客户把这个文件发给技术支持即可
+LOG="\$HOME/.yywl-launch.log"
+echo "==== \$(date '+%F %T') 启动 ====" >> "\$LOG"
+"$APP_BIN" --no-sandbox "\$@" >> "\$LOG" 2>&1
+RC=\$?
+if [ \$RC -ne 0 ]; then
+  echo "退出码 \$RC" >> "\$LOG"
+fi
+exit \$RC
 EOF
   chmod 755 /usr/bin/yywl-config
+
+  # 3) 「兼容模式」入口：主入口仍打不开时的兜底（关 GPU / 关 shm / 关沙箱）
+  cat > /usr/share/applications/yywl-config-safe.desktop <<EOF
+[Desktop Entry]
+Name=YYWL 键盘配置工具（兼容模式）
+Comment=双击没反应时用这个启动
+Exec="$APP_BIN" --no-sandbox --disable-gpu --disable-software-rasterizer --disable-dev-shm-usage %U
+Terminal=false
+Type=Application
+Icon=yywl-config
+StartupWMClass=YYWL键盘配置工具
+Categories=Utility;
+EOF
+  chmod 644 /usr/share/applications/yywl-config-safe.desktop
 fi
 
 exit 0
