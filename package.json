@@ -89,7 +89,8 @@
         "libatspi2.0-0",
         "libuuid1",
         "libsecret-1-0"
-      ]
+      ],
+      "artifactName": "yywlkey-config-${version}-linux-${arch}.deb"
     }
   },
   "dependencies": {
