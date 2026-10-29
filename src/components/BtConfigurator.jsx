@@ -12,6 +12,7 @@ import {
   BT_KEYCODE_LABELS,
 } from '../services/bt-protocol';
 import BtVirtualKeyboard from './BtVirtualKeyboard';
+import ConfirmDialog from './ConfirmDialog';
 import { downloadLogs } from '../services/log-buffer';
 import ConfigListPanel from './ConfigListPanel';
 import toast from 'react-hot-toast';
@@ -148,6 +149,7 @@ export default function BtConfigurator() {
   const [keyConfigs, setKeyConfigs] = useState(() => Array.from({ length: totalSlots }, createDefaultConfig));
   const [selectedKey, setSelectedKey] = useState(0);
   const [multiIndex, setMultiIndex] = useState(0);
+  const [copyAllOpen, setCopyAllOpen] = useState(false);
   // 延时输入框的草稿值：清空或前导零时不被数字回写打断
   const [delayDraft, setDelayDraft] = useState({});
   // 桌面版里已配置的扩展动作（网页版拿不到 → 空对象）
@@ -637,6 +639,18 @@ export default function BtConfigurator() {
     }
   };
 
+  // 把当前层配置复制到全部层（出厂常把三层设成一样，方便测试）
+  const handleCopyToAllLayers = () => {
+    const snapshot = keyConfigs.map((cfg) => JSON.parse(JSON.stringify(cfg)));
+    const cached = [...layerConfigsRef.current];
+    for (let l = 0; l < btLayerCount; l += 1) {
+      cached[l] = snapshot.map((cfg) => JSON.parse(JSON.stringify(cfg)));
+    }
+    layerConfigsRef.current = cached;
+    setCopyAllOpen(false);
+    toast.success(t('已把层 {n} 的配置复制到全部 {total} 层，请点「保存到键盘」写入', { n: currentLayer + 1, total: btLayerCount }), { id: 'bt-copy-all' });
+  };
+
   const handleClearKey = () => {
     updateConfig(createDefaultConfig());
     toast.success(t('已清除当前键'));
@@ -761,6 +775,14 @@ export default function BtConfigurator() {
 
   return (
     <div className="min-h-screen p-4">
+      <ConfirmDialog
+        open={copyAllOpen}
+        title={t('把当前层复制到全部层？')}
+        message={t('将把「层 {n}」的配置覆盖到全部 {total} 层，其它层原有配置会被替换。\n\n复制后还需要点「保存到键盘」才会写入键盘。', { n: currentLayer + 1, total: btLayerCount })}
+        confirmText={t('确定复制')}
+        onCancel={() => setCopyAllOpen(false)}
+        onConfirm={handleCopyToAllLayers}
+      />
       {/* ---- 顶部状态栏 ---- */}
       <div className="bg-white/80 backdrop-blur-sm border-b border-gray-200 px-6 py-3 flex items-center justify-between sticky top-0 z-20 rounded-xl shadow-sm mb-4">
         <div className="flex items-center gap-4">
@@ -1022,6 +1044,13 @@ export default function BtConfigurator() {
                 className="py-3 text-base font-bold border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer">
                 {t('全部清除')}
               </button>
+              {/* 出厂常把三层设成一样，这里一键复制（带二次确认防误点） */}
+              {btLayerCount > 1 && (
+                <button onClick={() => setCopyAllOpen(true)} disabled={loading}
+                  className="py-3 text-base font-bold rounded-lg border-2 border-indigo-200 text-indigo-600 bg-white hover:bg-indigo-50 transition-colors cursor-pointer">
+                  ⚡ {t('当前层应用到全部 {total} 层', { total: btLayerCount })}
+                </button>
+              )}
               <button onClick={handleSaveToDevice}
                 className="py-3 text-lg font-extrabold rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 text-white hover:from-indigo-500 hover:to-violet-500 transition-all cursor-pointer shadow-md">
                 {t('保存到键盘')}
