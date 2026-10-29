@@ -904,7 +904,16 @@ export default function BtConfigurator() {
         <div className={`${knobCount > 0 ? 'lg:w-[420px] xl:w-[460px]' : 'lg:w-[320px]'} flex-shrink-0 space-y-4`}>
           {/* 按键列表 */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-            <h3 className="text-base font-bold text-gray-600 mb-4">{t('物理按键')}</h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-base font-bold text-gray-600">{t('物理按键')}</h3>
+              {btLayerCount > 1 && (
+                <button onClick={() => setCopyAllOpen(true)} disabled={loading}
+                  title={t('把当前层的配置复制到全部 {total} 层（出厂配置常用）', { total: btLayerCount })}
+                  className="text-[11px] font-medium text-gray-400 hover:text-indigo-500 hover:underline transition-colors cursor-pointer disabled:opacity-50">
+                  ⚡ {t('应用到全部层')}
+                </button>
+              )}
+            </div>
             {(() => {
               const renderSlot = (i, extraCls = '') => {
                 const isSel = selectedKey === i;
@@ -1044,13 +1053,6 @@ export default function BtConfigurator() {
                 className="py-3 text-base font-bold border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer">
                 {t('全部清除')}
               </button>
-              {/* 出厂常把三层设成一样，这里一键复制（带二次确认防误点） */}
-              {btLayerCount > 1 && (
-                <button onClick={() => setCopyAllOpen(true)} disabled={loading}
-                  className="py-3 text-base font-bold rounded-lg border-2 border-indigo-200 text-indigo-600 bg-white hover:bg-indigo-50 transition-colors cursor-pointer">
-                  ⚡ {t('当前层应用到全部 {total} 层', { total: btLayerCount })}
-                </button>
-              )}
               <button onClick={handleSaveToDevice}
                 className="py-3 text-lg font-extrabold rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 text-white hover:from-indigo-500 hover:to-violet-500 transition-all cursor-pointer shadow-md">
                 {t('保存到键盘')}
