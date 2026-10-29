@@ -532,7 +532,8 @@ export class BtProtocolHandler {
   // 注意：不能用 readLayer 判断 —— 它对缺失的报告只是跳过、不报错，会误判成"有这层"
   async probeLayer(layer /* 0 = 第1层 */) {
     const l = layer + 1;
-    const keyNum = this._isV10 ? 25 : 15;
+    // 至少覆盖实际键数：16 键设备要是只发 15 个就漏掉最后一个键
+    const keyNum = Math.max(this._isV10 ? 25 : 15, (this._info?.keyCount || 0));
     const knNum = this._isV10 ? 0 : 3;
     await this._send(this._mk(0xFA, [keyNum, knNum, l]));
     const deadline = Date.now() + 700;
@@ -561,6 +562,7 @@ export class BtProtocolHandler {
     const knNum = this._isV10 ? 0 : 3;
     await this._send(this._mk(0xFA, [keyNum, knNum, l]));
     const configs = [];
+    const seenKeyNo = new Set();
     // 连续收集报告: V10 每键1报告; 旧协议 键报告 + 旋钮报告
     const totalReports = this._isV10 ? keyNum : keyNum + knNum * 3;
     for (let i = 0; i < totalReports; i++) {
@@ -585,6 +587,14 @@ export class BtProtocolHandler {
           idx = keyCount + (keyNo - 16);
         }
         if (idx >= 0 && idx < 40) {
+          // 同一键号重复上报时保留第一条：
+          // 16 键款会在 key 报告之后再补一条 keyNo 相同的"旋钮默认动作"(如音量+)，
+          // 之前直接覆盖，导致 K16 怎么设都读成音量+、保存校验也永远不一致。
+          if (seenKeyNo.has(keyNo)) {
+            console.log('[BtProto] keyNo=' + keyNo + ' 重复上报，已忽略后一条（保留首条）');
+            continue;
+          }
+          seenKeyNo.add(keyNo);
           configs[idx] = cfg;
         }
       } catch (e) {
