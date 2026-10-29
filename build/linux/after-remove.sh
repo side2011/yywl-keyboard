@@ -4,6 +4,7 @@
 set -e
 rm -f /lib/udev/rules.d/99-yywl-keyboard.rules
 rm -f /usr/bin/yywl-config
+rm -f /usr/share/applications/yywl-config-safe.desktop
 udevadm control --reload-rules || true
 udevadm trigger || true
 exit 0
