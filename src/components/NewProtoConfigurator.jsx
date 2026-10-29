@@ -11,6 +11,7 @@ import {
   BROWSER_CODE_TO_HID, BROWSER_MOD_TO_BIT, BROWSER_MACRO_KEY_TO_HID,
 } from '../services/hid-constants';
 import { downloadLogs } from '../services/log-buffer';
+import ConfirmDialog from './ConfirmDialog';
 import {
   NEW_MOUSE_ACTIONS, NEW_MEDIA_KEYS, MACRO_STEP, MACRO_STEP_LABELS,
   serializeMacro, deserializeMacro, getNewProtoRgbModes,
@@ -214,6 +215,7 @@ export default function NewProtoConfigurator() {
   // ---- 核心状态 ----
   const [keyConfigs, setKeyConfigs] = useState(() => createDefaultConfig(keyCount));
   const [selectedKey, setSelectedKey] = useState(0);
+  const [copyAllOpen, setCopyAllOpen] = useState(false);
   // 桌面版里已配置的扩展动作（网页版拿不到 → 空对象）
   const [actionNames, setActionNames] = useState({});
   useEffect(() => { fetchActionSummary().then((s) => setActionNames(toSlotMap(s))); }, []);
@@ -553,6 +555,18 @@ export default function NewProtoConfigurator() {
     });
   };
 
+  // 把当前层配置复制到全部层（出厂常把各层设成一样）
+  const handleCopyToAllLayers = () => {
+    const snapshot = keyConfigs.map((cfg) => JSON.parse(JSON.stringify(cfg)));
+    const cached = [...allLayerConfigsRef.current];
+    for (let l = 0; l < layerCount; l += 1) {
+      cached[l] = snapshot.map((cfg) => JSON.parse(JSON.stringify(cfg)));
+    }
+    allLayerConfigsRef.current = cached;
+    setCopyAllOpen(false);
+    toast.success(t('已把层 {n} 的配置复制到全部 {total} 层，请点「保存到键盘」写入', { n: currentLayer + 1, total: layerCount }), { id: 'np-copy-all' });
+  };
+
   const handleClearAll = () => {
     const fresh = createDefaultConfig(keyCount);
     setKeyConfigs(fresh);
@@ -872,6 +886,14 @@ export default function NewProtoConfigurator() {
   // ============================================================
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-indigo-50/30">
+      <ConfirmDialog
+        open={copyAllOpen}
+        title={t('把当前层复制到全部层？')}
+        message={t('将把「层 {n}」的配置覆盖到全部 {total} 层，其它层原有配置会被替换。\n\n复制后还需要点「保存到键盘」才会写入键盘。', { n: currentLayer + 1, total: layerCount })}
+        confirmText={t('确定复制')}
+        onCancel={() => setCopyAllOpen(false)}
+        onConfirm={handleCopyToAllLayers}
+      />
       {/* ---- 顶部状态栏 ---- */}
       <div className="bg-white/80 backdrop-blur-sm border-b border-gray-200 px-6 py-3 flex items-center justify-between sticky top-0 z-20">
         <div className="flex items-center gap-4">
@@ -926,7 +948,16 @@ export default function NewProtoConfigurator() {
         <div className="lg:w-[360px] xl:w-[400px] flex-shrink-0 space-y-4">
           {/* 按键网格 */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-            <h3 className="text-base font-bold text-gray-600 uppercase tracking-wider mb-4">{t('物理按键')}</h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-base font-bold text-gray-600 uppercase tracking-wider">{t('物理按键')}</h3>
+              {layerCount > 1 && (
+                <button onClick={() => setCopyAllOpen(true)} disabled={loading}
+                  title={t('把当前层的配置复制到全部 {total} 层（出厂配置常用）', { total: layerCount })}
+                  className="text-[11px] font-medium text-gray-400 hover:text-indigo-500 hover:underline transition-colors cursor-pointer disabled:opacity-50">
+                  ⚡ {t('应用到全部层')}
+                </button>
+              )}
+            </div>
             {(() => {
               const renderKeyCard = (i, extraCls = '', compact = false) => {
                 const isSel = selectedKey === i;
