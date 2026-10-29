@@ -26,4 +26,30 @@ chmod 644 "$RULES"
 udevadm control --reload-rules || true
 udevadm trigger || true
 
+# ---------------------------------------------------------------
+# 修「装好了但双击打不开」：
+# 国产系统（UOS / 麒麟）默认禁用非特权 user namespace，
+# 且 chrome-sandbox 不是 setuid root，Electron 会直接起不来（没有任何提示）。
+# 处理：给启动参数加 --no-sandbox，并补 chrome-sandbox 的 setuid 位。
+# ---------------------------------------------------------------
+APP_BIN=$(find /opt -maxdepth 3 -name 'yywl-config' -type f 2>/dev/null | head -1)
+if [ -n "$APP_BIN" ]; then
+  APP_DIR=$(dirname "$APP_BIN")
+  chmod +x "$APP_BIN" 2>/dev/null || true
+  chmod 4755 "$APP_DIR/chrome-sandbox" 2>/dev/null || true
+
+  # 1) 开始菜单的启动项：补 --no-sandbox
+  DESKTOP=/usr/share/applications/yywl-config.desktop
+  if [ -f "$DESKTOP" ]; then
+    sed -i "s|^Exec=.*|Exec=\"$APP_BIN\" --no-sandbox %U|" "$DESKTOP"
+  fi
+
+  # 2) 终端也能启动：/usr/bin/yywl-config
+  cat > /usr/bin/yywl-config <<EOF
+#!/bin/bash
+exec "$APP_BIN" --no-sandbox "\$@"
+EOF
+  chmod 755 /usr/bin/yywl-config
+fi
+
 exit 0
