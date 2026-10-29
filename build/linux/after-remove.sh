@@ -3,6 +3,7 @@
 # 清掉我们装的 udev 规则，避免残留
 set -e
 rm -f /lib/udev/rules.d/99-yywl-keyboard.rules
+rm -f /usr/bin/yywl-config
 udevadm control --reload-rules || true
 udevadm trigger || true
 exit 0
