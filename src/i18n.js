@@ -37,6 +37,8 @@ const en = {
   '断开连接': 'Disconnect',
   '找不到设备？列出全部同厂设备': "Can't find your device? List all vendor devices",
   '再看一次连接提示': 'Show the connection guide again',
+  '修饰键: ': 'Modifiers: ',
+  '（还没选按键）': ' (no key selected yet)',
   '配置已保存到键盘': 'Configuration saved to the keypad',
   '有 {n} 个按键没保存上，请再点一次「保存到键盘」。如果一直这样，请点右上角「导出日志」把文件发给我们': '{n} key(s) were not saved. Please click Save again. If it keeps happening, use Export Log (top right) and send us the file.',
   '有按键没保存上：{detail}。请再点一次保存；如果一直这样，请点右上角「导出日志」把文件发给我们（{file}）。': 'Some keys were not saved: {detail}. Please save again. If it keeps happening, use Export Log (top right) and send us {file}.',
