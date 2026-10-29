@@ -490,14 +490,34 @@ export default function NewProtoConfigurator() {
         }
         const want = Array.isArray(cached[l]) ? cached[l] : [];
         const badKeys = [];
+        // 按模式比较：宏/多键只看步骤数；空配置等价（mode0 == mode1 全零）
+        const norm = (c) => {
+          const cfg = c || {};
+          const m = cfg.mode || 0;
+          const steps = Array.isArray(cfg.macroSteps) ? cfg.macroSteps.length : 0;
+          const multi = Array.isArray(cfg.multiKeys) ? cfg.multiKeys.length : 0;
+          const keyCode = cfg.keyCode || 0;
+          const mod = cfg.modifier || 0;
+          const media = (cfg.mediaCode && cfg.mediaCode[1]) || 0;
+          // 空配置：未设置，或"清空后的记录"（mode1 且无修饰无键）
+          if (m === 0) return 'empty';
+          if (m === 1 && !keyCode && !mod) return 'empty';
+          if (m === 4 && !multi) return 'empty';
+          if (m === 5) return 'macro|' + steps;
+          if (m === 4) return 'multi|' + multi;
+          return m + '|' + mod + '|' + keyCode + '|' + media;
+        };
         for (let i = 0; i < keyCount; i += 1) {
-          const a = want[i] || { mode: 0 };
-          const b = (back && back[i]) || { mode: 0 };
-          const same = (a.mode || 0) === (b.mode || 0)
-            && (a.keyCode || 0) === (b.keyCode || 0)
-            && (a.modifier || 0) === (b.modifier || 0)
-            && ((a.mediaCode && a.mediaCode[1]) || 0) === ((b.mediaCode && b.mediaCode[1]) || 0);
-          if (!same) badKeys.push(i + 1);
+          const a = want[i];
+          const b = (back && back[i]);
+          const sa = norm(a);
+          const sb = norm(b);
+          if (sa !== sb) {
+            badKeys.push(i + 1);
+            console.warn('[NewProto] 键' + (i + 1) + ' 不一致: 期望 ' + sa + ' / 实际 ' + sb +
+              ' want=' + JSON.stringify({ m: a?.mode, k: a?.keyCode, mod: a?.modifier, steps: (a?.macroSteps || []).length }) +
+              ' got=' + JSON.stringify({ m: b?.mode, k: b?.keyCode, mod: b?.modifier, steps: (b?.macroSteps || []).length }));
+          }
         }
         console.log('[NewProto] 保存校验 层' + (l + 1) + ': ' + keyCount + ' 键中 ' + badKeys.length + ' 个不一致' +
           (badKeys.length ? ' -> 键' + badKeys.join(', 键') : ' ✓'));
