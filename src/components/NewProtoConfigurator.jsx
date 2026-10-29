@@ -980,7 +980,7 @@ export default function NewProtoConfigurator() {
                 );
               }
               return (
-                <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${Math.min(keyCount, 3)}, minmax(0, 1fr))` }}>
+                <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${keyCount === 16 ? 4 : Math.min(keyCount, 3)}, minmax(0, 1fr))` }}>
                   {Array.from({ length: keyCount }, (_, i) => renderKeyCard(i))}
                 </div>
               );
