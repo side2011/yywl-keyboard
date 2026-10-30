@@ -11,6 +11,28 @@ import App from './App.jsx'
 import { installLogCapture } from './services/log-buffer'
 
 // 把协议/动作相关日志留一份在内存里，出错时能一键导出给技术支持
+// 客户经常长期不关页面 → 一直跑旧 JS（改完的东西看不到）。
+// 启动时拉一次 version.json（no-store），buildId 不一致就强制重载一次。
+function checkForNewBuild() {
+  try {
+    const meta = document.querySelector('meta[name="yywl-build-id"]');
+    const mine = meta ? meta.getAttribute('content') : '';
+    if (!mine) return;
+    const url = `${import.meta.env.BASE_URL}version.json?t=${Date.now()}`;
+    fetch(url, { cache: 'no-store' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((v) => {
+        if (!v || !v.buildId || v.buildId === mine) return;
+        if (sessionStorage.getItem('yywl-reloaded-for') === v.buildId) return;
+        sessionStorage.setItem('yywl-reloaded-for', v.buildId);
+        console.warn('[YYWL] 发现新版本，自动刷新:', mine, '->', v.buildId);
+        const base = location.pathname.replace(/[^/]*$/, '');
+        location.replace(`${base}?v=${v.buildId}${location.hash || ''}`);
+      })
+      .catch(() => { /* 离线/网络异常就算了 */ });
+  } catch { /* 忽略 */ }
+}
+
 installLogCapture();
 
 // 老浏览器检测：daisyUI 5 的样式依赖 oklch()/color-mix()（Chrome 111+）。
@@ -33,6 +55,8 @@ installLogCapture();
     document.body.style.paddingTop = '42px';
   } catch { /* 忽略 */ }
 })();
+
+checkForNewBuild();
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
