@@ -80,6 +80,17 @@ const manifest = {
 
 fs.writeFileSync(path.join(DIST, 'update.json'), JSON.stringify(manifest, null, 2) + '\n')
 
+// 把 buildId 写进 index.html，页面启动时用它和 version.json 对比（自动更新）
+{
+  const htmlPath = path.join(DIST, 'index.html')
+  if (fs.existsSync(htmlPath)) {
+    let html = fs.readFileSync(htmlPath, 'utf8')
+    html = html.replace(/<meta name="yywl-build-id"[^>]*>\s*/g, '')
+    html = html.replace('</head>', `  <meta name="yywl-build-id" content="${manifest.buildId}">\n</head>`)
+    fs.writeFileSync(htmlPath, html)
+  }
+}
+
 console.log(`\n  更新清单 dist/update.json`)
 console.log(`  buildId   ${manifest.buildId}`)
 console.log(`  文件数    ${entries.length}`)
