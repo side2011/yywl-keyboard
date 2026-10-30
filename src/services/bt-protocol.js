@@ -434,6 +434,16 @@ export function parseBtKeyRecord(data, isV10) {
 // ============================================================
 // 蓝牙协议处理器 (镜像 NewProtocolHandler 接口, 供配置页复用)
 // ============================================================
+// 同一键号收到多条记录时的挑选规则：
+//   键盘类 (mode 1/4/5) > 多媒体/鼠标 (mode 2/3)
+// 背景: 16 键款设备会把第 16 个键的配置和"旋钮默认动作(音量+)"一起发过来，
+//       之前后一条覆盖前一条，客户看到 K16 永远是音量+ / 或干脆读不到。
+export function pickBestRecord(list) {
+  if (!Array.isArray(list) || list.length === 0) return undefined;
+  const isKeyLike = (cfg) => cfg && (cfg.mode === 1 || cfg.mode === 4 || cfg.mode === 5);
+  return list.find(isKeyLike) || list[0];
+}
+
 export class BtProtocolHandler {
   constructor(device) {
     this.device = device;
@@ -561,55 +571,50 @@ export class BtProtocolHandler {
     // 关键: keyNum 至少覆盖实际键数 —— 16 键款若只请求 15 个，
     // 设备发来的第 16 条其实是"旋钮槽位的默认动作"(音量+)，K16 就永远读成音量+
     const keyNum = Math.max(this._isV10 ? 25 : 15, (this._info?.keyCount || 0));
-    // 本机没有旋钮时不要旋钮报告（否则设备会补发 keyNo=16/17/18 的旋钮记录，跟按键撞号）
-    const knNum = this._isV10 ? 0 : ((this._info?.knobCount || 0) > 0 ? 3 : 0);
+    // 旧协议固定请求 3 个旋钮槽位：16 键款的第 16 个键就藏在这一段里
+    // （上次改成 0 后客户反馈 K16 读出来是"未设置"）
+    const knNum = this._isV10 ? 0 : 3;
     await this._send(this._mk(0xFA, [keyNum, knNum, l]));
-    const configs = [];
-    const seenKeyNo = new Set();
     // 连续收集报告: V10 每键1报告; 旧协议 键报告 + 旋钮报告
     const totalReports = this._isV10 ? keyNum : keyNum + knNum * 3;
+    const keyCount = this._info?.keyCount || 0;
+    const knobCount = this._info?.knobCount || 0;
+    // keyNo → 候选记录（同一键号可能收到多条，例如既有一条键盘记录又有一条旋钮残留）
+    const candidates = new Map();
     for (let i = 0; i < totalReports; i++) {
       try {
         const data = await this._waitFor(d => d.length >= 4 && d[0] === 0xFA, 300);
-        // data[1]=键序号 data[2]=层 data[3..]=记录
         const keyNo = data[1];
         const recLayer = data[2];
         const hex = Array.from(data.slice(0, Math.min(data.length, 14))).map(b => b.toString(16).padStart(2, '0')).join(' ');
         console.log(`[BtProto] 读键报告 #${i}: ${hex} → keyNo=${keyNo} layer=${recLayer}`);
-        // 没有旋钮的机型: 第 keyNum 条之后都是设备补发的"旋钮残留"，直接丢弃
-        const knobCountInfo = this._info?.knobCount || 0;
-        if (!knobCountInfo && !this._isV10 && i >= keyNum) {
-          console.log('[BtProto] 读键报告 #' + i + ' 是旋钮残留（本机无旋钮），已忽略');
-          continue;
-        }
         const cfg = parseBtKeyRecord(data, this._isV10);
-        // 键序号 → UI 槽位:
-        //   1..keyCount → 按键槽位 0..keyCount-1
-        //   16..16+旋钮数*3-1 → 旋钮槽位 (旋钮1左/中/右=16/17/18 ...)
-        //   其余键号 (如 7..15、19..25) 是 15键款的历史残留存储, 本机不用 → 丢弃
-        const keyCount = this._info?.keyCount || 0;
-        const knobCount = this._info?.knobCount || 0;
-        let idx = -1;
-        if (keyNo >= 1 && keyNo <= keyCount) {
-          idx = keyNo - 1;
-        } else if (keyNo >= 16 && keyNo < 16 + knobCount * 3) {
-          idx = keyCount + (keyNo - 16);
-        }
-        if (idx >= 0 && idx < 40) {
-          // 同一键号重复上报时保留第一条：
-          // 16 键款会在 key 报告之后再补一条 keyNo 相同的"旋钮默认动作"(如音量+)，
-          // 之前直接覆盖，导致 K16 怎么设都读成音量+、保存校验也永远不一致。
-          if (seenKeyNo.has(keyNo)) {
-            console.log('[BtProto] keyNo=' + keyNo + ' 重复上报，已忽略后一条（保留首条）');
-            continue;
-          }
-          seenKeyNo.add(keyNo);
-          configs[idx] = cfg;
-        }
+        const list = candidates.get(keyNo) || [];
+        list.push(cfg);
+        candidates.set(keyNo, list);
       } catch (e) {
         break; // 无更多报告
       }
     }
+    const configs = [];
+    for (const [keyNo, list] of candidates.entries()) {
+      let idx = -1;
+      if (keyNo >= 1 && keyNo <= keyCount) {
+        idx = keyNo - 1;
+      } else if (keyNo >= 16 && keyNo < 16 + knobCount * 3) {
+        idx = keyCount + (keyNo - 16);
+      }
+      if (idx < 0 || idx >= 40) continue;
+      // 同一键号多条记录时：键盘类优先（避免旋钮残留的"音量+"盖掉真正的按键）
+      const chosen = pickBestRecord(list);
+      if (list.length > 1) {
+        console.log('[BtProto] keyNo=' + keyNo + ' 收到 ' + list.length + ' 条记录，取 mode=' + chosen.mode +
+          '（候选: ' + list.map((cfg2) => cfg2.mode).join(',') + '）');
+      }
+      configs[idx] = chosen;
+    }
+    const filled = configs.map((cfg2, i2) => (cfg2 && cfg2.mode ? i2 + 1 + ':m' + cfg2.mode : '')).filter(Boolean);
+    console.log('[BtProto] 层' + l + ' 读到 ' + configs.filter(Boolean).length + '/' + keyCount + ' 个键 -> ' + filled.join(' '));
     return configs;
   }
 
