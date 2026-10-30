@@ -571,47 +571,40 @@ export class BtProtocolHandler {
     // 关键: keyNum 至少覆盖实际键数 —— 16 键款若只请求 15 个，
     // 设备发来的第 16 条其实是"旋钮槽位的默认动作"(音量+)，K16 就永远读成音量+
     const keyNum = Math.max(this._isV10 ? 25 : 15, (this._info?.keyCount || 0));
-    // 旧协议固定请求 3 个旋钮槽位：16 键款的第 16 个键就藏在这一段里
-    // （上次改成 0 后客户反馈 K16 读出来是"未设置"）
+    // 旧协议固定请求 3 个旋钮槽位（16 键款的第 16 个键也夹在这一段里返回）
     const knNum = this._isV10 ? 0 : 3;
     await this._send(this._mk(0xFA, [keyNum, knNum, l]));
-    // 连续收集报告: V10 每键1报告; 旧协议 键报告 + 旋钮报告
     const totalReports = this._isV10 ? keyNum : keyNum + knNum * 3;
     const keyCount = this._info?.keyCount || 0;
     const knobCount = this._info?.knobCount || 0;
-    // keyNo → 候选记录（同一键号可能收到多条，例如既有一条键盘记录又有一条旋钮残留）
-    const candidates = new Map();
+    // 关键：按"收到的第几条"定位，不看响应里的键号字节。
+    // QT 原生工具就是这么做的（widget.cpp:2128 for k=1..KeyNum 顺序赋值）；
+    // 16 键款设备对第 16 个键回的键号字节是 0x12(18)，若按字节映射会落到旋钮区 →
+    // 表现就是"K16 读出来是音量+"或"未设置"，而实体键实际是 P。
+    const configs = [];
     for (let i = 0; i < totalReports; i++) {
       try {
         const data = await this._waitFor(d => d.length >= 4 && d[0] === 0xFA, 300);
-        const keyNo = data[1];
-        const recLayer = data[2];
+        const echoKeyNo = data[1];
         const hex = Array.from(data.slice(0, Math.min(data.length, 14))).map(b => b.toString(16).padStart(2, '0')).join(' ');
-        console.log(`[BtProto] 读键报告 #${i}: ${hex} → keyNo=${keyNo} layer=${recLayer}`);
         const cfg = parseBtKeyRecord(data, this._isV10);
-        const list = candidates.get(keyNo) || [];
-        list.push(cfg);
-        candidates.set(keyNo, list);
+        const isKeySlot = i < keyNum;
+        console.log('[BtProto] 读键报告 #' + i + ': ' + hex + ' → 第' + (i + 1) + '条 键号字节=' + echoKeyNo +
+          (isKeySlot ? '（按键槽）' : '（旋钮槽）'));
+        if (isKeySlot) {
+          if (i < keyCount) configs[i] = cfg;
+          // 键号字节与顺序不一致时留个记录，方便对照原厂
+          if (echoKeyNo !== i + 1 && i < keyCount) {
+            console.log('[BtProto] 注意: 第' + (i + 1) + '条返回的键号字节是 ' + echoKeyNo + '，按顺序当作 K' + (i + 1));
+          }
+        } else {
+          const knobPos = i - keyNum;
+          if (knobCount > 0 && knobPos < knobCount * 3) configs[keyCount + knobPos] = cfg;
+          else console.log('[BtProto] 第' + (i + 1) + '条是旋钮记录（本机无旋钮），已忽略');
+        }
       } catch (e) {
-        break; // 无更多报告
+        break;
       }
-    }
-    const configs = [];
-    for (const [keyNo, list] of candidates.entries()) {
-      let idx = -1;
-      if (keyNo >= 1 && keyNo <= keyCount) {
-        idx = keyNo - 1;
-      } else if (keyNo >= 16 && keyNo < 16 + knobCount * 3) {
-        idx = keyCount + (keyNo - 16);
-      }
-      if (idx < 0 || idx >= 40) continue;
-      // 同一键号多条记录时：键盘类优先（避免旋钮残留的"音量+"盖掉真正的按键）
-      const chosen = pickBestRecord(list);
-      if (list.length > 1) {
-        console.log('[BtProto] keyNo=' + keyNo + ' 收到 ' + list.length + ' 条记录，取 mode=' + chosen.mode +
-          '（候选: ' + list.map((cfg2) => cfg2.mode).join(',') + '）');
-      }
-      configs[idx] = chosen;
     }
     const filled = configs.map((cfg2, i2) => (cfg2 && cfg2.mode ? i2 + 1 + ':m' + cfg2.mode : '')).filter(Boolean);
     console.log('[BtProto] 层' + l + ' 读到 ' + configs.filter(Boolean).length + '/' + keyCount + ' 个键 -> ' + filled.join(' '));
