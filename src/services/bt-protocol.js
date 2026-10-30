@@ -558,8 +558,11 @@ export class BtProtocolHandler {
       try { await this.readDeviceInfo(); } catch { /* ignore */ }
     }
     const l = layer + 1; // 记录层号 1..3
-    const keyNum = this._isV10 ? 25 : 15;
-    const knNum = this._isV10 ? 0 : 3;
+    // 关键: keyNum 至少覆盖实际键数 —— 16 键款若只请求 15 个，
+    // 设备发来的第 16 条其实是"旋钮槽位的默认动作"(音量+)，K16 就永远读成音量+
+    const keyNum = Math.max(this._isV10 ? 25 : 15, (this._info?.keyCount || 0));
+    // 本机没有旋钮时不要旋钮报告（否则设备会补发 keyNo=16/17/18 的旋钮记录，跟按键撞号）
+    const knNum = this._isV10 ? 0 : ((this._info?.knobCount || 0) > 0 ? 3 : 0);
     await this._send(this._mk(0xFA, [keyNum, knNum, l]));
     const configs = [];
     const seenKeyNo = new Set();
@@ -573,6 +576,12 @@ export class BtProtocolHandler {
         const recLayer = data[2];
         const hex = Array.from(data.slice(0, Math.min(data.length, 14))).map(b => b.toString(16).padStart(2, '0')).join(' ');
         console.log(`[BtProto] 读键报告 #${i}: ${hex} → keyNo=${keyNo} layer=${recLayer}`);
+        // 没有旋钮的机型: 第 keyNum 条之后都是设备补发的"旋钮残留"，直接丢弃
+        const knobCountInfo = this._info?.knobCount || 0;
+        if (!knobCountInfo && !this._isV10 && i >= keyNum) {
+          console.log('[BtProto] 读键报告 #' + i + ' 是旋钮残留（本机无旋钮），已忽略');
+          continue;
+        }
         const cfg = parseBtKeyRecord(data, this._isV10);
         // 键序号 → UI 槽位:
         //   1..keyCount → 按键槽位 0..keyCount-1
