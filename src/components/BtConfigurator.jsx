@@ -174,6 +174,9 @@ export default function BtConfigurator() {
   const [loading, setLoading] = useState(false);
   const [ledUnsupported, setLedUnsupported] = useState(false); // 设备不响应灯光命令时置真
   const [ledReadable, setLedReadable] = useState(true);        // 旧固件不能回读灯光
+  // 旧固件读不到灯光：如果客户没主动改过，保存时就不能写灯光，
+  // 否则「读取配置(灯光显示默认关闭) → 保存」会把键盘上的灯光关掉。
+  const [ledDirty, setLedDirty] = useState(false);
   const [ledMode, setLedMode] = useState(0);
   const [ledColors, setLedColors] = useState(() => Array.from({ length: 16 }, () => ({ r: 255, g: 255, b: 255 })));
   const [capturing, setCapturing] = useState(false);
@@ -525,7 +528,10 @@ export default function BtConfigurator() {
       const ledAll = [...ledCacheRef.current];
       ledAll[currentLayer] = { mode: ledMode, colors: ledColors };
       ledCacheRef.current = ledAll;
-      if (hasLighting) {
+      if (hasLighting && !ledReadable && !ledDirty) {
+        // 本机型读不到灯光，客户这次也没动灯光 → 不写，避免把键盘上现有的灯光覆盖成"关闭"
+        console.log('[BtProto] 灯光不可回读且未修改，跳过写灯光（保护键盘现有设置）');
+      } else if (hasLighting) {
         for (let l = 0; l < btLayerCount; l++) {
           try {
             await handler.writeLedLayer(l, ledAll[l]?.mode ?? 0, ledAll[l]?.colors || ledColors);
@@ -647,7 +653,8 @@ export default function BtConfigurator() {
           );
           return;
         }
-        toast.success(t('配置已保存到键盘'), { id: 'bt-save' });
+        setLedDirty(false);
+      toast.success(t('配置已保存到键盘'), { id: 'bt-save' });
         return;
       }
 
@@ -1454,7 +1461,9 @@ export default function BtConfigurator() {
               <div>
                 {!ledReadable && (
                   <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 leading-relaxed">
-                    {t('本机固件不支持回读灯光：点「读取配置」不会带出灯光状态，设置后请以键盘实物为准。')}
+                    <div className="font-bold mb-1">{t('💡 灯光需要手动设置')}</div>
+    <div>{t('这款键盘的灯光不支持「读取回来」，所以打开配置页时灯光选项是默认值，不代表键盘当前状态。')}</div>
+    <div className="mt-0.5">{t('选好模式和颜色后点「保存到键盘」，看一眼键盘效果就行；不改灯光不会影响按键配置的保存。')}</div>
                   </div>
                 )}
                 <div className="flex items-center justify-between mb-3">
@@ -1465,7 +1474,7 @@ export default function BtConfigurator() {
                 </div>
                 <div className="flex flex-wrap gap-2 mb-4">
                   {BT_LED_MODES.map((m, i) => (
-                    <button key={i} onClick={() => setLedMode(i)}
+                    <button key={i} onClick={() => { setLedMode(i); setLedDirty(true); }}
                       className={`px-4 py-2 text-sm font-semibold rounded-lg transition-colors cursor-pointer ${
                         ledMode === i ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                       }`}>
@@ -1479,7 +1488,7 @@ export default function BtConfigurator() {
                   {BT_LED_COLORS.map((c, i) => {
                     const isSel = isColorSel(c.rgb);
                     return (
-                      <button key={i} onClick={() => setLedColors(prev => prev.map(() => ({ r: c.rgb[0], g: c.rgb[1], b: c.rgb[2] })))}
+                      <button key={i} onClick={() => { setLedColors(prev => prev.map(() => ({ r: c.rgb[0], g: c.rgb[1], b: c.rgb[2] }))); setLedDirty(true); }}
                         title={c.label}
                         className={`relative w-11 h-11 rounded-xl border-2 cursor-pointer transition-all hover:scale-105 ${
                           isSel ? 'border-indigo-600 ring-2 ring-indigo-300 scale-105' : 'border-gray-200'
