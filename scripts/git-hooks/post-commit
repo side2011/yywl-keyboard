@@ -1,0 +1,70 @@
+#!/bin/bash
+# 提交后自动推送到 Gitee（带重试 + 落后自动 rebase + 并发锁）
+#
+# 历史问题：
+#   · 直接 `git push origin HEAD`，遇到远端有新提交（非快进）就失败，
+#     只打印「推送失败，请手动 git push」，事后没人管。
+#   · 后台 + 前台同时触发两次推送时，第二次会拿到过期 ref → 同样的失败。
+#
+# 现在的策略：
+#   1) 用锁文件防止并发推送
+#   2) fetch 后如果落后远端 → 自动 rebase 再推
+#   3) 最多重试 3 次（1s/2s/4s 退避）
+#   4) 失败时把完整错误写进 .git/last-push-error.log，方便事后排查
+
+LOCK=".git/auto-push.lock"
+LOG=".git/last-push-error.log"
+
+# 并发保护：锁存在且进程还活着就跳过（避免两次 push 抢 ref）
+if [ -f "$LOCK" ]; then
+  PID=$(cat "$LOCK" 2>/dev/null)
+  if [ -n "$PID" ] && kill -0 "$PID" 2>/dev/null; then
+    echo "[auto-push] 另一个推送正在进行中（pid $PID），本次跳过"
+    exit 0
+  fi
+fi
+echo $$ > "$LOCK"
+trap 'rm -f "$LOCK"' EXIT
+
+attempt=0
+max=3
+sleep_s=1
+while [ $attempt -lt $max ]; do
+  attempt=$((attempt + 1))
+  echo "[auto-push] 第 $attempt/$max 次推送..."
+
+  # 落后就先变基（远端有别处提交时最常见的失败原因）
+  git fetch origin --quiet 2>/dev/null
+  BEHIND=$(git rev-list --count "HEAD..origin/$(git rev-parse --abbrev-ref HEAD)" 2>/dev/null || echo 0)
+  if [ "${BEHIND:-0}" -gt 0 ]; then
+    echo "[auto-push] 远端有 $BEHIND 个新提交，先 rebase..."
+    if ! git rebase "origin/$(git rev-parse --abbrev-ref HEAD)" --quiet; then
+      echo "[auto-push] rebase 冲突，已中止（请手动处理）" | tee "$LOG"
+      git rebase --abort 2>/dev/null
+      exit 1
+    fi
+  fi
+
+  OUT=$(git push origin HEAD 2>&1)
+  if [ $? -eq 0 ]; then
+    echo "[auto-push] 推送成功"
+    rm -f "$LOG"
+    exit 0
+  fi
+
+  echo "$OUT" | tail -3
+  printf '%s\n' "==== $(date '+%F %T') 第 $attempt 次 ====" "$OUT" >> "$LOG"
+
+  case "$OUT" in
+    *"up to date"*|*"Everything up-to-date"*)
+      echo "[auto-push] 远端已是最新"
+      rm -f "$LOG"
+      exit 0
+      ;;
+  esac
+
+  sleep $sleep_s
+  sleep_s=$((sleep_s * 2))
+done
+
+echo "[auto-push] 推送失败 3 次，详见 $LOG（下次提交会自动重试）"
