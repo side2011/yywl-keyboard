@@ -12,26 +12,78 @@ import { installLogCapture } from './services/log-buffer'
 
 // 把协议/动作相关日志留一份在内存里，出错时能一键导出给技术支持
 // 客户经常长期不关页面 → 一直跑旧 JS（改完的东西看不到）。
-// 启动时拉一次 version.json（no-store），buildId 不一致就强制重载一次。
+// 版本自更新：
+//   · 启动时 / 页面重新可见 / 每 60 秒 都检查一次 version.json（no-store）
+//   · 在连接页（/）直接自动刷新
+//   · 在配置页弹一条可点提示条（避免打断正在改的配置）
+const RELOADED_KEY = 'yywl-reloaded-for';
+const NOTICE_ID = 'yywl-new-build-notice';
+
+function yywlBasePath() {
+  return location.pathname.replace(/[^/]*$/, '');
+}
+
+function showNewBuildNotice(buildId) {
+  if (document.getElementById(NOTICE_ID)) return;
+  const bar = document.createElement('div');
+  bar.id = NOTICE_ID;
+  bar.style.cssText = [
+    'position:fixed', 'right:16px', 'bottom:16px', 'z-index:2147483000',
+    'background:#4f46e5', 'color:#fff', 'padding:10px 14px', 'border-radius:12px',
+    'box-shadow:0 8px 24px rgba(0,0,0,.25)', 'font:600 13px/1.5 "Microsoft YaHei",system-ui,sans-serif',
+    'display:flex', 'align-items:center', 'gap:10px', 'max-width:320px',
+  ].join(';');
+  bar.innerHTML = '<span>有新版本可用</span>';
+  const btn = document.createElement('button');
+  btn.textContent = '立即刷新';
+  btn.style.cssText = 'background:#fff;color:#4f46e5;border:0;border-radius:8px;padding:5px 10px;font-weight:700;font-size:12px;cursor:pointer';
+  btn.onclick = () => {
+    sessionStorage.setItem(RELOADED_KEY, buildId);
+    location.replace(`${yywlBasePath()}?v=${buildId}${location.hash || ''}`);
+  };
+  const close = document.createElement('button');
+  close.textContent = '×';
+  close.style.cssText = 'background:transparent;border:0;color:#c7d2fe;font-size:16px;line-height:1;cursor:pointer';
+  close.onclick = () => bar.remove();
+  bar.appendChild(btn);
+  bar.appendChild(close);
+  document.body.appendChild(bar);
+}
+
+let checkingBuild = false;
 function checkForNewBuild() {
   try {
     const meta = document.querySelector('meta[name="yywl-build-id"]');
     const mine = meta ? meta.getAttribute('content') : '';
-    if (!mine) return;
+    if (!mine || checkingBuild) return;
+    checkingBuild = true;
     const url = `${import.meta.env.BASE_URL}version.json?t=${Date.now()}`;
     fetch(url, { cache: 'no-store' })
       .then((r) => (r.ok ? r.json() : null))
       .then((v) => {
+        checkingBuild = false;
         if (!v || !v.buildId || v.buildId === mine) return;
-        if (sessionStorage.getItem('yywl-reloaded-for') === v.buildId) return;
-        sessionStorage.setItem('yywl-reloaded-for', v.buildId);
-        console.warn('[YYWL] 发现新版本，自动刷新:', mine, '->', v.buildId);
-        const base = location.pathname.replace(/[^/]*$/, '');
-        location.replace(`${base}?v=${v.buildId}${location.hash || ''}`);
+        if (sessionStorage.getItem(RELOADED_KEY) === v.buildId) return;
+        console.warn('[YYWL] 发现新版本:', mine, '->', v.buildId);
+        // 连接页没有正在编辑的内容 → 直接刷新；配置页先提示
+        const onConnectPage = /^\/(index\.html)?$/.test(location.pathname) || location.pathname.endsWith('/');
+        if (onConnectPage) {
+          sessionStorage.setItem(RELOADED_KEY, v.buildId);
+          location.replace(`${yywlBasePath()}?v=${v.buildId}${location.hash || ''}`);
+        } else {
+          showNewBuildNotice(v.buildId);
+        }
       })
-      .catch(() => { /* 离线/网络异常就算了 */ });
-  } catch { /* 忽略 */ }
+      .catch(() => { checkingBuild = false; });
+  } catch { checkingBuild = false; }
 }
+
+// 定时 + 回到前台时检查（客户经常几天不关页面）
+setInterval(checkForNewBuild, 60000);
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') checkForNewBuild();
+});
+window.addEventListener('focus', checkForNewBuild);
 
 installLogCapture();
 
