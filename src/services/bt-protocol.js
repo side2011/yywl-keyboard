@@ -272,6 +272,15 @@ export function serializeBtKeyRecord(cfg, keyNo, layer /* 1..3 */, isV10) {
       rec[10] = oldMod & 0xFF;
       rec[11] = cfg.mouse?.btn || 0;
       rec[14] = cfg.mouse?.wheel || 0;
+    } else if (cfg.mode === 1 && (cfg.modifierMask || 0) && !(cfg.keyCode || 0)) {
+      // 只按修饰键（例如某个物理键设成"左Alt"）：
+      // 设备里 QT 写出来的记录是：组数 [9]=0、[10]=修饰位掩码(0x04)、[11]=0
+      //   fa 01 02 01 00 00 00 00 00 00 04 00 00 00   ← 客户日志实测
+      // 我们之前写"组数=1 + mask 0x04 + 值 0"，固件当成"按下当帧就松开"（Alt 自动松开）。
+      // 组数必须是 0，固件才按"修饰键本身"处理。
+      rec[9] = 0;
+      rec[10] = (cfg.modifierMask || 0) & 0xFF;
+      rec[11] = 0x00;
     } else {
       const groups = buildGroupsFromConfig(cfg, false);
       rec[9] = Math.min(groups.length, 18);
@@ -653,29 +662,53 @@ export class BtProtocolHandler {
         colors.push({ r: data[2 + i * 3] || 0, g: data[3 + i * 3] || 0, b: data[4 + i * 3] || 0 });
       }
       console.log(`[BtProto] 灯光 layer=${layer} mode=${mode}`);
-      return { mode, sleepAllow: 1, colors };
+      return { mode, sleepAllow: 1, colors, unsupported: false, readable: true };
     } catch (e) {
       // 设备无响应时返回默认
-      console.warn('[BtProto] 读灯光无响应, 返回默认:', e.message);
-      return { mode: 0, sleepAllow: 1, colors: Array.from({ length: 16 }, () => ({ r: 0, g: 0, b: 0 })) };
+      console.warn('[BtProto] 读灯光无响应（该型号可能不支持灯光调节）:', e.message);
+      return { mode: 0, sleepAllow: 1, colors: Array.from({ length: 16 }, () => ({ r: 0, g: 0, b: 0 })), unsupported: true };
     }
   }
 
   // 写灯光: 0xFE 0xB0 Layer(0..2) Mode + 48B RGB
   async writeLedLayer(layer, mode, colors, sleepAllow = 1) {
+    // 两种固件的灯光格式完全不同：
+    //   V10(版本>=10)：48 字节 RGB，层号 0-based，格式 [0xFE,0xB0,层,模式, R,G,B ×16]
+    //   旧固件(版本<10)：借用"按键记录"，层号 1-based，模式/颜色压在一个字节里
+    //     QT widget.cpp:3602  PHY_KEY_Value[..][0] = 0xFE,0xB0,层+1,8(灯光页),...
+    //     QT widget.cpp:3626  [9] = 1（组数）
+    //     QT widget.cpp:3619  [11] = (颜色序号<<4) | 灯光模式
+    // 之前统一按 48 字节发，旧固件直接忽略 → "设了灯光没效果"。
     const b = new Uint8Array(64);
     b[0] = 0xFE;
     b[1] = 0xB0;
-    b[2] = layer & 0xFF;
-    b[3] = mode & 0xFF;
-    for (let i = 0; i < 16; i++) {
-      const c = colors[i] || { r: 0, g: 0, b: 0 };
-      b[4 + i * 3] = c.r & 0xFF;
-      b[5 + i * 3] = c.g & 0xFF;
-      b[6 + i * 3] = c.b & 0xFF;
+    if (!this._isV10) {
+      b[2] = (layer + 1) & 0xFF;   // 旧固件层号从 1 开始
+      b[3] = 0x08;                 // 灯光页模式（QT Select_PHY_Key_Mode=8）
+      b[9] = 1;                    // 组数
+      // 颜色序号 1..5（QT 注释：没选颜色时默认 5 = 红）
+      const c0 = (colors && colors[0]) || { r: 255, g: 0, b: 0 };
+      let colorIdx = 5;
+      if (c0.r > 200 && c0.g > 200 && c0.b > 200) colorIdx = 1;        // 白
+      else if (c0.r > 150 && c0.g < 100 && c0.b < 100) colorIdx = 5;   // 红
+      else if (c0.g > 150 && c0.r < 120) colorIdx = 2;                 // 绿
+      else if (c0.b > 150 && c0.r < 120) colorIdx = 3;                 // 蓝
+      b[11] = ((colorIdx << 4) | (mode & 0x0F)) & 0xFF;
+    } else {
+      b[2] = layer & 0xFF;
+      b[3] = mode & 0xFF;
+      for (let i = 0; i < 16; i++) {
+        const c = (colors && colors[i]) || { r: 0, g: 0, b: 0 };
+        b[4 + i * 3] = c.r & 0xFF;
+        b[5 + i * 3] = c.g & 0xFF;
+        b[6 + i * 3] = c.b & 0xFF;
+      }
     }
+    const hex = Array.from(b.slice(0, 12)).map(x => x.toString(16).padStart(2, '0')).join(' ');
+    console.log('[BtProto] 写灯光包(' + (this._isV10 ? 'V10-48B' : '旧-nibble') + ') 层=' + (this._isV10 ? layer : layer + 1) +
+      ' mode=' + mode + ' 前12字节=' + hex);
     await this._send(b);
-    await new Promise(r => setTimeout(r, 100));
+    await new Promise(r => setTimeout(r, 120));
   }
 
   // 写Flash确认
