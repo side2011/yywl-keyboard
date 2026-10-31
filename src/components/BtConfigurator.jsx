@@ -172,6 +172,8 @@ export default function BtConfigurator() {
     else setActiveTab(MODE.KEY);
   }, [selectedKey, currentLayer, selectedKeyMode]);
   const [loading, setLoading] = useState(false);
+  const [ledUnsupported, setLedUnsupported] = useState(false); // 设备不响应灯光命令时置真
+  const [ledReadable, setLedReadable] = useState(true);        // 旧固件不能回读灯光
   const [ledMode, setLedMode] = useState(0);
   const [ledColors, setLedColors] = useState(() => Array.from({ length: 16 }, () => ({ r: 255, g: 255, b: 255 })));
   const [capturing, setCapturing] = useState(false);
@@ -400,6 +402,8 @@ export default function BtConfigurator() {
         for (let l = 0; l < layerCount; l++) {
           try {
             const led = await handler.readLedLayer(l);
+            if (led.unsupported) setLedUnsupported(true);
+            if (led.readable === false) setLedReadable(false);
             ledAll.push(led);
           } catch (e) {
             console.warn('[BtProto] 读灯光失败(层' + (l + 1) + '):', e.message);
@@ -514,11 +518,10 @@ export default function BtConfigurator() {
         // 旧协议（版本 < 10）每层单独 Flash 确认；V10 最后统一确认
         if (!handler.isV10) await handler._writeFlash();
       }
-      // 写Flash确认 (V10一次)
-      await handler._writeFlash();
-      // 给设备一点时间落盘，再回读校验
-      await new Promise(r => setTimeout(r, 300));
-      // 写灯光 (同步当前层灯光到缓存)
+      // ---- 先写灯光，再发 Flash 确认 ----
+      // 原顺序是"写键 → Flash → 写灯光"：灯光写在 Flash 之后，
+      // 设备掉电/拔插后按 Flash 里的旧值恢复 → 客户看到"设了灯光没效果，重启又变回关闭"。
+      // QT 原生工具也是先发 0xFE 0xB0 灯光、最后才发 0xFD 0xFE 0xFF。
       const ledAll = [...ledCacheRef.current];
       ledAll[currentLayer] = { mode: ledMode, colors: ledColors };
       ledCacheRef.current = ledAll;
@@ -526,9 +529,27 @@ export default function BtConfigurator() {
         for (let l = 0; l < btLayerCount; l++) {
           try {
             await handler.writeLedLayer(l, ledAll[l]?.mode ?? 0, ledAll[l]?.colors || ledColors);
+            console.log('[BtProto] 写灯光 层' + (l + 1) + ' mode=' + (ledAll[l]?.mode ?? 0));
           } catch (e) {
             console.warn('[BtProto] 写灯光失败(层' + (l + 1) + '):', e.message);
           }
+          await new Promise(r => setTimeout(r, 60));
+        }
+      }
+      // 写Flash确认（键 + 灯光一起落盘）
+      await handler._writeFlash();
+      await new Promise(r => setTimeout(r, 300));
+      // 回读灯光，确认真写进去了（不用掉电也能立刻发现没生效）
+      if (hasLighting) {
+        try {
+          const ledBack = await handler.readLedLayer(currentLayer);
+          const want = ledAll[currentLayer]?.mode ?? 0;
+          console.log('[BtProto] 灯光回读 层' + (currentLayer + 1) + ' mode=' + ledBack.mode + ' (期望 ' + want + ')');
+          if (ledBack.mode !== want) {
+            toast(t('灯光模式没有保存成功（设备里是 {a}，设置的是 {b}）', { a: ledBack.mode, b: want }), { id: 'bt-led', duration: 8000 });
+          }
+        } catch (e) {
+          console.warn('[BtProto] 灯光回读失败:', e.message);
         }
       }
 
@@ -546,8 +567,8 @@ export default function BtConfigurator() {
         const noKey = !(c.keyCode || 0);
         const noMulti = !(Array.isArray(c.multiKeys) ? c.multiKeys.length : 0);
         if (mode === 0) return '0';
-        if (mode === 1 && noMod && noKey && noMulti) return '0';
-        if (mode === 4 && noMulti) return '0';
+        // 单独一个修饰键（有 modifierMask、无 keyCode）是有效配置，不能判成"未设置"
+        if (mode === 1 && noKey && noMod && noMulti) return '0';
         if (mode === 1) return `1|${c.modifierMask || 0}|${c.keyCode || 0}`;
         if (mode === 2) return `2|${c.mediaCode || 0}`;
         if (mode === 3) {
@@ -1431,6 +1452,11 @@ export default function BtConfigurator() {
             {/* 灯光（从左侧移到这里，避免在小屏上被挤到最底部看不到） */}
             {activeTab === LED_TAB && (
               <div>
+                {!ledReadable && (
+                  <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 leading-relaxed">
+                    {t('本机固件不支持回读灯光：点「读取配置」不会带出灯光状态，设置后请以键盘实物为准。')}
+                  </div>
+                )}
                 <div className="flex items-center justify-between mb-3">
                   <label className="text-base font-bold text-gray-700">{t('灯光模式')}</label>
                   {btLayerCount > 1 && (
@@ -1472,6 +1498,27 @@ export default function BtConfigurator() {
                 <p className="text-sm text-gray-400 mt-4">
                   {t('选好模式和颜色后，点左下角「保存到键盘」写入。')}
                 </p>
+                <div className="mt-3 flex items-center gap-2 flex-wrap">
+                  <button
+                    onClick={async () => {
+                      const handler = getNewHandler();
+                      if (!handler) { toast.error(t('键盘未连接')); return; }
+                      try {
+                        // 直接发一包灯光（模式1 + 纯白），不走保存流程：用来判断设备到底吃不吃这个命令
+                        // 用当前选中的模式和颜色（原来写死 mode1/白色，客户以为按钮没反应）
+                        const m = ledMode || 1;
+                        const colors = (ledColors && ledColors.length) ? ledColors : Array.from({ length: 16 }, () => ({ r: 255, g: 255, b: 255 }));
+                        await handler.writeLedLayer(currentLayer, m, colors);
+                        toast.success(t('已发送测试灯光（{mode}），看键盘有没有反应', { mode: BT_LED_MODES[m] || m }), { id: 'bt-led-test', duration: 6000 });
+                      } catch (e) {
+                        toast.error(t('测试灯光发送失败：{msg}', { msg: e.message }));
+                      }
+                    }}
+                    className="px-3 py-2 text-xs font-bold rounded-lg border-2 border-amber-300 text-amber-700 bg-amber-50 hover:bg-amber-100 transition-colors cursor-pointer">
+                    💡 {t('立即测试灯光')}
+                  </button>
+                  <span className="text-xs text-gray-400">{t('直接发一包灯光数据，不走保存流程（排查用）')}</span>
+                </div>
               </div>
             )}
           </div>
