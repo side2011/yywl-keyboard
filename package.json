@@ -20,7 +20,9 @@
     "desktop:dir": "vite build && electron-builder --win --dir --config.win.signAndEditExecutable=false",
     "desktop:win": "vite build && electron-builder --win zip --config.win.signAndEditExecutable=false",
     "desktop:mac": "vite build && electron-builder --mac zip",
-    "desktop:linux": "vite build && electron-builder --linux AppImage"
+    "desktop:linux": "vite build && electron-builder --linux AppImage",
+    "check:isolation": "node scripts/check-module-isolation.mjs",
+    "check:all": "node scripts/check-undef.mjs && node scripts/check-asi.mjs && node scripts/check-module-isolation.mjs"
   },
   "build": {
     "appId": "com.yywl.keyboard-config",
