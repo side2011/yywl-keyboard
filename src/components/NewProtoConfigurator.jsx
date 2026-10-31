@@ -953,7 +953,7 @@ export default function NewProtoConfigurator() {
               {layerCount > 1 && (
                 <button onClick={() => setCopyAllOpen(true)} disabled={loading}
                   title={t('把当前层的配置复制到全部 {total} 层（出厂配置常用）', { total: layerCount })}
-                  className="text-[11px] font-medium text-gray-400 hover:text-indigo-500 hover:underline transition-colors cursor-pointer disabled:opacity-50">
+                  className="px-2 py-1 rounded-lg border border-indigo-200 bg-indigo-50/60 text-[11px] font-semibold text-indigo-600 hover:bg-indigo-100 hover:border-indigo-300 transition-colors cursor-pointer disabled:opacity-50 whitespace-nowrap">
                   ⚡ {t('应用到全部层')}
                 </button>
               )}
