@@ -243,7 +243,7 @@ function buildGroupsFromConfig(cfg, isV10) {
 // ============================================================
 // 序列化: UI config → 写报告 body (64B, 不含reportId)
 // ============================================================
-export function serializeBtKeyRecord(cfg, keyNo, layer /* 1..3 */, isV10) {
+export function serializeBtKeyRecord(cfg, keyNo, layer /* 1..3 */, isV10, delayOrder = 'lo') {
   if (!cfg || cfg.mode === 0) return null; // 未设置 → 不发(清空键需特殊处理, 见clear)
   if (isV10) {
     const rec = new Uint8Array(64);
@@ -470,6 +470,8 @@ export function pickBestRecord(list) {
 
 export class BtProtocolHandler {
   constructor(device) {
+    // 延时的 16bit 字节序：'lo' = 低字节在前（QT 默认），'hi' = 高字节在前
+    try { this._delayOrder = localStorage.getItem('bt-delay-order') || 'lo'; } catch { this._delayOrder = 'lo'; }
     this.device = device;
     this._listener = null;
     this._waiters = [];
@@ -564,6 +566,12 @@ export class BtProtocolHandler {
     return 16 + (actionIdx - keyCount);
   }
 
+  get delayOrder() { return this._delayOrder || 'lo'; }
+  set delayOrder(v) {
+    this._delayOrder = v === 'hi' ? 'hi' : 'lo';
+    try { localStorage.setItem('bt-delay-order', this._delayOrder); } catch { /* ignore */ }
+  }
+
   get isV10() { return this._isV10; }
 
   // 读整层按键配置: 发 0xFA KeyNum KNNum Layer(1..3), 连续收 KeyNum 个报告
@@ -650,13 +658,19 @@ export class BtProtocolHandler {
   }
 
   // 写单个按键
-  async writeKey(layer, actionIdx, cfg) {
+  // 读回单个键（延时自检用）
+  async peekKey(layer, actionIdx) {
+    const list = await this.readLayer(layer);
+    return list[actionIdx] || null;
+  }
+
+  async writeKey(layer, actionIdx, cfg, delayOrder) {
     // 自愈: 没有设备信息就拿不到正确键号（会把键写错槽位，表现为"这层没保存"），先补读一次
     if (!this._info) {
       try { await this.readDeviceInfo(); } catch { /* 拿不到就用兜底逻辑 */ }
     }
     const keyNo = this._actionIdxToKeyNo(actionIdx);
-    const rec = serializeBtKeyRecord(cfg, keyNo, layer + 1, this._isV10);
+    const rec = serializeBtKeyRecord(cfg, keyNo, layer + 1, this._isV10, delayOrder || this._delayOrder || 'lo');
     if (rec) {
       const grpCount = this._isV10 ? rec[5] : rec[9];
       console.log('[BtProto] 写键 keyNo=' + keyNo + ' 层=' + (layer + 1) +
