@@ -605,47 +605,47 @@ export class BtProtocolHandler {
     // 旧协议固定请求 3 个旋钮槽位（16 键款的第 16 个键也夹在这一段里返回）
     const knNum = this._isV10 ? 0 : 3;
     await this._send(this._mk(0xFA, [keyNum, knNum, l]));
-    const totalReports = this._isV10 ? keyNum : keyNum + knNum * 3;
     const keyCount = this._info?.keyCount || 0;
     const knobCount = this._info?.knobCount || 0;
-    // 关键：按"收到的第几条"定位，不看响应里的键号字节。
-    // QT 原生工具就是这么做的（widget.cpp:2128 for k=1..KeyNum 顺序赋值）；
-    // 16 键款设备对第 16 个键回的键号字节是 0x12(18)，若按字节映射会落到旋钮区 →
-    // 表现就是"K16 读出来是音量+"或"未设置"，而实体键实际是 P。
     const configs = [];
-    for (let i = 0; i < totalReports; i++) {
+    const seen = [];
+    // 时间窗收集：直到设备安静 260ms（或总时长超过 1.6s）为止
+    // 这样无论设备发多少条、顺序如何，都不会因为"条数算错"漏掉 18 号槽
+    const idleMs = 260;
+    const hardDeadline = Date.now() + 1600;
+    while (Date.now() < hardDeadline) {
+      let data;
       try {
-        const data = await this._waitFor(d => d.length >= 4 && d[0] === 0xFA, 300);
-        const echoKeyNo = data[1];
-        const hex = Array.from(data.slice(0, Math.min(data.length, 14))).map(b => b.toString(16).padStart(2, '0')).join(' ');
-        const cfg = parseBtKeyRecord(data, this._isV10);
-        // 按"键号"定位（原厂 QT 的按钮 id 就是这套编号）：
-        //   1..15          → 按键 1..15
-        //   16..16+旋钮*3-1 → 旋钮槽（本机无旋钮则忽略；这些槽常带"音量+"等默认动作）
-        //   18 起          → 第 16、17… 个按键（16 键款的第 16 个键就在 18 号槽）
-        //   其余(19..25)   → 更大型号的历史残留，忽略
-        let slotIdx = -1;
-        let slotKind = '';
-        const knobRange = knobCount * 3;
-        if (echoKeyNo >= 1 && echoKeyNo <= Math.min(15, keyCount)) {
-          slotIdx = echoKeyNo - 1;
-          slotKind = '按键';
-        } else if (echoKeyNo >= 16 && echoKeyNo < 16 + knobRange) {
-          slotIdx = keyCount + (echoKeyNo - 16);
-          slotKind = '旋钮';
-        } else if (echoKeyNo >= 18 && keyCount > 15 && (15 + (echoKeyNo - 18)) < keyCount) {
-          slotIdx = 15 + (echoKeyNo - 18);
-          slotKind = '按键(高位槽)';
-        }
-        console.log('[BtProto] 读键报告 #' + i + ': ' + hex + ' → 键号字节=' + echoKeyNo + ' → ' +
-          (slotIdx >= 0 ? slotKind + ' 槽位' + (slotIdx + 1) : '忽略'));
-        if (slotIdx >= 0 && slotIdx < 40) configs[slotIdx] = cfg;
+        data = await this._waitFor(d => d.length >= 4 && d[0] === 0xFA, idleMs);
       } catch (e) {
-        break;
+        break; // 安静了 → 这一层读完了
       }
+      const echoKeyNo = data[1];
+      const hex = Array.from(data.slice(0, Math.min(data.length, 14))).map(b => b.toString(16).padStart(2, '0')).join(' ');
+      const cfg = parseBtKeyRecord(data, this._isV10);
+      seen.push(echoKeyNo);
+      // 按"键号"定位（原厂 QT 的按钮 id 就是这套编号）：
+      //   1..15          → 按键 1..15
+      //   16..16+旋钮*3-1 → 旋钮槽（无旋钮机型视为残留，忽略）
+      //   18 起          → 第 16、17… 个按键（16 键款的 K16 在 18 号槽）
+      let slotIdx = -1;
+      let slotKind = '';
+      const knobRange = knobCount * 3;
+      if (echoKeyNo >= 1 && echoKeyNo <= Math.min(15, keyCount)) {
+        slotIdx = echoKeyNo - 1;
+        slotKind = '按键';
+      } else if (echoKeyNo >= 16 && echoKeyNo < 16 + knobRange) {
+        slotIdx = keyCount + (echoKeyNo - 16);
+        slotKind = '旋钮';
+      } else if (echoKeyNo >= 18 && keyCount > 15 && (15 + (echoKeyNo - 18)) < keyCount) {
+        slotIdx = 15 + (echoKeyNo - 18);
+        slotKind = '按键(高位槽)';
+      }
+      console.log('[BtProto] 读键报告: ' + hex + ' → 键号=' + echoKeyNo + ' → ' +
+        (slotIdx >= 0 ? slotKind + ' 槽位' + (slotIdx + 1) : '忽略'));
+      if (slotIdx >= 0 && slotIdx < 40) configs[slotIdx] = cfg;
     }
-    const filled = configs.map((cfg2, i2) => (cfg2 && cfg2.mode ? i2 + 1 + ':m' + cfg2.mode : '')).filter(Boolean);
-    console.log('[BtProto] 层' + l + ' 读到 ' + configs.filter(Boolean).length + '/' + keyCount + ' 个键 -> ' + filled.join(' '));
+    console.log('[BtProto] 层' + l + ' 收到的键号: [' + seen.join(',') + ']');
     return configs;
   }
 
