@@ -621,7 +621,7 @@ export class BtProtocolHandler {
         break; // 安静了 → 这一层读完了
       }
       const echoKeyNo = data[1];
-      const hex = Array.from(data.slice(0, Math.min(data.length, 14))).map(b => b.toString(16).padStart(2, '0')).join(' ');
+      const hex = Array.from(data.slice(0, 24)).map(b => b.toString(16).padStart(2, '0')).join(' ');
       const cfg = parseBtKeyRecord(data, this._isV10);
       seen.push(echoKeyNo);
       // 按"键号"定位（原厂 QT 的按钮 id 就是这套编号）：
