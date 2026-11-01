@@ -3,16 +3,8 @@
 // 用法: node scripts/test-newproto-password.mjs
 import { readFileSync } from 'node:fs';
 
+import { CHAR_TO_KEY, textToKeyRows } from '../src/services/char-to-hid.js';
 const src = readFileSync('src/components/NewProtoConfigurator.jsx', 'utf8');
-
-// 从源码里抽出映射表构造块，原样求值（保证测的是真实代码）
-const start = src.indexOf('const CHAR_TO_KEY = {};');
-const end = src.indexOf('const SHIFT_LEFT');
-if (start < 0 || end < 0) { console.log('  ✗ 找不到 CHAR_TO_KEY 映射块'); process.exit(1); }
-const block = src.slice(start, end);
-const MACRO_STEP = { PRESS: 1, DOWN: 2, UP: 3, DELAY: 4 };
-// eslint-disable-next-line no-new-func
-const CHAR_TO_KEY = new Function(`const MACRO_STEP = ${JSON.stringify(MACRO_STEP)}; ${block}; return CHAR_TO_KEY;`)();
 
 let pass = 0;
 let fail = 0;
@@ -44,8 +36,16 @@ check("'@' → 0x1F + Shift", CHAR_TO_KEY['@']?.code === 0x1F && CHAR_TO_KEY['@'
 check("' ' → 0x2C", CHAR_TO_KEY[' ']?.code === 0x2C);
 
 // 生成逻辑里默认 100ms 间隔
-check('生成逻辑含默认 100ms 间隔', /MACRO_STEP\.DELAY,\s*keyCode:\s*0,\s*delay:\s*100/.test(src));
+check('生成逻辑含默认 50ms 间隔', /MACRO_STEP\.DELAY,\s*keyCode:\s*0,\s*delay:\s*50/.test(src));
 check('末尾多余间隔会被移除', src.includes('末尾那个间隔没意义，去掉') || src.includes('steps.pop()'));
+
+// 共享模块：文本 → 行（蓝牙多键合一用）
+const bt = textToKeyRows('Ab1!', 50);
+check('textToKeyRows 生成 4 行', bt.rows.length === 4, String(bt.rows.length));
+check('textToKeyRows A 带 Shift 位', bt.rows[0].mask === 0x02 && bt.rows[0].keyCode === 0x04);
+check('textToKeyRows 数字 1 正确', bt.rows[2].keyCode === 0x1E);
+check('textToKeyRows 默认间隔 50ms', bt.rows.every((r) => r.delay === 50));
+check('textToKeyRows 不支持的字符会被收集', textToKeyRows('中文', 50).unsupported.length === 2);
 
 console.log(`\n结果: ${pass} 通过 / ${fail} 失败`);
 process.exit(fail ? 1 : 0);
