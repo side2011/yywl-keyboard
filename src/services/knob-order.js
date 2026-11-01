@@ -11,9 +11,10 @@
 //   · 客户仍可在「固件信息」里逐个旋钮取消勾选，换批次时不用改代码
 
 /** 该型号默认是否需要对调左右（true = 设备存反了） */
-export function defaultKnobSwap(keyCount, knobCount) {
-  // 6 键 + 2 旋钮：实测固件左右反了，默认开启
-  if (keyCount === 6 && knobCount === 2) return [true, true];
+export function defaultKnobSwap() {
+  // 默认不对调：原厂 QT 的槽位就是 16=左 / 17=中 / 18=右（widget.cpp:363-365）。
+  // 之前给 6+2 款默认开启对调，把本来正常的左右又反了一次（客户反馈"旋钮倒过来了"）。
+  // 个别批次固件真的装反时，界面上的「左右对调」勾选仍可单独开启。
   return [];
 }
 
