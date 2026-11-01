@@ -28,7 +28,10 @@ for (let c = 'a'.charCodeAt(0); c <= 'z'.charCodeAt(0); c++) {
 for (let c = 'A'.charCodeAt(0); c <= 'Z'.charCodeAt(0); c++) {
   CHAR_TO_KEY[String.fromCharCode(c)] = { code: 0x04 + (c - 65), shift: true };
 }
-for (let i = 0; i <= 9; i++) CHAR_TO_KEY[String(i)] = { code: 0x1E + i, shift: false };
+// 数字键：HID 里 '1'=0x1E … '9'=0x26，'0'=0x27（不是 0x1E+i，之前偏了一位）
+for (let i = 0; i <= 9; i++) {
+  CHAR_TO_KEY[String(i)] = { code: i === 0 ? 0x27 : 0x1D + i, shift: false };
+}
 Object.assign(CHAR_TO_KEY, {
   '!': { code: 0x1E, shift: true }, '@': { code: 0x1F, shift: true }, '#': { code: 0x20, shift: true },
   '$': { code: 0x21, shift: true }, '%': { code: 0x22, shift: true }, '^': { code: 0x23, shift: true },
@@ -813,7 +816,11 @@ export default function NewProtoConfigurator() {
       } else {
         steps.push({ action: MACRO_STEP.PRESS, keyCode: m.code, delay: 0 });
       }
+      // 字符之间默认 100ms 间隔（客户要求；太快时有些软件会漏字符）
+      steps.push({ action: MACRO_STEP.DELAY, keyCode: 0, delay: 100 });
     }
+    // 末尾那个间隔没意义，去掉
+    if (steps.length && steps[steps.length - 1].action === MACRO_STEP.DELAY) steps.pop();
     const merged = [...(currentConfig.macroSteps || []), ...steps];
     // 必须同时设置 mode=MACRO: 否则不点"开始录制"直接生成时按键模式仍是"无",
     // 保存时会被当作清除处理, 按键不会变成宏按键
