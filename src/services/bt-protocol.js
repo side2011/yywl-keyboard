@@ -470,6 +470,8 @@ export function pickBestRecord(list) {
 
 export class BtProtocolHandler {
   constructor(device) {
+    // 每层每个槽位的原始记录（延时写入要基于它改，模仿 QT 的做法）
+    this._lastRaw = [];
     // 延时的 16bit 字节序：'lo' = 低字节在前（QT 默认），'hi' = 高字节在前
     try { this._delayOrder = localStorage.getItem('bt-delay-order') || 'lo'; } catch { this._delayOrder = 'lo'; }
     this.device = device;
@@ -651,13 +653,44 @@ export class BtProtocolHandler {
       }
       console.log('[BtProto] 读键报告: ' + hex + ' → 键号=' + echoKeyNo + ' → ' +
         (slotIdx >= 0 ? slotKind + ' 槽位' + (slotIdx + 1) : '忽略'));
-      if (slotIdx >= 0 && slotIdx < 40) configs[slotIdx] = cfg;
+      if (slotIdx >= 0 && slotIdx < 40) {
+    configs[slotIdx] = cfg;
+    if (!this._lastRaw[layer]) this._lastRaw[layer] = [];
+    this._lastRaw[layer][slotIdx] = Uint8Array.from(data.slice(0, 64));
+  }
     }
     console.log('[BtProto] 层' + l + ' 收到的键号: [' + seen.join(',') + ']');
     return configs;
   }
 
   // 写单个按键
+  // 写"整键延时"：基于读回来的原记录，只改 mode 与延时字段（与 QT 行为一致）
+  async writeDelay(layer, actionIdx, delay, delayOrder) {
+    if (!this._info) { try { await this.readDeviceInfo(); } catch { /* ignore */ } }
+    const keyNo = this._actionIdxToKeyNo(actionIdx);
+    const base = this._lastRaw?.[layer]?.[actionIdx];
+    const rec = base ? Uint8Array.from(base) : new Uint8Array(64);
+    rec[0] = 0xFD;
+    rec[1] = keyNo & 0xFF;
+    rec[2] = (layer + 1) & 0xFF;
+    rec[3] = 5;
+    const order = delayOrder || this._delayOrder || 'lo';
+    const v = Math.min(Math.max(delay || 0, 0), 60000);
+    if (order === 'hi') {
+      rec[4] = (v >> 8) & 0xFF;
+      rec[5] = v & 0xFF;
+    } else {
+      rec[4] = v & 0xFF;
+      rec[5] = (v >> 8) & 0xFF;
+    }
+    const hex = Array.from(rec.slice(0, 14)).map((b) => b.toString(16).padStart(2, '0')).join(' ');
+    console.log('[BtProto] 写延时(保留原记录) keyNo=' + keyNo + ' 层=' + (layer + 1) + ' delay=' + v +
+      ' order=' + order + ' 组数=' + rec[9] + ' 前14字节=' + hex);
+    await this._send(rec);
+    await new Promise((r) => setTimeout(r, 40));
+    return true;
+  }
+
   // 读回单个键（延时自检用）
   async peekKey(layer, actionIdx) {
     const list = await this.readLayer(layer);
