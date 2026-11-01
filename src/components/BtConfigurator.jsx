@@ -1517,6 +1517,9 @@ export default function BtConfigurator() {
                       try {
                         // 直接发一包灯光（模式1 + 纯白），不走保存流程：用来判断设备到底吃不吃这个命令
                         // 用当前选中的模式和颜色（原来写死 mode1/白色，客户以为按钮没反应）
+                        // 选"关闭"时测灯光没意义 → 自动切到模式1（界面也跟着亮起，避免"怎么都是模式1"的困惑）
+                        if (!ledMode) setLedMode(1);
+                        setLedDirty(true);
                         const m = ledMode || 1;
                         const colors = (ledColors && ledColors.length) ? ledColors : Array.from({ length: 16 }, () => ({ r: 255, g: 255, b: 255 }));
                         await handler.writeLedLayer(currentLayer, m, colors);
@@ -1527,6 +1530,23 @@ export default function BtConfigurator() {
                     }}
                     className="px-3 py-2 text-xs font-bold rounded-lg border-2 border-amber-300 text-amber-700 bg-amber-50 hover:bg-amber-100 transition-colors cursor-pointer">
                     💡 {t('立即测试灯光')}
+                  </button>
+                  <button
+                    onClick={async () => {
+                      const handler = getNewHandler();
+                      if (!handler) { toast.error(t('键盘未连接')); return; }
+                      try {
+                        const m = ledMode || 1;
+                        if (!ledMode) setLedMode(1);
+                        const colors = (ledColors && ledColors.length) ? ledColors : Array.from({ length: 16 }, () => ({ r: 255, g: 255, b: 255 }));
+                        await handler.writeLedLayer(currentLayer, m, colors, 1, 'v10');
+                        toast.success(t('已按 V10 格式（48 字节）发送，看键盘有没有反应'), { id: 'bt-led-test-v10', duration: 6000 });
+                      } catch (e) {
+                        toast.error(t('测试失败：{msg}', { msg: e.message }));
+                      }
+                    }}
+                    className="px-3 py-2 text-xs font-semibold rounded-lg border border-gray-300 text-gray-600 bg-white hover:bg-gray-50 transition-colors cursor-pointer">
+                    {t('试试 V10 格式')}
                   </button>
                   <span className="text-xs text-gray-400">{t('直接发一包灯光数据，不走保存流程（排查用）')}</span>
                 </div>
