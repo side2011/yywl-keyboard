@@ -1328,35 +1328,45 @@ export default function BtConfigurator() {
                 })()}
               </div>
             )}
-            {currentConfig.mode === MODE.DELAY && (
-              <button
+            {/* 延时自检：不同批次固件的 16bit 字节序可能相反，让设备自己说话（会临时改写当前键，结束后自动恢复） */}
+            <button
               onClick={async () => {
-              const handler = getNewHandler();
-              if (!handler) { toast.error(t('键盘未连接')); return; }
-              const testDelay = 500;
-              const probe = async (order) => {
-              await handler.writeKey(currentLayer, selectedKey, { ...createDefaultConfig(), mode: MODE.DELAY, delay: testDelay }, order);
-              await new Promise((r) => setTimeout(r, 120));
-              const back = await handler.peekKey(currentLayer, selectedKey);
-              console.log('[BtProto] 延时自检 order=' + order + ' → 读回 mode=' + (back?.mode ?? '?') + ' delay=' + (back?.delay ?? '?'));
-              return back;
-              };
-              try {
-              const lo = await probe('lo');
-              const hi = await probe('hi');
-              const okLo = lo && lo.mode === MODE.DELAY && lo.delay === testDelay;
-              const okHi = hi && hi.mode === MODE.DELAY && hi.delay === testDelay;
-              if (okLo) { handler.delayOrder = 'lo'; toast.success(t('设备接受「低字节在前」，已记住'), { id: 'bt-delay-probe', duration: 7000 }); }
-              else if (okHi) { handler.delayOrder = 'hi'; toast.success(t('设备接受「高字节在前」，已记住'), { id: 'bt-delay-probe', duration: 7000 }); }
-              else { toast.error(t('两种字节序都没被接受（回读 {a} / {b}），请导出日志发给我们', { a: (lo && lo.delay) || 0, b: (hi && hi.delay) || 0 }), { id: 'bt-delay-probe', duration: 12000 }); }
-              } catch (e) {
-              toast.error(t('延时自检失败：{msg}', { msg: e.message }));
-              }
+                const handler = getNewHandler();
+                if (!handler) { toast.error(t('键盘未连接')); return; }
+                const original = { ...currentConfig };
+                const testDelay = 500;
+                const probe = async (order) => {
+                  await handler.writeKey(currentLayer, selectedKey, { ...createDefaultConfig(), mode: MODE.DELAY, delay: testDelay }, order);
+                  await new Promise((r) => setTimeout(r, 150));
+                  const back = await handler.peekKey(currentLayer, selectedKey);
+                  console.log('[BtProto] 延时自检 order=' + order + ' → 读回 mode=' + (back?.mode ?? '?') + ' delay=' + (back?.delay ?? '?'));
+                  return back;
+                };
+                try {
+                  const lo = await probe('lo');
+                  const hi = await probe('hi');
+                  const okLo = lo && lo.mode === MODE.DELAY && lo.delay === testDelay;
+                  const okHi = hi && hi.mode === MODE.DELAY && hi.delay === testDelay;
+                  if (okLo) { handler.delayOrder = 'lo'; toast.success(t('设备接受「低字节在前」，已记住'), { id: 'bt-delay-probe', duration: 7000 }); }
+                  else if (okHi) { handler.delayOrder = 'hi'; toast.success(t('设备接受「高字节在前」，已记住'), { id: 'bt-delay-probe', duration: 7000 }); }
+                  else { toast.error(t('两种字节序都没被接受（回读 {a} / {b}），请导出日志发给我们', { a: (lo && lo.delay) || 0, b: (hi && hi.delay) || 0 }), { id: 'bt-delay-probe', duration: 12000 }); }
+                } catch (err) {
+                  toast.error(t('延时自检失败：{msg}', { msg: err.message }));
+                } finally {
+                  // 把客户原来的配置写回去（自检只是借用这个键）
+                  try {
+                    if ((original.mode || 0) === MODE.NONE) await handler.clearKey(currentLayer, selectedKey);
+                    else await handler.writeKey(currentLayer, selectedKey, original);
+                    await handler._writeFlash();
+                    console.log('[BtProto] 延时自检结束，已恢复原配置');
+                  } catch (err2) {
+                    console.warn('[BtProto] 恢复原配置失败:', err2.message);
+                  }
+                }
               }}
               className="mt-2 ml-2 px-2.5 py-1 text-xs rounded-lg bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 cursor-pointer">
               {t('延时自检')}
-              </button>
-            )}
+            </button>
 
 
             {/* 多媒体 */}
