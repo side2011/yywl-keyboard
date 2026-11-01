@@ -22,7 +22,9 @@
     "desktop:mac": "vite build && electron-builder --mac zip",
     "desktop:linux": "vite build && electron-builder --linux AppImage",
     "check:isolation": "node scripts/check-module-isolation.mjs",
-    "check:all": "node scripts/check-undef.mjs && node scripts/check-asi.mjs && node scripts/check-module-isolation.mjs"
+    "check:all": "node scripts/check-undef.mjs && node scripts/check-asi.mjs && node scripts/check-module-isolation.mjs",
+    "deploy:web": "node scripts/deploy-web.cjs",
+    "deploy:web:dry": "node scripts/deploy-web.cjs --dry-run"
   },
   "build": {
     "appId": "com.yywl.keyboard-config",
