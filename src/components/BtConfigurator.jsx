@@ -601,7 +601,7 @@ export default function BtConfigurator() {
         if (ma === MODE.DELAY || mb === MODE.DELAY) {
           const da = a?.delay || 0;
           const db = b?.delay || 0;
-          if (da !== db) console.warn('[BtProto] 延时不一致（写 ' + da + 'ms，读 ' + db + 'ms）');
+          // 延时和灯光一样固件不回读，数值不一致属正常，不再提示
           return true;
         }
         return cfgKeyOf(a) === cfgKeyOf(b);
@@ -1282,6 +1282,11 @@ export default function BtConfigurator() {
                       {t('把这个键当成"纯延时"（不按任何键，只等待）。原「延时」选项卡')}
                     </span>
                   </div>
+                    {!isV10 && (
+                      <div className="mt-1 text-xs text-amber-600 leading-relaxed">
+                        {t('延时和灯光一样只能写入、不能读取回来：读取配置后这里显示 0 属正常，要改就在此填值再保存。')}
+                      </div>
+                    )}
                   {currentConfig.mode === MODE.DELAY && (
                     <button
                       onClick={() => updateConfig({ mode: MODE.MULTI, multiKeys: currentConfig.multiKeys?.length ? currentConfig.multiKeys : [{ mask: 0, keyCode: 0, delay: 50 }] })}
@@ -1332,50 +1337,6 @@ export default function BtConfigurator() {
                 })()}
               </div>
             )}
-            {/* 延时自检：不同批次固件的 16bit 字节序可能相反，让设备自己说话（会临时改写当前键，结束后自动恢复） */}
-            <button
-              onClick={async () => {
-                const handler = getNewHandler();
-                if (!handler) { toast.error(t('键盘未连接')); return; }
-                // 找一个空的键来试：设备在"已有配置"的键上可能拒绝改类型（实测 mode5 被忽略）
-                let probeKey = selectedKey;
-                const emptyIdx = keyConfigs.findIndex((cfg) => !cfg || (cfg.mode || 0) === MODE.NONE);
-                if (emptyIdx >= 0) probeKey = emptyIdx;
-                const original = probeKey === selectedKey ? { ...currentConfig } : null;
-                console.log('[BtProto] 延时自检将使用键槽位 ' + (probeKey + 1) + '（空键优先）');
-                const testDelay = 500;
-                const probe = async (order) => {
-                  await handler.writeDelay(currentLayer, probeKey, testDelay, order);
-                  await new Promise((r) => setTimeout(r, 150));
-                  const back = await handler.peekKey(currentLayer, probeKey);
-                  console.log('[BtProto] 延时自检 order=' + order + ' → 读回 mode=' + (back?.mode ?? '?') + ' delay=' + (back?.delay ?? '?'));
-                  return back;
-                };
-                try {
-                  const lo = await probe('lo');
-                  const hi = await probe('hi');
-                  const okLo = lo && lo.mode === MODE.DELAY && lo.delay === testDelay;
-                  const okHi = hi && hi.mode === MODE.DELAY && hi.delay === testDelay;
-                  if (okLo) { handler.delayOrder = 'lo'; toast.success(t('设备接受「低字节在前」，已记住'), { id: 'bt-delay-probe', duration: 7000 }); }
-                  else if (okHi) { handler.delayOrder = 'hi'; toast.success(t('设备接受「高字节在前」，已记住'), { id: 'bt-delay-probe', duration: 7000 }); }
-                  else { toast.error(t('两种字节序都没被接受（回读 {a} / {b}），请导出日志发给我们', { a: (lo && lo.delay) || 0, b: (hi && hi.delay) || 0 }), { id: 'bt-delay-probe', duration: 12000 }); }
-                } catch (err) {
-                  toast.error(t('延时自检失败：{msg}', { msg: err.message }));
-                } finally {
-                  // 把客户原来的配置写回去（自检只是借用这个键）
-                  try {
-                    if ((original.mode || 0) === MODE.NONE) await handler.clearKey(currentLayer, selectedKey);
-                    else await handler.writeKey(currentLayer, selectedKey, original);
-                    await handler._writeFlash();
-                    console.log('[BtProto] 延时自检结束，已恢复原配置');
-                  } catch (err2) {
-                    console.warn('[BtProto] 恢复原配置失败:', err2.message);
-                  }
-                }
-              }}
-              className="mt-2 ml-2 px-2.5 py-1 text-xs rounded-lg bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 cursor-pointer">
-              {t('延时自检')}
-            </button>
 
 
             {/* 多媒体 */}
