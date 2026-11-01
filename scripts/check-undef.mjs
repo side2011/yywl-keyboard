@@ -49,6 +49,39 @@ for (const file of data) {
   }
 }
 
+// ---- 额外检查：JSX 里用了大写组件，但文件里没 import / 没定义 ----
+// eslint 的 no-undef 不检查 JSX 标签名，之前 <ForceUpdateButton /> 漏 import 直接白屏。
+{
+  const fs2 = await import('node:fs')
+  const path2 = await import('node:path')
+  const walk = (dir, out = []) => {
+    for (const name of fs2.readdirSync(dir)) {
+      const full = path2.join(dir, name)
+      if (fs2.statSync(full).isDirectory()) walk(full, out)
+      else if (/\.(jsx|js)$/.test(name)) out.push(full)
+    }
+    return out
+  }
+  const files = walk('src')
+  for (const file of files) {
+    const src = fs2.readFileSync(file, 'utf8')
+    const defined = new Set()
+    for (const m of src.matchAll(/import\s+([^;\n]+?)\s+from/g)) {
+      for (const part of m[1].replace(/[{}]/g, ",").split(",")) {
+        const nm = part.trim().split(/\s+as\s+/).pop()
+        if (nm) defined.add(nm.trim())
+      }
+    }
+    for (const m of src.matchAll(/(?:const|let|var|function|class)\s+([A-Za-z_$][\w$]*)/g)) defined.add(m[1])
+    for (const w of ['React', 'Fragment', 'Suspense', 'StrictMode']) defined.add(w)
+    for (const m of src.matchAll(/<([A-Z][A-Za-z0-9_]*)/g)) {
+      if (defined.has(m[1])) continue
+      const line = src.slice(0, m.index).split("\n").length
+      problems.push({ file: file.split(/[\\/]/).pop(), line, rule: 'jsx-undef', msg: '<' + m[1] + '> 未 import / 未定义' })
+    }
+  }
+}
+
 if (problems.length) {
   console.error(`✗ 发现 ${problems.length} 个会导致运行时白屏的问题：`)
   for (const p of problems) console.error(`  ${p.file}:${p.line}  [${p.rule}] ${p.msg}`)
