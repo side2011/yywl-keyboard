@@ -465,6 +465,26 @@ export default function BtConfigurator() {
         });
       } catch { /* 忽略 */ }
 
+      // 旧固件不支持多键合一：保存前转成"组合键"（修饰键 + 第一个按键），
+      // 否则设备会忽略或和预期完全不同，客户看到的就是"设置了没效果"。
+      let convertedMulti = 0;
+      if (!isV10Device) {
+        const fixed = cached.map((layer) => (layer || []).map((cfg) => {
+          if (!cfg || cfg.mode !== MODE.MULTI) return cfg;
+          const list = (Array.isArray(cfg.multiKeys) ? cfg.multiKeys : []).filter((mk) => mk && mk.keyCode);
+          convertedMulti += 1;
+          if (!list.length) return createDefaultConfig();
+          return {
+            ...createDefaultConfig(),
+            mode: MODE.KEY,
+            modifierMask: list[0].mask || 0,
+            keyCode: list[0].keyCode,
+          };
+        }));
+        for (let li = 0; li < fixed.length; li += 1) cached[li] = fixed[li];
+        layerConfigsRef.current = cached;
+      }
+
       // 多键合一里"添加了但没选键"的空槽位：直接丢掉，全空就当未设置清掉，
       // 否则会写成空组 → 回读校验不一致 → 客户看到"有 1 个按键没写进键盘"。
       let droppedEmptyMulti = 0;
@@ -499,6 +519,9 @@ export default function BtConfigurator() {
         if (unsupportedCount) {
           toast(t('{n} 个按键用了本机型不支持的鼠标手势，已改为「未设置」', { n: unsupportedCount }), { id: 'bt-save-unsupported', duration: 6000 });
         }
+      }
+      if (convertedMulti > 0) {
+        toast(t('本机型固件不支持「多键合一」，已把 {n} 个按键按「修饰键+第一个键」的组合键保存', { n: convertedMulti }), { id: 'bt-multi-unsupported', duration: 8000 });
       }
       // 逐层写所有键
       // 15ms 对某些蓝牙固件太急，后面几层会出现"发了但没生效"——客户反馈的
@@ -785,6 +808,8 @@ export default function BtConfigurator() {
   // 只有"回读"是版本>=10 才支持（widget.cpp:2839）。
   // 之前按 keyCount 排除 [1,6]，把 6+2 款的灯光页也隐藏了（客户反馈看不到灯光设置）。
   const hasLighting = true;
+  // 版本>=10 才支持「多键合一」（顺序按键）；旧固件 QT 里也没有这个页面
+  const isV10Device = (deviceInfo?.version || 0) >= 10;
     // 6+2 款协议未实现「划屏 / 抖音点赞」这类鼠标手势（behavior=0x04），
   // 客户选这些动作保存会整层写失败（校验报『没写进键盘』），所以直接不显示。
   const supportsMouseGesture = knobCount !== 2;
@@ -794,12 +819,17 @@ export default function BtConfigurator() {
   const EXT_TAB = 'ext';
   const tabs = [
     { label: t('键盘'), mode: MODE.KEY },
-    { label: t('多键合一'), mode: MODE.MULTI },
+    ...(isV10Device ? [{ label: t('多键合一'), mode: MODE.MULTI }] : []),
     { label: t('鼠标'), mode: MODE.MOUSE },
     { label: t('多媒体'), mode: MODE.MEDIA },
     { label: t('扩展'), mode: EXT_TAB },
     ...(hasLighting ? [{ label: t('灯光'), mode: LED_TAB }] : []),
   ];
+
+  // 旧固件不支持多键合一：正在看这个 tab 时自动回到键盘页
+  useEffect(() => {
+    if (!isV10Device && activeTab === MODE.MULTI) setActiveTab(MODE.KEY);
+  }, [isV10Device, activeTab]);
 
   const isConnected = !!device;
 
