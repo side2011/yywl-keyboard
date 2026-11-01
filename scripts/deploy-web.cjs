@@ -37,15 +37,36 @@ if (!HOST || !USER) {
 const CRED = `${USER}:${PASS}`;
 const base = `ftp://${HOST}`;
 
-function curl(args) {
-  execFileSync('curl.exe', ['-s', '--max-time', '600', ...args], { stdio: 'pipe' });
+const failures = [];
+function curl(args, label = '') {
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    try {
+      execFileSync('curl.exe', ['-s', '--max-time', '600', ...args], { stdio: 'pipe' });
+      return true;
+    } catch (e) {
+      if (attempt === 3) {
+        failures.push(label || args[args.length - 1]);
+        console.warn(`  ! 失败${label ? ' ' + label : ''}（已重试 3 次）`);
+        return false;
+      }
+      // 等一下再试（FTP 偶发 421/超时）
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 1200 * attempt);
+    }
+  }
+  return false;
 }
 
 function remoteSizes(dirUrl) {
-  const out = execFileSync('curl.exe', ['-s', '--max-time', '120', `${dirUrl}/`, '--user', CRED], {
-    stdio: 'pipe',
-    encoding: 'utf8',
-  });
+  let out = '';
+  try {
+    out = execFileSync('curl.exe', ['-s', '--max-time', '120', `${dirUrl}/`, '--user', CRED], {
+      stdio: 'pipe',
+      encoding: 'utf8',
+    });
+  } catch {
+    console.warn('  ! 读取远端 static 列表失败，将全部重传');
+    return {};
+  }
   const map = {};
   for (const line of out.split(/\r?\n/)) {
     const parts = line.trim().split(/\s+/);
@@ -60,8 +81,8 @@ function upload(localPath, remotePath, label) {
     console.log(`  [dry] ${label || remotePath} (${size} 字节)`);
     return;
   }
-  curl(['-T', localPath, `${base}${remotePath}`, '--user', CRED]);
-  console.log(`  ↑ ${label || remotePath} (${size} 字节)`);
+  const ok = curl(['-T', localPath, `${base}${remotePath}`, '--user', CRED], label || remotePath);
+  if (ok) console.log(`  ↑ ${label || remotePath} (${size} 字节)`);
 }
 
 // 1) static（只传大小不同的）
@@ -104,6 +125,13 @@ for (const name of ['version.json', 'update.json']) {
 upload(path.join(DIST, 'index.html'), '/index.html', 'index.html');
 
 console.log('\n完成。');
+if (failures.length) {
+  console.error(`有 ${failures.length} 个文件上传失败：`);
+  for (const f of failures) console.error('  - ' + f);
+  process.exitCode = 1;
+} else {
+  console.log('全部上传成功。');
+}
 if (!dryRun) {
   const v = JSON.parse(fs.readFileSync(path.join(DIST, 'version.json'), 'utf8'));
   console.log(`线上应为 buildId=${v.buildId}（appVersion=${v.appVersion}）`);
