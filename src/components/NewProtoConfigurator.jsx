@@ -11,6 +11,7 @@ import {
   BROWSER_CODE_TO_HID, BROWSER_MOD_TO_BIT, BROWSER_MACRO_KEY_TO_HID,
 } from '../services/hid-constants';
 import { downloadLogs } from '../services/log-buffer';
+import { CHAR_TO_KEY, SHIFT_LEFT } from '../services/char-to-hid';
 import ConfirmDialog from './ConfirmDialog';
 import ForceUpdateButton from './ForceUpdateButton';
 import {
@@ -20,37 +21,7 @@ import {
 import ConfigListPanel from './ConfigListPanel';
 import toast from 'react-hot-toast';
 
-// ---- 一键密码: 字符 → HID 按键映射 (标准美式键盘布局) ----
-const CHAR_TO_KEY = {};
-for (let c = 'a'.charCodeAt(0); c <= 'z'.charCodeAt(0); c++) {
-  CHAR_TO_KEY[String.fromCharCode(c)] = { code: 0x04 + (c - 97), shift: false };
-}
-for (let c = 'A'.charCodeAt(0); c <= 'Z'.charCodeAt(0); c++) {
-  CHAR_TO_KEY[String.fromCharCode(c)] = { code: 0x04 + (c - 65), shift: true };
-}
-// 数字键：HID 里 '1'=0x1E … '9'=0x26，'0'=0x27（不是 0x1E+i，之前偏了一位）
-for (let i = 0; i <= 9; i++) {
-  CHAR_TO_KEY[String(i)] = { code: i === 0 ? 0x27 : 0x1D + i, shift: false };
-}
-Object.assign(CHAR_TO_KEY, {
-  '!': { code: 0x1E, shift: true }, '@': { code: 0x1F, shift: true }, '#': { code: 0x20, shift: true },
-  '$': { code: 0x21, shift: true }, '%': { code: 0x22, shift: true }, '^': { code: 0x23, shift: true },
-  '&': { code: 0x24, shift: true }, '*': { code: 0x25, shift: true }, '(': { code: 0x26, shift: true },
-  ')': { code: 0x27, shift: true },
-  '-': { code: 0x2D, shift: false }, '_': { code: 0x2D, shift: true },
-  '=': { code: 0x2E, shift: false }, '+': { code: 0x2E, shift: true },
-  '[': { code: 0x2F, shift: false }, '{': { code: 0x2F, shift: true },
-  ']': { code: 0x30, shift: false }, '}': { code: 0x30, shift: true },
-  '\\': { code: 0x31, shift: false }, '|': { code: 0x31, shift: true },
-  ';': { code: 0x33, shift: false }, ':': { code: 0x33, shift: true },
-  "'": { code: 0x34, shift: false }, '"': { code: 0x34, shift: true },
-  '`': { code: 0x35, shift: false }, '~': { code: 0x35, shift: true },
-  ',': { code: 0x36, shift: false }, '<': { code: 0x36, shift: true },
-  '.': { code: 0x37, shift: false }, '>': { code: 0x37, shift: true },
-  '/': { code: 0x38, shift: false }, '?': { code: 0x38, shift: true },
-  ' ': { code: 0x2C, shift: false },
-});
-const SHIFT_LEFT = 0xE1; // 左Shift 修饰键 (宏步骤中作为独立按键)
+// ---- 一键密码: 字符 → HID 按键映射（共享模块，见 services/char-to-hid.js）----
 
 // ---- 虚拟键盘布局 (与 KeyConfigPanel 相同) ----
 const mainRows = [
@@ -817,8 +788,8 @@ export default function NewProtoConfigurator() {
       } else {
         steps.push({ action: MACRO_STEP.PRESS, keyCode: m.code, delay: 0 });
       }
-      // 字符之间默认 100ms 间隔（客户要求；太快时有些软件会漏字符）
-      steps.push({ action: MACRO_STEP.DELAY, keyCode: 0, delay: 100 });
+      // 字符之间默认 50ms 间隔（客户反馈 100ms 太慢）
+      steps.push({ action: MACRO_STEP.DELAY, keyCode: 0, delay: 50 });
     }
     // 末尾那个间隔没意义，去掉
     if (steps.length && steps[steps.length - 1].action === MACRO_STEP.DELAY) steps.pop();
