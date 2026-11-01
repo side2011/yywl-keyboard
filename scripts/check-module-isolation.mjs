@@ -96,10 +96,10 @@ check('hid-constants.js 不 import 任何协议实现',
   !/from\s+['"].*(bt-protocol|new-protocol)/.test(hidConst));
 
 // ---- 6) 蓝牙修复的关键点必须都在蓝牙模块内 ----
-const btHasPositional = btSrc.includes('按"收到的第几条"定位') || btSrc.includes('键号字节');
+const btHasPositional = btSrc.includes('高位槽') || btSrc.includes('键号字节');
 const btHasModCount0 = /rec\[9\]\s*=\s*0;[\s\S]{0,200}rec\[10\]\s*=\s*\(cfg\.modifierMask/.test(btSrc);
 const btHasNibble = btSrc.includes('旧-nibble') || btSrc.includes('旧固件(版本<10)');
-check('K16 顺序定位逻辑在 bt-protocol.js 内', btHasPositional);
+check('K16 高位槽(18号)定位逻辑在 bt-protocol.js 内', btHasPositional);
 check('单独修饰键(组数=0)编码在 bt-protocol.js 内', btHasModCount0);
 check('旧固件灯光 nibble 格式在 bt-protocol.js 内', btHasNibble);
 
