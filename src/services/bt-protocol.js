@@ -676,7 +676,7 @@ export class BtProtocolHandler {
   }
 
   // 写灯光: 0xFE 0xB0 Layer(0..2) Mode + 48B RGB
-  async writeLedLayer(layer, mode, colors, sleepAllow = 1) {
+  async writeLedLayer(layer, mode, colors, sleepAllow = 1, forceFormat = null) {
     // 两种固件的灯光格式完全不同：
     //   V10(版本>=10)：48 字节 RGB，层号 0-based，格式 [0xFE,0xB0,层,模式, R,G,B ×16]
     //   旧固件(版本<10)：借用"按键记录"，层号 1-based，模式/颜色压在一个字节里
@@ -684,10 +684,11 @@ export class BtProtocolHandler {
     //     QT widget.cpp:3626  [9] = 1（组数）
     //     QT widget.cpp:3619  [11] = (颜色序号<<4) | 灯光模式
     // 之前统一按 48 字节发，旧固件直接忽略 → "设了灯光没效果"。
+    const useV10 = forceFormat ? forceFormat === 'v10' : this._isV10;
     const b = new Uint8Array(64);
     b[0] = 0xFE;
     b[1] = 0xB0;
-    if (!this._isV10) {
+    if (!useV10) {
       b[2] = (layer + 1) & 0xFF;   // 旧固件层号从 1 开始
       b[3] = 0x08;                 // 灯光页模式（QT Select_PHY_Key_Mode=8）
       b[9] = 1;                    // 组数
@@ -710,7 +711,7 @@ export class BtProtocolHandler {
       }
     }
     const hex = Array.from(b.slice(0, 12)).map(x => x.toString(16).padStart(2, '0')).join(' ');
-    console.log('[BtProto] 写灯光包(' + (this._isV10 ? 'V10-48B' : '旧-nibble') + ') 层=' + (this._isV10 ? layer : layer + 1) +
+    console.log('[BtProto] 写灯光包(' + (useV10 ? 'V10-48B' : '旧-nibble') + ') 层=' + (useV10 ? layer : layer + 1) +
       ' mode=' + mode + ' 前12字节=' + hex);
     await this._send(b);
     await new Promise(r => setTimeout(r, 120));
