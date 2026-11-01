@@ -651,6 +651,11 @@ export class BtProtocolHandler {
   // 响应 (WebHID data 不含 reportId): [0]=0xFA回显 [1]=模式 [2..49]=48B RGB
   // (QT Read_RgbLed_DataDsp: Rec_buf[0]=reportId, 模式=Rec_buf[2], 颜色=Rec_buf[3..50] — 响应不回显0xB0)
   async readLedLayer(layer) {
+    // 旧固件(版本<10)没有"读灯光"命令（QT 也只在版本>=10 时才 Read_RgbLed_DataDsp），
+    // 发过去只会等 1 秒超时，白等还刷日志。直接返回"不可读"。
+    if (!this._isV10) {
+      return { mode: 0, sleepAllow: 1, colors: Array.from({ length: 16 }, () => ({ r: 0, g: 0, b: 0 })), unsupported: false, readable: false };
+    }
     await this._send(this._mk(0xFA, [0xB0, layer]));
     try {
       const data = await this._waitFor(d => d.length >= 50 && d[0] === 0xFA, 1000);
