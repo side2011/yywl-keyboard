@@ -513,7 +513,11 @@ export default function BtConfigurator() {
         for (let i = 0; i < totalSlots; i++) {
           const cfg = cfgs[i];
           const devSlot = mapSlot(i);
-          if (cfg && cfg.mode !== MODE.NONE) {
+          if (cfg && cfg.mode === MODE.DELAY && !handler.isV10) {
+            // 旧固件：延时必须在"读回来的原记录"上改（QT 就是这么做的），
+            // 否则设备只更新延时那两个字节，模式和组数不变 → 延时永远存不住
+            await handler.writeDelay(l, i, cfg.delay || 0);
+          } else if (cfg && cfg.mode !== MODE.NONE) {
             await handler.writeKey(l, devSlot, cfg);
           } else {
             await handler.clearKey(l, devSlot);
@@ -1341,7 +1345,7 @@ export default function BtConfigurator() {
                 console.log('[BtProto] 延时自检将使用键槽位 ' + (probeKey + 1) + '（空键优先）');
                 const testDelay = 500;
                 const probe = async (order) => {
-                  await handler.writeKey(currentLayer, probeKey, { ...createDefaultConfig(), mode: MODE.DELAY, delay: testDelay }, order);
+                  await handler.writeDelay(currentLayer, probeKey, testDelay, order);
                   await new Promise((r) => setTimeout(r, 150));
                   const back = await handler.peekKey(currentLayer, probeKey);
                   console.log('[BtProto] 延时自检 order=' + order + ' → 读回 mode=' + (back?.mode ?? '?') + ' delay=' + (back?.delay ?? '?'));
