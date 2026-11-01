@@ -37,6 +37,7 @@ const en = {
   '断开连接': 'Disconnect',
   '找不到设备？列出全部同厂设备': "Can't find your device? List all vendor devices",
   '再看一次连接提示': 'Show the connection guide again',
+  '延时和灯光一样只能写入、不能读取回来：读取配置后这里显示 0 属正常，要改就在此填值再保存。': 'Delay works like lighting: write-only. It shows 0 after reading the config — that is expected. Set a value here and save.',
   '延时自检': 'Delay self-test',
   '设备接受「低字节在前」，已记住': 'Device accepts low-byte-first (remembered)',
   '设备接受「高字节在前」，已记住': 'Device accepts high-byte-first (remembered)',
