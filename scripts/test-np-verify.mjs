@@ -27,6 +27,11 @@ check('宏：步骤数相同即视为一致（忽略残留 modifier）', norm(wa
 check('宏：步骤数不同 → 不一致',
   norm({ mode: 5, macroSteps: new Array(11).fill({}) }) !== norm({ mode: 5, macroSteps: new Array(5).fill({}) }));
 
+// 客户现场：模式是"宏"但一步都没生成（点了一键密码又清空）→ 保存时被清掉，
+// 校验必须把它当作"空配置"，否则永远报"键N 不一致: 期望 macro|0 / 实际 empty"
+check('空宏(mode5, 0 步) == 未设置', norm({ mode: 5, macroSteps: [] }) === norm({ mode: 0 }),
+  `${norm({ mode: 5, macroSteps: [] })} vs ${norm({ mode: 0 })}`);
+
 // 空配置等价
 check('未设置 == 设备清空记录', norm({ mode: 0 }) === norm({ mode: 1, keyCode: 0, modifier: 0 }));
 check('未设置 != 真按键', norm({ mode: 0 }) !== norm({ mode: 1, keyCode: 4, modifier: 0 }));
