@@ -37,6 +37,7 @@ const en = {
   '断开连接': 'Disconnect',
   '找不到设备？列出全部同厂设备': "Can't find your device? List all vendor devices",
   '再看一次连接提示': 'Show the connection guide again',
+  '提示：本机固件较旧，「按顺序依次触发」可能不被支持。如果保存后按键没反应，请改用「键盘」页的组合键（Ctrl/Shift/Alt/Win + 按键），或给按键设「延时」。': 'Note: this firmware is older and may not support sequential keys. If the key does nothing after saving, use a modifier combination (Ctrl/Shift/Alt/Win + key) or set a Delay instead.',
   '本机型固件不支持「多键合一」，已把 {n} 个按键按「修饰键+第一个键」的组合键保存': 'This firmware does not support key sequences. {n} key(s) were saved as a modifier+key combination instead.',
   '💡 灯光需要手动设置': '💡 Lighting must be set manually',
   '这款键盘的灯光不支持「读取回来」，所以打开配置页时灯光选项是默认值，不代表键盘当前状态。': 'This keypad cannot report its lighting back, so the lighting options show defaults when the page opens — they do not reflect the current state.',
