@@ -612,20 +612,31 @@ export class BtProtocolHandler {
         const echoKeyNo = data[1];
         const hex = Array.from(data.slice(0, Math.min(data.length, 14))).map(b => b.toString(16).padStart(2, '0')).join(' ');
         const cfg = parseBtKeyRecord(data, this._isV10);
-        const isKeySlot = i < keyNum;
-        console.log('[BtProto] 读键报告 #' + i + ': ' + hex + ' → 第' + (i + 1) + '条 键号字节=' + echoKeyNo +
-          (isKeySlot ? '（按键槽）' : '（旋钮槽）'));
-        if (isKeySlot) {
-          if (i < keyCount) configs[i] = cfg;
-          // 键号字节与顺序不一致时留个记录，方便对照原厂
-          if (echoKeyNo !== i + 1 && i < keyCount) {
-            console.log('[BtProto] 注意: 第' + (i + 1) + '条返回的键号字节是 ' + echoKeyNo + '，按顺序当作 K' + (i + 1));
-          }
-        } else {
-          const knobPos = i - keyNum;
-          if (knobCount > 0 && knobPos < knobCount * 3) configs[keyCount + knobPos] = cfg;
-          else console.log('[BtProto] 第' + (i + 1) + '条是旋钮记录（本机无旋钮），已忽略');
+        // 定位规则（兼容两种上报方式）：
+        //   1) 键号字节在 1..keyCount → 就是那个按键
+        //   2) 键号字节在 16..16+旋钮数*3-1 且本机有旋钮 → 旋钮槽（左/中/右）
+        //   3) 否则按"第几条"兜底：本机有旋钮且序号已超过按键数 → 旋钮槽，否则按键槽
+        // 说明：6+1 款只发 6 条按键记录就紧跟旋钮记录（键号 16/17/18）；
+        //       16 键款第 16 个键的键号字节也是 18，但它没有旋钮，走兜底当按键。
+        let slotIdx = -1;
+        let slotKind = '';
+        const inKnobByKeyNo = knobCount > 0 && echoKeyNo >= 16 && echoKeyNo < 16 + knobCount * 3;
+        if (echoKeyNo >= 1 && echoKeyNo <= keyCount) {
+          slotIdx = echoKeyNo - 1;
+          slotKind = '按键(键号)';
+        } else if (inKnobByKeyNo) {
+          slotIdx = keyCount + (echoKeyNo - 16);
+          slotKind = '旋钮(键号)';
+        } else if (knobCount > 0 && i >= keyCount) {
+          slotIdx = keyCount + (i - keyCount);
+          slotKind = '旋钮(顺序)';
+        } else if (i < keyCount) {
+          slotIdx = i;
+          slotKind = '按键(顺序)';
         }
+        console.log('[BtProto] 读键报告 #' + i + ': ' + hex + ' → 键号字节=' + echoKeyNo + ' → ' +
+          (slotIdx >= 0 ? slotKind + ' 槽位' + (slotIdx + 1) : '忽略'));
+        if (slotIdx >= 0 && slotIdx < 40) configs[slotIdx] = cfg;
       } catch (e) {
         break;
       }
