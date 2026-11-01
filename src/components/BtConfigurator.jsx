@@ -15,6 +15,7 @@ import BtVirtualKeyboard from './BtVirtualKeyboard';
 import ConfirmDialog from './ConfirmDialog';
 import ForceUpdateButton from './ForceUpdateButton';
 import { downloadLogs } from '../services/log-buffer';
+import { textToKeyRows } from '../services/char-to-hid';
 import ConfigListPanel from './ConfigListPanel';
 import toast from 'react-hot-toast';
 import { defaultKnobSwap, mapKnobSlot } from '../services/knob-order';
@@ -179,6 +180,7 @@ export default function BtConfigurator() {
   // 旧固件读不到灯光：如果客户没主动改过，保存时就不能写灯光，
   // 否则「读取配置(灯光显示默认关闭) → 保存」会把键盘上的灯光关掉。
   const [ledDirty, setLedDirty] = useState(false);
+  const [btPassword, setBtPassword] = useState(''); // 一键密码输入
   const [ledMode, setLedMode] = useState(0);
   const [ledColors, setLedColors] = useState(() => Array.from({ length: 16 }, () => ({ r: 255, g: 255, b: 255 })));
   const [capturing, setCapturing] = useState(false);
@@ -327,6 +329,31 @@ export default function BtConfigurator() {
     list.push({ mask: 0, keyCode: 0, delay: 50 });   // 默认间隔 50ms
     updateConfig({ mode: MODE.MULTI, multiKeys: list });
     setMultiIndex(list.length - 1);
+  };
+
+  // 一键密码（蓝牙款）：文本 → 多键行，每行间隔 50ms
+  const generateBtPassword = () => {
+    const text = btPassword;
+    if (!text) { toast.error(t('请输入要输出的密码内容')); return; }
+    const { rows, unsupported } = textToKeyRows(text, 50);
+    if (unsupported.length) {
+      toast.error(t('暂不支持的字符: {ch}', { ch: [...new Set(unsupported)].join(' ') }));
+      return;
+    }
+    const list = currentConfig.multiKeys || [];
+    const room = Math.max(0, 18 - list.length);
+    const take = rows.slice(0, room);
+    if (!take.length) { toast.error(t('槽位已满（最多 18 个），请先删除一些按键')); return; }
+    updateConfig({
+      mode: MODE.MULTI,
+      multiKeys: [...list, ...take],
+    });
+    setBtPassword('');
+    if (take.length < rows.length) {
+      toast.success(t('已追加 {n} 个按键（槽位不足，其余 {m} 个未添加）', { n: take.length, m: rows.length - take.length }));
+    } else {
+      toast.success(t('已生成 {n} 个按键，间隔 50ms', { n: take.length }));
+    }
   };
   const setMultiKeyField = (idx, patch) => {
     const list = [...currentMultiKeys()];
@@ -1272,6 +1299,30 @@ export default function BtConfigurator() {
                 <div className="mb-3 text-[11px] text-gray-500 leading-relaxed">
                   {t('间隔 = 这个键按下后等多久再按下一个键')}
                 </div>
+
+                  {/* 一键密码：文本直接生成多键行（蓝牙款；每行间隔 50ms） */}
+                  <div className="mt-3 p-3 rounded-lg bg-indigo-50/60 border border-indigo-200">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-sm font-bold text-indigo-700">🔑 {t('一键密码')}</span>
+                      <span className="text-[11px] text-indigo-500">{t('输入文本，自动生成按键序列')}</span>
+                    </div>
+                    <div className="flex gap-2">
+                      <input
+                        value={btPassword}
+                        onChange={(e) => setBtPassword(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); generateBtPassword(); } }}
+                        placeholder={t('输入要输出的密码内容…')}
+                        className="flex-1 px-3 py-2 text-sm border border-indigo-200 rounded-lg outline-none focus:border-indigo-400 bg-white"
+                      />
+                      <button onClick={generateBtPassword}
+                        className="px-4 py-2 text-sm font-bold rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 cursor-pointer whitespace-nowrap">
+                        {t('生成按键')}
+                      </button>
+                    </div>
+                    <div className="mt-1.5 text-[11px] text-indigo-500 leading-relaxed">
+                      {t('支持大小写字母、数字和常用符号；生成的行会追加到当前多键序列末尾，间隔 50ms。')}
+                    </div>
+                  </div>
 
                 {/* 整体延时（原「延时」选项卡，已合并到这里） */}
                 <div className="mt-4 p-3 rounded-lg bg-slate-50 border border-slate-200">
