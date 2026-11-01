@@ -9,6 +9,7 @@ import { isNewProtocolDevice, NEW_DEVICE_FILTERS } from '../services/new-protoco
 import { isBtWirelessDevice, BtProtocolHandler } from '../services/bt-protocol';
 import toast from 'react-hot-toast';
 import ConnectGuideModal from './ConnectGuide';
+import ForceUpdateButton from './ForceUpdateButton';
 
 // 构建版本标记 (用于强制刷新浏览器缓存)
 const __BUILD_TAG = 'v20261013-macrolabel';
