@@ -80,7 +80,8 @@ export default function BtConfigurator() {
   const navigate = useNavigate();
   const { device, modelId, modelName, disconnectDevice, deviceInfo, getNewHandler } = useDevice();
 
-  const isV10 = deviceInfo?.isV10 ?? true;
+  // 默认按旧固件处理：设备信息没拿到之前不要显示"逐键间隔"这类 V10 专属控件
+  const isV10 = deviceInfo?.isV10 ?? false;
   const keyCount = Math.min(Math.max(deviceInfo?.keyCount || 1, 1), 24);
   const knobCount = Math.min(deviceInfo?.knobCount || 0, 3);
   const totalSlots = keyCount + knobCount * 3; // 每个旋钮占 3 个槽位 (左/中/右)
