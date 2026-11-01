@@ -555,7 +555,12 @@ export class BtProtocolHandler {
   // UI 动作序号 → 协议键序号 (旋钮位从 16 开始: 旋钮1左/中/右=16,17,18 ...)
   _actionIdxToKeyNo(actionIdx) {
     const keyCount = this._info?.keyCount || 0;
-    if (actionIdx < keyCount) return actionIdx + 1;
+    if (actionIdx < keyCount) {
+      // 16 键款：1..15 号是前 15 个键，第 16 个键在 18 号槽（16/17 留给旋钮），
+      // 客户日志实测：写 16 号槽只会写进旋钮的"音量+"，保存校验必然不一致。
+      if (keyCount > 15 && actionIdx >= 15) return actionIdx + 3; // 15→18, 16→19, ...
+      return actionIdx + 1;
+    }
     return 16 + (actionIdx - keyCount);
   }
 
@@ -567,7 +572,9 @@ export class BtProtocolHandler {
   async probeLayer(layer /* 0 = 第1层 */) {
     const l = layer + 1;
     // 至少覆盖实际键数：16 键设备要是只发 15 个就漏掉最后一个键
-    const keyNum = Math.max(this._isV10 ? 25 : 15, (this._info?.keyCount || 0));
+    // 统一请求 25 条键记录：16 键款的第 16 个键在 18 号槽，只请求 16 条时设备不会发出来
+    // （客户日志实证：请求 16 条 → 整层没有键号 18 的记录 → K16 读到的是旋钮的音量+）。
+    const keyNum = Math.max(25, this._info?.keyCount || 0);
     const knNum = this._isV10 ? 0 : 3;
     await this._send(this._mk(0xFA, [keyNum, knNum, l]));
     const deadline = Date.now() + 700;
@@ -612,27 +619,23 @@ export class BtProtocolHandler {
         const echoKeyNo = data[1];
         const hex = Array.from(data.slice(0, Math.min(data.length, 14))).map(b => b.toString(16).padStart(2, '0')).join(' ');
         const cfg = parseBtKeyRecord(data, this._isV10);
-        // 定位规则（兼容两种上报方式）：
-        //   1) 键号字节在 1..keyCount → 就是那个按键
-        //   2) 键号字节在 16..16+旋钮数*3-1 且本机有旋钮 → 旋钮槽（左/中/右）
-        //   3) 否则按"第几条"兜底：本机有旋钮且序号已超过按键数 → 旋钮槽，否则按键槽
-        // 说明：6+1 款只发 6 条按键记录就紧跟旋钮记录（键号 16/17/18）；
-        //       16 键款第 16 个键的键号字节也是 18，但它没有旋钮，走兜底当按键。
+        // 按"键号"定位（原厂 QT 的按钮 id 就是这套编号）：
+        //   1..15          → 按键 1..15
+        //   16..16+旋钮*3-1 → 旋钮槽（本机无旋钮则忽略；这些槽常带"音量+"等默认动作）
+        //   18 起          → 第 16、17… 个按键（16 键款的第 16 个键就在 18 号槽）
+        //   其余(19..25)   → 更大型号的历史残留，忽略
         let slotIdx = -1;
         let slotKind = '';
-        const inKnobByKeyNo = knobCount > 0 && echoKeyNo >= 16 && echoKeyNo < 16 + knobCount * 3;
-        if (echoKeyNo >= 1 && echoKeyNo <= keyCount) {
+        const knobRange = knobCount * 3;
+        if (echoKeyNo >= 1 && echoKeyNo <= Math.min(15, keyCount)) {
           slotIdx = echoKeyNo - 1;
-          slotKind = '按键(键号)';
-        } else if (inKnobByKeyNo) {
+          slotKind = '按键';
+        } else if (echoKeyNo >= 16 && echoKeyNo < 16 + knobRange) {
           slotIdx = keyCount + (echoKeyNo - 16);
-          slotKind = '旋钮(键号)';
-        } else if (knobCount > 0 && i >= keyCount) {
-          slotIdx = keyCount + (i - keyCount);
-          slotKind = '旋钮(顺序)';
-        } else if (i < keyCount) {
-          slotIdx = i;
-          slotKind = '按键(顺序)';
+          slotKind = '旋钮';
+        } else if (echoKeyNo >= 18 && keyCount > 15 && (15 + (echoKeyNo - 18)) < keyCount) {
+          slotIdx = 15 + (echoKeyNo - 18);
+          slotKind = '按键(高位槽)';
         }
         console.log('[BtProto] 读键报告 #' + i + ': ' + hex + ' → 键号字节=' + echoKeyNo + ' → ' +
           (slotIdx >= 0 ? slotKind + ' 槽位' + (slotIdx + 1) : '忽略'));
