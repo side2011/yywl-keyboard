@@ -37,6 +37,7 @@ const en = {
   '断开连接': 'Disconnect',
   '找不到设备？列出全部同厂设备': "Can't find your device? List all vendor devices",
   '再看一次连接提示': 'Show the connection guide again',
+  '本机型固件不支持「多键合一」，已把 {n} 个按键按「修饰键+第一个键」的组合键保存': 'This firmware does not support key sequences. {n} key(s) were saved as a modifier+key combination instead.',
   '💡 灯光需要手动设置': '💡 Lighting must be set manually',
   '这款键盘的灯光不支持「读取回来」，所以打开配置页时灯光选项是默认值，不代表键盘当前状态。': 'This keypad cannot report its lighting back, so the lighting options show defaults when the page opens — they do not reflect the current state.',
   '选好模式和颜色后点「保存到键盘」，看一眼键盘效果就行；不改灯光不会影响按键配置的保存。': 'Pick a mode and color, click Save, then check the keypad itself. Leaving lighting untouched does not affect saving key settings.',
