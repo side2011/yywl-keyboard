@@ -780,9 +780,11 @@ export default function BtConfigurator() {
   };
 
   // 灯光作为右侧的一个"选项卡", 不再堆在左栏最底部(小屏会看不到)
-  // 无灯光型号：单键蓝牙款、6 键蓝牙款（客户实测无灯珠，显示灯光页会误导）
-  const BT_NO_LED_KEYCOUNTS = [1, 6];
-  const hasLighting = !BT_NO_LED_KEYCOUNTS.includes(keyCount);
+  // 哪些款没有灯：单键款（keyCount=1）、以及"6 键且没有旋钮"的简配款。
+  // 注意 6+2 款（6 键 + 2 旋钮）是有灯的：之前只按 keyCount=6 排除，
+  // 把 6+2 的灯光页也一起隐藏了（客户反馈"6+2 看不到灯光设置"）。
+  const is6KeyPlain = keyCount === 6 && knobCount === 0;
+  const hasLighting = !(keyCount === 1 || is6KeyPlain);
     // 6+2 款协议未实现「划屏 / 抖音点赞」这类鼠标手势（behavior=0x04），
   // 客户选这些动作保存会整层写失败（校验报『没写进键盘』），所以直接不显示。
   const supportsMouseGesture = knobCount !== 2;
