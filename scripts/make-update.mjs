@@ -53,6 +53,27 @@ const buildInfo = JSON.parse(fs.readFileSync(versionPath, 'utf8'))
 //                             放进清单会让 sha256 与服务器实际文件对不上, 更新直接失败
 const EXCLUDE_NAMES = ['update.json', 'version.json']
 const EXCLUDE_PATHS = ['download/manifest.json']
+// 把 buildId 写进所有入口页（根 index.html 与 /bt、/customize 等路由副本），
+// 页面启动时用它和 version.json 对比，实现"开着不关也能拿到新版本"。
+// 注意：必须在下面计算 sha256 之前注入，否则 update.json 里 index.html 的哈希会对不上。
+{
+  const entries = []
+  const rootIndex = path.join(DIST, 'index.html')
+  if (fs.existsSync(rootIndex)) entries.push(rootIndex)
+  for (const dir of fs.readdirSync(DIST, { withFileTypes: true })) {
+    if (!dir.isDirectory() || dir.name === 'static') continue
+    const sub = path.join(DIST, dir.name, 'index.html')
+    if (fs.existsSync(sub)) entries.push(sub)
+  }
+  for (const htmlPath of entries) {
+    let html = fs.readFileSync(htmlPath, 'utf8')
+    html = html.replace(/<meta name="yywl-build-id"[^>]*>\s*/g, '')
+    html = html.replace('</head>', `  <meta name="yywl-build-id" content="${buildInfo.buildId}">\n</head>`)
+    fs.writeFileSync(htmlPath, html)
+  }
+  console.log(`  已写入 buildId=${buildInfo.buildId} 到 ${entries.length} 个入口页`)
+}
+
 const files = walk(DIST)
   .filter((f) => !EXCLUDE_NAMES.includes(path.basename(f)))
   .filter((f) => !EXCLUDE_PATHS.includes(path.relative(DIST, f).replace(/\\/g, '/')))
@@ -80,16 +101,6 @@ const manifest = {
 
 fs.writeFileSync(path.join(DIST, 'update.json'), JSON.stringify(manifest, null, 2) + '\n')
 
-// 把 buildId 写进 index.html，页面启动时用它和 version.json 对比（自动更新）
-{
-  const htmlPath = path.join(DIST, 'index.html')
-  if (fs.existsSync(htmlPath)) {
-    let html = fs.readFileSync(htmlPath, 'utf8')
-    html = html.replace(/<meta name="yywl-build-id"[^>]*>\s*/g, '')
-    html = html.replace('</head>', `  <meta name="yywl-build-id" content="${manifest.buildId}">\n</head>`)
-    fs.writeFileSync(htmlPath, html)
-  }
-}
 
 console.log(`\n  更新清单 dist/update.json`)
 console.log(`  buildId   ${manifest.buildId}`)
