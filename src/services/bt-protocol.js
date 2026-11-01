@@ -154,6 +154,21 @@ export const BT_LED_COLORS = [
 //   multiKeys: [{delay, token|hid|mediaLo, mediaHi?...}] }
 
 // 从 HID keyCode + modifierMask 构建 V10 组列表
+// 把 RGB 映射到原厂调色板序号（1..7）。取最接近的颜色，允许客户微调后的颜色。
+function btColorIndex(colors) {
+  const c0 = (colors && colors[0]) || { r: 0xFF, g: 0x00, b: 0x00 };
+  let best = 1;
+  let bestD = Infinity;
+  BT_LED_COLORS.forEach((item, i) => {
+    const [r, g, b] = item.rgb;
+    const d = (r - (c0.r || 0)) ** 2 + (g - (c0.g || 0)) ** 2 + (b - (c0.b || 0)) ** 2;
+    if (d < bestD) { bestD = d; best = i + 1; }
+  });
+  return best;
+}
+
+export { btColorIndex };
+
 function buildGroupsFromConfig(cfg, isV10) {
   const groups = [];
   if (cfg.mode === 4) {
@@ -692,13 +707,9 @@ export class BtProtocolHandler {
       b[2] = (layer + 1) & 0xFF;   // 旧固件层号从 1 开始
       b[3] = 0x08;                 // 灯光页模式（QT Select_PHY_Key_Mode=8）
       b[9] = 1;                    // 组数
-      // 颜色序号 1..5（QT 注释：没选颜色时默认 5 = 红）
-      const c0 = (colors && colors[0]) || { r: 255, g: 0, b: 0 };
-      let colorIdx = 5;
-      if (c0.r > 200 && c0.g > 200 && c0.b > 200) colorIdx = 1;        // 白
-      else if (c0.r > 150 && c0.g < 100 && c0.b < 100) colorIdx = 5;   // 红
-      else if (c0.g > 150 && c0.r < 120) colorIdx = 2;                 // 绿
-      else if (c0.b > 150 && c0.r < 120) colorIdx = 3;                 // 蓝
+      // 颜色序号 = 调色板下标 + 1（红=1 橙=2 黄=3 绿=4 青=5 蓝=6 紫=7）
+      // 之前用"红=5"的猜测，正好把 5 写成了青色 —— 客户选红色却亮青色就是这个原因。
+      const colorIdx = btColorIndex(colors);
       b[11] = ((colorIdx << 4) | (mode & 0x0F)) & 0xFF;
     } else {
       b[2] = layer & 0xFF;
