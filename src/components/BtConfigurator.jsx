@@ -1327,6 +1327,35 @@ export default function BtConfigurator() {
                 })()}
               </div>
             )}
+            {currentConfig.mode === MODE.DELAY && (
+              <button
+              onClick={async () => {
+              const handler = getNewHandler();
+              if (!handler) { toast.error(t('键盘未连接')); return; }
+              const testDelay = 500;
+              const probe = async (order) => {
+              await handler.writeKey(currentLayer, selectedKey, { ...createDefaultConfig(), mode: MODE.DELAY, delay: testDelay }, order);
+              await new Promise((r) => setTimeout(r, 120));
+              const back = await handler.peekKey(currentLayer, selectedKey);
+              console.log('[BtProto] 延时自检 order=' + order + ' → 读回 mode=' + (back?.mode ?? '?') + ' delay=' + (back?.delay ?? '?'));
+              return back;
+              };
+              try {
+              const lo = await probe('lo');
+              const hi = await probe('hi');
+              const okLo = lo && lo.mode === MODE.DELAY && lo.delay === testDelay;
+              const okHi = hi && hi.mode === MODE.DELAY && hi.delay === testDelay;
+              if (okLo) { handler.delayOrder = 'lo'; toast.success(t('设备接受「低字节在前」，已记住'), { id: 'bt-delay-probe', duration: 7000 }); }
+              else if (okHi) { handler.delayOrder = 'hi'; toast.success(t('设备接受「高字节在前」，已记住'), { id: 'bt-delay-probe', duration: 7000 }); }
+              else { toast.error(t('两种字节序都没被接受（回读 {a} / {b}），请导出日志发给我们', { a: (lo && lo.delay) || 0, b: (hi && hi.delay) || 0 }), { id: 'bt-delay-probe', duration: 12000 }); }
+              } catch (e) {
+              toast.error(t('延时自检失败：{msg}', { msg: e.message }));
+              }
+              }}
+              className="mt-2 ml-2 px-2.5 py-1 text-xs rounded-lg bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 cursor-pointer">
+              {t('延时自检')}
+              </button>
+            )}
 
 
             {/* 多媒体 */}
