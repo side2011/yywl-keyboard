@@ -1333,12 +1333,17 @@ export default function BtConfigurator() {
               onClick={async () => {
                 const handler = getNewHandler();
                 if (!handler) { toast.error(t('键盘未连接')); return; }
-                const original = { ...currentConfig };
+                // 找一个空的键来试：设备在"已有配置"的键上可能拒绝改类型（实测 mode5 被忽略）
+                let probeKey = selectedKey;
+                const emptyIdx = keyConfigs.findIndex((cfg) => !cfg || (cfg.mode || 0) === MODE.NONE);
+                if (emptyIdx >= 0) probeKey = emptyIdx;
+                const original = probeKey === selectedKey ? { ...currentConfig } : null;
+                console.log('[BtProto] 延时自检将使用键槽位 ' + (probeKey + 1) + '（空键优先）');
                 const testDelay = 500;
                 const probe = async (order) => {
-                  await handler.writeKey(currentLayer, selectedKey, { ...createDefaultConfig(), mode: MODE.DELAY, delay: testDelay }, order);
+                  await handler.writeKey(currentLayer, probeKey, { ...createDefaultConfig(), mode: MODE.DELAY, delay: testDelay }, order);
                   await new Promise((r) => setTimeout(r, 150));
-                  const back = await handler.peekKey(currentLayer, selectedKey);
+                  const back = await handler.peekKey(currentLayer, probeKey);
                   console.log('[BtProto] 延时自检 order=' + order + ' → 读回 mode=' + (back?.mode ?? '?') + ' delay=' + (back?.delay ?? '?'));
                   return back;
                 };
