@@ -509,7 +509,8 @@ export default function NewProtoConfigurator() {
           if (m === 0) return 'empty';
           if (m === 1 && !keyCode && !mod) return 'empty';
           if (m === 4 && !multi) return 'empty';
-          if (m === 5) return 'macro|' + steps;
+          // 宏但一步都没有 = 空配置（保存时会被清掉），校验时不能算"不一致"
+          if (m === 5) return steps ? 'macro|' + steps : 'empty';
           if (m === 4) return 'multi|' + multi;
           return m + '|' + mod + '|' + keyCode + '|' + media;
         };
