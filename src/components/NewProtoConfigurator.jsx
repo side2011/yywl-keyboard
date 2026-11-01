@@ -12,6 +12,7 @@ import {
 } from '../services/hid-constants';
 import { downloadLogs } from '../services/log-buffer';
 import ConfirmDialog from './ConfirmDialog';
+import ForceUpdateButton from './ForceUpdateButton';
 import {
   NEW_MOUSE_ACTIONS, NEW_MEDIA_KEYS, MACRO_STEP, MACRO_STEP_LABELS,
   serializeMacro, deserializeMacro, getNewProtoRgbModes,
@@ -934,6 +935,9 @@ export default function NewProtoConfigurator() {
             className="px-3 py-1 text-sm font-semibold border-2 border-slate-200 rounded-lg text-slate-600 hover:border-slate-400 hover:text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer bg-white">
             {lang === 'en' ? '📄 Export Log' : '📄 导出日志'}
           </button>
+
+
+          <ForceUpdateButton compact />
 
           <button onClick={toggleLang}
             className="px-3 py-1 text-sm font-semibold border-2 border-gray-300 rounded-lg text-gray-600 hover:border-indigo-400 hover:text-indigo-600 transition-colors cursor-pointer bg-white">
