@@ -107,6 +107,7 @@
 <main>
   <div id="conflictBar"></div>
   <div id="verBar"></div>
+  <div id="toolHint" style="display:none;background:#fffbeb;border:1px solid #fcd34d;color:#92400e;border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:13px;line-height:1.7"></div>
   <div class="hint">
     <b>怎么用：</b>给槽位配好动作 → 在「键盘配置」里把某个物理键设成对应的触发键 → 按下按键即执行。<br>
 <b>蓝牙款注意</b>：部分蓝牙模块透传不了 <code>F13~F24</code>（按了没反应）。这种情况请在「键盘配置 → 扩展」里改用 <code>Ctrl+Shift+Alt+F1~F12</code> 那一组按钮，本页的热键下拉里也同步选 <code>Control+Shift+Alt+F…</code>，桌面版会自动同时监听两组。<br>    所有款式都支持 <code>F13 ~ F24</code>：键盘配置页「扩展」里点「动作 1~12」即可，<b>不用配组合键</b>。<br>
@@ -186,6 +187,7 @@
 
   var state = { enabled: true, actions: [] };
   var info = { hotkeys: [] };
+  var missingTools = [];  // 当前系统缺少的外部命令（xdotool / cliclick）
   var bank = 0;
   var probeMap = {};     // 热键 → 是否可用（点「检测占用」后填充）
   var conflicts = [];    // 保存/注册后仍被占用的槽位
@@ -920,7 +922,29 @@
     return card;
   }
 
+  // macOS/Linux 缺少 xdotool / cliclick 时，键鼠类动作跑不动 —— 明确告诉客户装什么
+  function renderMissingToolsHint() {
+    var box = document.getElementById('toolHint');
+    if (!box) return;
+    if (!missingTools || !missingTools.length) { box.style.display = 'none'; box.innerHTML = ''; return; }
+    box.style.display = 'block';
+    box.innerHTML = '';
+    missingTools.forEach(function (t) {
+      var line = el('div');
+      line.style.marginBottom = '4px';
+      line.appendChild(document.createTextNode('⚠ 当前系统缺少 ' + t.name + '：' + (t.why || '') + '。安装命令：'));
+      var code = el('code', null, t.install);
+      code.style.background = '#fef3c7';
+      code.style.padding = '1px 6px';
+      code.style.borderRadius = '4px';
+      line.appendChild(code);
+      box.appendChild(line);
+    });
+    box.appendChild(el('div', 'hintSmall', '装完重启本程序即可；也可以先用「打开文件夹/粘贴文字/启动程序」等不依赖外部工具的步骤。'));
+  }
+
   function render() {
+    renderMissingToolsHint();
     var host = document.getElementById('slots');
     host.innerHTML = '';
     var start = bank * 12 + 1;
@@ -1132,6 +1156,7 @@
     appVersion = info.appVersion || '';
     caps = (info.caps && typeof info.caps === 'object') ? info.caps : {};
     supportedTypes = Array.isArray(caps.stepTypes) ? caps.stepTypes : null;
+  missingTools = Array.isArray(caps.missingTools) ? caps.missingTools : [];
     document.getElementById('enabled').checked = state.enabled;
     var name = { win32: 'Windows', darwin: 'macOS', linux: 'Linux' }[info.platform] || info.platform;
     document.getElementById('platform').textContent = name + (appVersion ? ' v' + appVersion : '') + ' · 已注册 ' + (info.registered || []).length + ' 个热键';
