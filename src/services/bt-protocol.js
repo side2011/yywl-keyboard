@@ -619,6 +619,8 @@ export class BtProtocolHandler {
     const knobCount = this._info?.knobCount || 0;
     const configs = [];
     const seen = [];
+    // 16 键款：有的固件把第 16 个键存在 18 号槽，有的存在 16 号槽 → 两个都收，优先 18
+    let slot16Fallback = null;
     // 时间窗收集：直到设备安静 260ms（或总时长超过 1.6s）为止
     // 这样无论设备发多少条、顺序如何，都不会因为"条数算错"漏掉 18 号槽
     const idleMs = 260;
@@ -651,7 +653,8 @@ export class BtProtocolHandler {
         slotIdx = 15 + (echoKeyNo - 18);
         slotKind = '按键(高位槽)';
       }
-      console.log('[BtProto] 读键报告: ' + hex + ' → 键号=' + echoKeyNo + ' → ' +
+      if (echoKeyNo === 16 && keyCount > 15 && knobCount === 0) slot16Fallback = cfg;
+  console.log('[BtProto] 读键报告: ' + hex + ' → 键号=' + echoKeyNo + ' → ' +
         (slotIdx >= 0 ? slotKind + ' 槽位' + (slotIdx + 1) : '忽略'));
       if (slotIdx >= 0 && slotIdx < 40) {
     configs[slotIdx] = cfg;
@@ -704,6 +707,16 @@ export class BtProtocolHandler {
     }
     const keyNo = this._actionIdxToKeyNo(actionIdx);
     const rec = serializeBtKeyRecord(cfg, keyNo, layer + 1, this._isV10, delayOrder || this._delayOrder || 'lo');
+    // 16 键款兼容：第 16 个键在 18 号槽，但个别固件只认 16 号槽 → 两处都写（16 号槽在本机型是空闲的）
+    const keyCountNow = this._info?.keyCount || 0;
+    const mirrorKeyNo = (keyCountNow > 15 && (this._info?.knobCount || 0) === 0 && keyNo >= 18) ? keyNo - 2 : 0;
+    if (rec && mirrorKeyNo) {
+      console.log('[BtProto] 镜像写 16 号槽（兼容只认 16 号槽的固件）');
+      const rec2 = Uint8Array.from(rec);
+      rec2[1] = mirrorKeyNo & 0xFF;
+      await this._send(rec2);
+      await new Promise((r) => setTimeout(r, 40));
+    }
     if (rec) {
       const grpCount = this._isV10 ? rec[5] : rec[9];
       console.log('[BtProto] 写键 keyNo=' + keyNo + ' 层=' + (layer + 1) +
