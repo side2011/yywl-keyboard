@@ -1601,11 +1601,11 @@ export default function BtConfigurator() {
                       const handler = getNewHandler();
                       if (!handler) { toast.error(t('键盘未连接')); return; }
                       try {
-                        // 用当前选中的模式和颜色（原来写死 mode1/白色，客户以为按钮没反应）
-                        // 选"关闭"时测灯光没意义 → 自动切到模式1（界面也跟着亮起，避免"怎么都是模式1"的困惑）
-                        if (!ledMode) setLedMode(1);
+                        // 用当前选中的模式和颜色。
+                        // 注意：模式 0 = 灯光关闭，是合法选择，不能当成"没选"再改回模式 1
+                        const m = (ledMode === undefined || ledMode === null) ? 1 : ledMode;
+                        if (ledMode === undefined || ledMode === null) setLedMode(m);
                         setLedDirty(true);
-                        const m = ledMode || 1;
                         const colors = (ledColors && ledColors.length) ? ledColors : Array.from({ length: 16 }, () => ({ r: 255, g: 255, b: 255 }));
                         await handler.writeLedLayer(currentLayer, m, colors);
                         toast.success(t('已发送预览灯光（{mode}），可直接看键盘效果；点「保存到键盘」才会写入配置', { mode: BT_LED_MODES[m] || m }), { id: 'bt-led-test', duration: 6000 });
