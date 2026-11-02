@@ -953,6 +953,8 @@ const HOTKEY_CANDIDATES = (() => {
 let hotkeyConflicts = [];
 
 function registerHotkeys() {
+  // 动作被修改/禁用后，旧的自动循环必须停掉，否则会一直跑下去
+  try { executor.stopAllLoops?.(); } catch { /* 忽略 */ }
   for (const acc of registeredShortcuts) {
     try { globalShortcut.unregister(acc); } catch { /* 忽略 */ }
   }
@@ -967,7 +969,12 @@ function registerHotkeys() {
       try {
         const ok = globalShortcut.register(acc, () => {
           executor.runAction(act)
-            .then((r) => { if (!r.ok) console.warn('[action] 执行失败:', act.name || act.slot, r.error); })
+            .then((r) => {
+              if (!r.ok) { console.warn('[action] 执行失败:', act.name || act.slot, r.error); return; }
+              if (r.looping !== undefined) {
+                console.log('[action] ' + (r.looping ? '开始' : '停止') + '自动循环:', act.name || ('#' + act.slot));
+              }
+            })
             .catch((e) => console.warn('[action] 执行异常:', e.message));
         });
         if (ok) registeredShortcuts.push(acc);
@@ -1008,7 +1015,8 @@ function setupActionsIpc() {
     // 窗口失焦后动作作用在用户当前的窗口上，所以测试时先把编辑窗口最小化
     try { if (actionsWindow) actionsWindow.minimize(); } catch { /* 忽略 */ }
     await new Promise((r) => setTimeout(r, 400));
-    const result = await executor.runAction(action || {});
+    // preview: 只跑一遍，不启动自动循环
+    const result = await executor.runAction(action || {}, { preview: true });
     setTimeout(() => { try { if (actionsWindow) actionsWindow.restore(); } catch { /* 忽略 */ } }, 300);
     return result;
   });
@@ -1364,6 +1372,8 @@ if (!gotTheLock) {
 // 从托盘菜单退出时才真正结束进程
 app.on('before-quit', () => {
   app.isQuitting = true;
+  // 退出前务必停掉自动循环，否则定时器会拖着进程不放
+  try { if (executor && executor.stopAllLoops) executor.stopAllLoops(); } catch { /* 忽略 */ }
   try { if (executor && executor.dispose) executor.dispose(); } catch { /* 忽略 */ }
   try { if (server) server.close(); } catch { /* 忽略 */ }
 });
