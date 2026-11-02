@@ -144,21 +144,7 @@ export default function BtConfigurator() {
     try { localStorage.setItem(knobSwapKey, JSON.stringify(arr)); } catch { /* 忽略 */ }
     toast.success(next ? t('已把旋钮 {n} 左右对调，请点「保存到键盘」后重新读取确认', { n: n + 1 }) : t('旋钮 {n} 已恢复默认顺序', { n: n + 1 }), { id: 'knob-swap' });
   }
-  // 切换"左右对调"后，把界面上这个旋钮的三个格子重排（读/写本来就对称，这里只是即时反映）
-  const flipKnobSlot = (n) => {
-    const permute = (arr) => {
-      if (!Array.isArray(arr)) return arr;
-      return arr.map((_, i) => {
-        if (i < keyCount || knobCount === 0) return arr[i];
-        const rel = i - keyCount;
-        if (Math.floor(rel / 3) !== n) return arr[i];
-        const partner = keyCount + Math.floor(rel / 3) * 3 + (2 - (rel % 3));
-        return arr[partner];
-      });
-    };
-    setKeyConfigs((prev) => permute(prev));
-    layerConfigsRef.current = layerConfigsRef.current.map(permute);
-  };
+
 ;
   // UI 槽位 ↔ 设备槽位（对调时把该旋钮的三个位置倒过来：左↔右，中不变）
   // UI 槽位 ↔ 设备槽位（对调时把该旋钮的三个位置倒过来：左↔右，中不变）
@@ -995,24 +981,6 @@ export default function BtConfigurator() {
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-base font-bold text-gray-600">{t('物理按键')}</h3>
 
-              {/* 旋钮左右对调：有些批次固件的 16/18 号槽与实物左右相反，客户一键对调即可 */}
-              {knobCount > 0 && (
-                <button
-                  onClick={() => {
-                    const next = !knobSwap[0];
-                    toggleKnobSwap(0, next);
-                    flipKnobSlot(0);
-                    toast.success(next
-                      ? t('已把旋钮 1 左右对调（读取和保存都按新顺序）')
-                      : t('已恢复旋钮 1 的原始顺序'), { id: 'bt-knob-swap' });
-                  }}
-                  title={t('左转/右转的配置读出来是反的？点这里对调')}
-                  className={`ml-2 px-2 py-0.5 text-[11px] font-bold rounded-md border transition-colors cursor-pointer ${knobSwap[0]
-                    ? 'bg-amber-500 text-white border-amber-500'
-                    : 'bg-white text-amber-600 border-amber-300 hover:bg-amber-50'}`}>
-                  ⇄ {t('旋钮左右')}
-                </button>
-              )}
               {btLayerCount > 1 && (
                 <button onClick={() => setCopyAllOpen(true)} disabled={loading}
                   title={t('把当前层的配置复制到全部 {total} 层（出厂配置常用）', { total: btLayerCount })}
