@@ -12,14 +12,13 @@
 
 /** 该型号默认是否需要对调左右（true = 设备存反了） */
 export function defaultKnobSwap(keyCount, knobCount) {
-  // 默认值（按机型）：
-  //   · 单旋钮机型（4+1 / 6+1）：固件把"右转"存在 16 号槽 → 默认对调
-  //     现场证据：读回 keyNo16=音量+ / keyNo18=音量-，而 QT 定义 16=左
-  //   · 双旋钮机型（6+2）等：实测顺序是对的 → 默认不对调
-  //   · 个别批次如果又相反：界面上「⇄ 旋钮左右」一键切换，会记住该型号
+  // 目前只有 4+1 款确认需要默认对调（现场读回 keyNo16=音量+，而 QT 定义 16=左）。
+  // 其它型号一律默认不对调 —— 6+1 已确认是正的；剩余款式等客户反馈再逐个添加。
+  // 个别批次真的相反时，售后可在「固件信息」里勾选「旋钮 N 左右对调」临时纠正。
   const knob = Number(knobCount) || 0;
+  const keys = Number(keyCount) || 0;
   if (!knob) return [];
-  const swapOn = knob === 1;
+  const swapOn = keys === 4 && knob === 1;
   return Array.from({ length: knob }, () => swapOn);
 }
 
