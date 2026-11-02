@@ -219,11 +219,16 @@ function buildGroupsFromConfig(cfg, isV10) {
   } else if (cfg.mode === 3) {
     // 鼠标
     if (isV10) {
-      groups.push({ delay: 0, value: cfg.mouse?.mod || 0x00 });
-      groups.push({ delay: 0, value: cfg.mouse?.btn || 0x00 });
-      groups.push({ delay: 0, value: 0x00 }); // X
-      groups.push({ delay: 0, value: 0x00 }); // Y
-      groups.push({ delay: 0, value: cfg.mouse?.wheel || 0x00 });
+      // 位置约定（QT Traversal_Key_Txt）：
+      //   [8]  保留 0    [11] 按键或修饰(0xF1~0xF3 / 划屏 1~5)    [20] 滚轮方向
+      const modV = cfg.mouse?.mod || 0;
+      const btnV = cfg.mouse?.btn || 0;
+      const wheelV = cfg.mouse?.wheel || 0;
+      groups.push({ delay: 0, value: 0x00 });          // [8]
+      groups.push({ delay: 0, value: modV || btnV });   // [11]
+      groups.push({ delay: 0, value: 0x00 });           // [14]
+      groups.push({ delay: 0, value: 0x00 });           // [17]
+      groups.push({ delay: 0, value: wheelV });         // [20]
     } else {
       groups.push({ mask: 0x00, value: cfg.mouse?.mod || 0x00 });
       groups.push({ mask: 0x00, value: cfg.mouse?.btn || 0x00 });
@@ -443,13 +448,21 @@ export function parseBtKeyRecord(data, isV10) {
     const hi = cfg.groups[1]?.value || 0;
     cfg.mediaCode = lo | (hi << 8);
   } else if (cfg.mode === 3 && isV10) {
+    // 固定位置（与 QT Traversal_Key_Txt 一致）：
+    //   [11] = 按键 / 修饰     [20] = 滚轮方向
+    // 之前是"跳过 0 后按顺序取组"，滚轮值会被当成 mod → 保存后校验永远不一致
+    const code = data[11] || 0;
+    const wheel = data[20] || 0;
+    const behavior = cfg.behavior || 0x01;
+    const isModToken = code >= 0xF1 && code <= 0xF3;   // Ctrl/Shift/Alt
+    const isSwipe = behavior === 0x04;                  // 划屏：1~5 = 方向
     cfg.mouse = {
-      mod: cfg.groups[0]?.value || 0,
-      btn: cfg.groups[1]?.value || 0,
-      x: cfg.groups[2]?.value || 0,
-      y: cfg.groups[3]?.value || 0,
-      wheel: cfg.groups[4]?.value || 0,
-      behavior: cfg.behavior || 0x01,
+      mod: (isModToken || isSwipe) ? code : 0,
+      btn: (isModToken || isSwipe) ? 0 : code,
+      x: 0,
+      y: 0,
+      wheel,
+      behavior,
     };
   }
   return cfg;
