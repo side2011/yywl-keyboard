@@ -1031,6 +1031,22 @@ function setupActionsIpc() {
     const r = await dialog.showOpenDialog(actionsWindow || mainWindow || undefined, { properties: ['openFile'], filters });
     return r.canceled ? null : r.filePaths[0];
   });
+  // 探测 macOS/Linux 下模拟键鼠所需的外部命令
+  function detectExternalTools() {
+    const { spawnSync } = require('child_process');
+    const has = (cmd) => {
+      try {
+        const r = spawnSync('which', [cmd], { stdio: 'ignore' });
+        return r.status === 0;
+      } catch { return false; }
+    };
+    if (process.platform === 'darwin') return { cliclick: has('cliclick') };
+    if (process.platform === 'linux') return { xdotool: has('xdotool') };
+    return {};
+  }
+
+  const externalTools = detectExternalTools();
+
   ipcMain.handle('actions:info', () => ({
     platform: process.platform,
     appVersion: app.getVersion(),
@@ -1043,7 +1059,23 @@ function setupActionsIpc() {
       // Windows 用系统级录制；macOS / Linux 用「窗口内按键序列录制」（无需原生钩子/权限）
       recordMode: process.platform === 'win32' ? 'global' : 'inApp',
       // 网页据此判断哪些步骤类型当前安装包能执行，避免配好了却跑不动
-      stepTypes: ['openPath', 'openUrl', 'runApp', 'pasteText', 'pasteImage', 'keyPress', 'keyTap', 'keyDown', 'keyUp', 'mouseClick', 'delay'],
+      stepTypes: (() => {
+        let types = ['openPath', 'openUrl', 'runApp', 'pasteText', 'pasteImage', 'keyPress', 'keyTap', 'keyDown', 'keyUp', 'mouseClick', 'delay'];
+        // 没有 xdotool（Linux）/ cliclick（macOS）时，模拟键鼠的步骤跑不动，直接从可选列表里去掉
+        if (process.platform === 'linux' && !externalTools.xdotool) {
+          types = types.filter((t) => !['keyPress', 'keyTap', 'keyDown', 'keyUp', 'mouseClick'].includes(t));
+        }
+        if (process.platform === 'darwin' && !externalTools.cliclick) {
+          types = types.filter((t) => !['keyDown', 'keyUp', 'mouseClick'].includes(t));
+        }
+        return types;
+      })(),
+      externalTools,
+      missingTools: process.platform === 'linux' && !externalTools.xdotool
+        ? [{ name: 'xdotool', install: 'sudo apt install xdotool', why: '模拟按键与鼠标点击需要它' }]
+        : (process.platform === 'darwin' && !externalTools.cliclick
+          ? [{ name: 'cliclick', install: 'brew install cliclick', why: '模拟鼠标点击与按住按键需要它' }]
+          : []),
     },
     registered: registeredShortcuts.slice(),
     enabled: actionsConfig.enabled,
