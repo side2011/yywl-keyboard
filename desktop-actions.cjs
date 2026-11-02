@@ -616,7 +616,75 @@ Write-Output ("{0},{1}" -f $p.X, $p.Y)`;
     }
   }
 
-  async function runAction(action) {
+  // ---- 自动循环（按一次开始、再按一次停止）----
+  const __loops = new Map(); // slot -> { timer, action, count }
+
+  function loopEveryMs(action) {
+    const sec = Number(action?.loop?.everySec);
+    // 最短 1 秒，最长 1 小时，避免误填 0 造成"疯狂连点"
+    return Math.min(Math.max(Number.isFinite(sec) && sec > 0 ? sec : 5, 1), 3600) * 1000;
+  }
+
+  function runStepsOnce(action) {
+    const steps = Array.isArray(action.steps) ? action.steps : [];
+    return (async () => {
+      for (let i = 0; i < steps.length; i++) {
+        try {
+          await executeStep(steps[i]);
+        } catch (e) {
+          return { ok: false, error: `第 ${i + 1} 步失败 (${steps[i].type}): ${e.message}` };
+        }
+      }
+      return { ok: true };
+    })();
+  }
+
+  function isLooping(slot) {
+    return __loops.has(slot);
+  }
+
+  function stopLoop(slot) {
+    const rec = __loops.get(slot);
+    if (!rec) return false;
+    clearTimeout(rec.timer);
+    __loops.delete(slot);
+    console.log('[action] 停止自动循环 slot=' + slot + '（已执行 ' + rec.count + ' 次）');
+    return true;
+  }
+
+  function stopAllLoops() {
+    for (const slot of [...__loops.keys()]) stopLoop(slot);
+  }
+
+  function startLoop(action) {
+    const slot = action.slot;
+    stopLoop(slot);
+    const every = loopEveryMs(action);
+    const rec = { timer: null, action, count: 0 };
+    __loops.set(slot, rec);
+    const tick = async () => {
+      if (!__loops.has(slot)) return;
+      rec.count += 1;
+      const r = await runStepsOnce(action);
+      if (!r.ok) console.warn('[action] 循环第 ' + rec.count + ' 次失败:', r.error);
+      if (!__loops.has(slot)) return;
+      rec.timer = setTimeout(tick, every);
+    };
+    console.log('[action] 开始自动循环 slot=' + slot + ' 每 ' + (every / 1000) + ' 秒一次');
+    tick();
+    return { ok: true, looping: true, everySec: every / 1000 };
+  }
+
+  async function runAction(action, opts = {}) {
+    // 自动循环：第一次触发=开始，第二次=停止（"测试"按钮不启动循环）
+    if (!dryRun && !opts.preview && action?.loop?.enabled) {
+      const slot = action.slot;
+      if (isLooping(slot)) {
+        stopLoop(slot);
+        return { ok: true, looping: false, stopped: true };
+      }
+      return startLoop(action);
+    }
     const steps = Array.isArray(action.steps) ? action.steps : [];
     if (!steps.length) return { ok: false, error: '该动作没有任何步骤' };
     const started = Date.now();
@@ -647,7 +715,7 @@ Write-Output ("{0},{1}" -f $p.X, $p.Y)`;
   };
   const dispose = () => { if (psWorker) psWorker.stop(); };
 
-  return { runAction, executeStep, commands, sendKeys, mouseClick, pasteText, pasteImage, getMousePosition, record, eventsToSteps, vkLabel, warmUp, dispose };
+  return { runAction, executeStep, commands, sendKeys, mouseClick, pasteText, pasteImage, getMousePosition, record, eventsToSteps, vkLabel, warmUp, dispose, stopLoop, stopAllLoops, isLooping };
 }
 
 module.exports = {
