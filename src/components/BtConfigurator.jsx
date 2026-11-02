@@ -586,9 +586,15 @@ export default function BtConfigurator() {
         try {
           const ledBack = await handler.readLedLayer(currentLayer);
           const want = ledAll[currentLayer]?.mode ?? 0;
-          console.log('[BtProto] 灯光回读 层' + (currentLayer + 1) + ' mode=' + ledBack.mode + ' (期望 ' + want + ')');
-          if (ledBack.mode !== want) {
-            toast(t('灯光模式没有保存成功（设备里是 {a}，设置的是 {b}）', { a: ledBack.mode, b: want }), { id: 'bt-led', duration: 8000 });
+          // 旧固件不支持回读灯光（readable:false）：回读恒为 0，不能据此报警，
+          // 否则每次保存都会弹"灯光模式没有保存成功"，但实际灯是好的（客户已反馈过）。
+          if (ledBack.readable === false) {
+            console.log('[BtProto] 灯光不可回读，跳过模式比对（写入的模式=' + want + '）');
+          } else {
+            console.log('[BtProto] 灯光回读 层' + (currentLayer + 1) + ' mode=' + ledBack.mode + ' (期望 ' + want + ')');
+            if (ledBack.mode !== want) {
+              toast(t('灯光模式没有保存成功（设备里是 {a}，设置的是 {b}）', { a: ledBack.mode, b: want }), { id: 'bt-led', duration: 8000 });
+            }
           }
         } catch (e) {
           console.warn('[BtProto] 灯光回读失败:', e.message);
