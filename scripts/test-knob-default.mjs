@@ -9,10 +9,11 @@ const check = (name, ok, extra = '') => {
   else { fail += 1; console.log('  ✗ ' + name + (extra ? '  → ' + extra : '')); }
 };
 
-// 单旋钮机型（4+1 / 6+1 / 5+1）默认对调：固件把"右转"存在 16 号槽
+// 目前只有 4+1 需要默认对调：固件把"右转"存在 16 号槽；其余型号等客户反馈
 check('4+1 默认对调', JSON.stringify(defaultKnobSwap(4, 1)) === '[true]');
-check('6+1 默认对调', JSON.stringify(defaultKnobSwap(6, 1)) === '[true]');
-check('5+1 默认对调', JSON.stringify(defaultKnobSwap(5, 1)) === '[true]');
+check('8+1 默认不对调（未反馈）', JSON.stringify(defaultKnobSwap(8, 1)) === '[false]');
+check('6+1 默认不对调（客户确认是正的）', JSON.stringify(defaultKnobSwap(6, 1)) === '[false]');
+check('5+1 默认不对调（未反馈）', JSON.stringify(defaultKnobSwap(5, 1)) === '[false]');
 
 // 双旋钮机型默认不对调（客户实测是正的）
 check('6+2 默认不对调', JSON.stringify(defaultKnobSwap(6, 2)) === '[false,false]');
