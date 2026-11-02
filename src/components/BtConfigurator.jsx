@@ -564,10 +564,9 @@ export default function BtConfigurator() {
       const ledAll = [...ledCacheRef.current];
       ledAll[currentLayer] = { mode: ledMode, colors: ledColors };
       ledCacheRef.current = ledAll;
-      if (hasLighting && !ledReadable && !ledDirty) {
-        // 本机型读不到灯光，客户这次也没动灯光 → 不写，避免把键盘上现有的灯光覆盖成"关闭"
-        console.log('[BtProto] 灯光不可回读且未修改，跳过写灯光（保护键盘现有设置）');
-      } else if (hasLighting) {
+      if (hasLighting) {
+        // 客户要求：保存到键盘时**总是**写一次灯光，避免"设了灯光忘了保存"。
+        // （旧固件读不回灯光，所以界面上显示的就是要写入的值）
         for (let l = 0; l < btLayerCount; l++) {
           try {
             await handler.writeLedLayer(l, ledAll[l]?.mode ?? 0, ledAll[l]?.colors || ledColors);
@@ -1593,7 +1592,7 @@ export default function BtConfigurator() {
                   })}
                 </div>
                 <p className="text-sm text-gray-400 mt-4">
-                  {t('选好模式和颜色后，点左下角「保存到键盘」写入。')}
+                  {t('选好模式和颜色后，点「设置灯光」立即生效；点左下角「保存到键盘」会连同按键一起保存。')}
                 </p>
                 <div className="mt-3 flex items-center gap-2 flex-wrap">
                   <button
@@ -1608,13 +1607,13 @@ export default function BtConfigurator() {
                         setLedDirty(true);
                         const colors = (ledColors && ledColors.length) ? ledColors : Array.from({ length: 16 }, () => ({ r: 255, g: 255, b: 255 }));
                         await handler.writeLedLayer(currentLayer, m, colors);
-                        toast.success(t('已发送预览灯光（{mode}），可直接看键盘效果；点「保存到键盘」才会写入配置', { mode: BT_LED_MODES[m] || m }), { id: 'bt-led-test', duration: 6000 });
+                        toast.success(t('灯光已设置（{mode}），键盘应立即生效；点「保存到键盘」会连同按键一起落盘', { mode: BT_LED_MODES[m] || m }), { id: 'bt-led-test', duration: 6000 });
                       } catch (e) {
-                        toast.error(t('预览灯光发送失败：{msg}', { msg: e.message }));
+                        toast.error(t('设置灯光失败：{msg}', { msg: e.message }));
                       }
                     }}
                     className="px-3 py-2 text-xs font-bold rounded-lg border-2 border-amber-300 text-amber-700 bg-amber-50 hover:bg-amber-100 transition-colors cursor-pointer">
-                    💡 {t('预览灯光（不保存）')}
+                    💡 {t('设置灯光')}
                   </button>
                 </div>
               </div>
