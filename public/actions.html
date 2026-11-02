@@ -825,6 +825,43 @@
       setDirty(); render();
     });
     head.appendChild(add);
+
+    // 自动循环：按一次热键开始、再按一次停止；间隔可设 1~3600 秒
+    var loopWrap = el('label', 'switch');
+    loopWrap.title = '开启后：按一次热键开始按间隔重复执行本动作，再按一次停止';
+    loopWrap.style.marginLeft = '2px';
+    var loopChk = el('input');
+    loopChk.type = 'checkbox';
+    loopChk.checked = !!(a && a.loop && a.loop.enabled);
+    loopWrap.appendChild(loopChk);
+    loopWrap.appendChild(document.createTextNode(' 自动循环'));
+    head.appendChild(loopWrap);
+
+    var loopSec = el('input');
+    loopSec.type = 'number';
+    loopSec.min = '1';
+    loopSec.max = '3600';
+    loopSec.step = '1';
+    loopSec.value = (a && a.loop && a.loop.everySec) ? a.loop.everySec : 5;
+    loopSec.title = '每隔多少秒执行一次';
+    loopSec.style.width = '64px';
+    loopSec.style.display = loopChk.checked ? 'inline-block' : 'none';
+    loopChk.addEventListener('change', function () {
+      var target2 = ensureSlot(n);
+      target2.loop = { enabled: loopChk.checked, everySec: Math.min(Math.max(Number(loopSec.value) || 5, 1), 3600) };
+      loopSec.style.display = loopChk.checked ? 'inline-block' : 'none';
+      setDirty();
+    });
+    loopSec.addEventListener('change', function () {
+      var target3 = ensureSlot(n);
+      var sec = Math.min(Math.max(Number(loopSec.value) || 5, 1), 3600);
+      loopSec.value = sec;
+      target3.loop = { enabled: true, everySec: sec };
+      loopChk.checked = true;
+      setDirty();
+    });
+    head.appendChild(loopSec);
+    head.appendChild(el('span', 'muted', '秒'));
     card.appendChild(head);
 
     var steps = el('div', 'steps');
