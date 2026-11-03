@@ -28,8 +28,8 @@ function Say($text, $level = 'info') {
 }
 
 # 我们键盘的 USB 标识（与网页端 hid-constants.js 保持一致）
-$KNOWN_VIDS = @('1189', '514C')
-$KNOWN_PIDS = @('8842', '8840', '8830', '8831', '8832', '8833', '8850')
+$KNOWN_VIDS = @('1189', '514C', '413D', '8808', '4C4A')
+$KNOWN_PIDS = @('8842', '8840', '8830', '8831', '8832', '8833', '8834', '8850', '4155', '553A', '553B', '6600', '6601', '6602', '6603', '6604', '6605')
 
 Say '========================================' 
 Say '   YYWL 键盘配置环境自检' 
@@ -131,12 +131,36 @@ try {
     }
   }
   if (-not $found.Count) {
-    Say '没有找到我们的键盘（VID 1189/514C）' 'bad'
+    Say '没有找到我们的键盘（VID 1189 / 514C / 413D / 8808）' 'bad'
     Say '  可能原因: ① 线没插好/换线试试  ② 插在 USB3.0 口（Win7 常见）  ③ 设备管理器里有"无法识别的 USB 设备"' 'warn'
     Say '  请把下面的"有问题的设备"列表一并发给我们' 'warn'
   }
 } catch {
   Say "枚举 USB 设备失败: $($_.Exception.Message)" 'warn'
+}
+Say ''
+
+# ---------- 4.5 所有 HID 设备（判断键盘有没有被枚举成键盘）----------
+try {
+  $hids = Get-WmiObject Win32_PnPEntity | Where-Object { $_.DeviceID -match '^HID\\' }
+  if ($hids.Count -gt 0) {
+    Say "HID 设备 $($hids.Count) 个（判断我们的键盘有没有被识别成键盘）:"
+    foreach ($h in $hids) {
+      $ours = $h.DeviceID -match 'VID_514C|VID_1189|VID_413D|VID_8808|VID_4C4A'
+      $tag = if ($ours) { ' ★我们的键盘' } else { '' }
+      Say "  - $($h.Name)  [$($h.DeviceID)]$tag" $(if ($ours) { 'ok' } else { 'info' })
+    }
+    $ourHid = $hids | Where-Object { $_.DeviceID -match 'VID_514C|VID_1189|VID_413D|VID_8808|VID_4C4A' }
+    if ($ourHid.Count -gt 0) {
+      $isKbd = $ourHid | Where-Object { $_.Name -match '键盘|Keyboard' }
+      if ($isKbd) { Say '我们的键盘已被识别为「键盘」——按键应该能打字' 'ok' }
+      else { Say '我们的键盘只被识别成 HID 设备，没有"键盘"接口：这台电脑上按键不会产生字符（多见于蓝牙款仅走 USB 供电）' 'bad' }
+    }
+  } else {
+    Say '系统里没有任何 HID 设备（异常）' 'warn'
+  }
+} catch {
+  Say "枚举 HID 设备失败: $($_.Exception.Message)" 'warn'
 }
 Say ''
 
