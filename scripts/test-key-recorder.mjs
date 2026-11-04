@@ -70,5 +70,23 @@ check('录制器 start 有幂等保护', recSrc.includes('if (recording) return;
 check('录制器 stop 有幂等保护', recSrc.includes('if (!recording) return;'));
 check('录制器会 preventDefault 防浏览器快捷键', recSrc.includes('e.preventDefault();'));
 
+
+// ---- 顺序检查：useState 必须声明在引用它的 useEffect 之前 ----
+// 踩过的坑：把多键录制 effect 放在 useState 之前 → 依赖数组在渲染时先求值
+//            → ReferenceError: Cannot access 'multiRecording' before initialization → 整页白屏
+{
+  const src = readFileSync('src/components/KeyConfigPanel.jsx', 'utf8');
+  const declAt = src.indexOf('const [multiRecording, setMultiRecording] = useState(false);');
+  const useAt = src.indexOf('if (!multiRecording) return;');
+  check('multiRecording 声明在 effect 之前（防 TDZ 白屏）', declAt > 0 && useAt > 0 && declAt < useAt,
+    'decl=' + declAt + ' use=' + useAt);
+  // 同理检查蓝牙款
+  const btSrc = readFileSync('src/components/BtConfigurator.jsx', 'utf8');
+  const btDecl = btSrc.indexOf('const [btRecording, setBtRecording] = useState(false);');
+  const btUse = btSrc.indexOf('if (!btRecording) return;');
+  check('btRecording 声明在 effect 之前（防 TDZ 白屏）', btDecl > 0 && btUse > 0 && btDecl < btUse,
+    'decl=' + btDecl + ' use=' + btUse);
+}
+
 console.log(`\n结果: ${pass} 通过 / ${fail} 失败`);
 process.exit(fail ? 1 : 0);
