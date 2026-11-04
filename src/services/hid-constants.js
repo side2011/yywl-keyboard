@@ -242,13 +242,6 @@ export const RGB_MODES_BP = [
   '流水模式2', '流水模式3', '放射灯光', '常亮模式', '台灯模式', '自定义颜色', '自定义颜色2',
 ];
 
-// Type C: K8, K8-new (15 modes, different order)
-export const RGB_MODES_C = [
-  '灯光关闭', '流水模式1', '流水模式2', '流水模式3', '放射灯光',
-  '常亮模式', '台灯模式', '自定义颜色',
-  '按下亮-红', '按下亮-绿', '按下亮-蓝', '按下亮-黄', '按下亮-青', '按下亮-紫', '按下亮-白',
-];
-
 // Type D: K8DZ6 (14 modes, no custom color)
 export const RGB_MODES_D = [
   '灯光关闭', '流水模式1', '按下亮-红', '按下亮-绿', '按下亮-蓝',
@@ -300,7 +293,7 @@ export function getRgbModesForModel(modelId) {
     '1K': 'A', '2K': 'A', '2K-mini': 'A',
     '3K': 'B', '4K': 'B', '5K': 'B', '6K': 'B', '7K': 'B',
     '9K': 'B', '10KDZ1': 'B', 'FXJ': 'B', '5K-touch': 'B',
-    '8K': 'C', '8K-new': 'C',
+    '8K': 'B', '8K-new': 'B',   // C# K8Form / K8NewForm 的 cbo_RGB 顺序 = Type B
     '8KDZ6': 'D',
     '12K': 'E',
     'DXN': 'F',
@@ -312,7 +305,7 @@ export function getRgbModesForModel(modelId) {
   const type = map[modelId] || 'B';
   const lookup = {
     A: RGB_MODES_A, B: RGB_MODES_B, BP: RGB_MODES_BP,
-    C: RGB_MODES_C, D: RGB_MODES_D, E: RGB_MODES_E,
+    D: RGB_MODES_D, E: RGB_MODES_E,
     F: RGB_MODES_F, G: RGB_MODES_G, H: RGB_MODES_H, I: RGB_MODES_I,
   };
   return lookup[type];
