@@ -23,6 +23,9 @@ const KeyboardConfigurator = () => {
   const { device, model, modelId, modelName, disconnectDevice, protocolVersion, deviceInfo, getNewHandler } = useDevice();
   const hadDevice = useRef(false);
   const readingRef = useRef(false); // 防重入: React StrictMode 双重调用 / 用户连击
+  // 老协议读灯光：设备把键值+灯光一起回报，首次连接偶尔丢包 →
+  // 用这个标记判断有没有真的收到 rgb_mode，没收到就重发读取命令
+  const rgbSeenRef = useRef(false);
 
   const isNewProto = protocolVersion === 2;
   const keyCount = (isNewProto && deviceInfo?.keyCount) || model?.keyCount || 1;
@@ -87,6 +90,7 @@ const KeyboardConfigurator = () => {
           break;
         }
         case 'rgb_mode':
+          rgbSeenRef.current = true;   // 这次读取确实收到了灯光模式
           setRgbMode(result.modeIndex);
           if (result.mode2Index !== undefined) setRgbMode2(result.mode2Index);
           break;
@@ -133,9 +137,20 @@ const KeyboardConfigurator = () => {
         const configs = await handler.readLayer(0, total);
         setKeyConfigs(configs);
       } else {
-        console.log('[handleReadConfig] 旧协议: 发送 0x55 读取命令');
-        await readConfig(device, modelId);
-        console.log('[handleReadConfig] 旧协议: 读取命令已发送，等待设备回报...');
+        // 老协议：设备把键值 + 灯光模式一次性回报，首次连接（刚枚举完）偶尔丢包，
+        // 表现为灯光明明是常亮却显示"灯光关闭"。这里发完等一会儿，没收到就重发，最多 3 次。
+        const MAX_TRY = 3;
+        for (let attempt = 1; attempt <= MAX_TRY; attempt += 1) {
+          rgbSeenRef.current = false;
+          console.log('[handleReadConfig] 旧协议: 发送 0x55 读取命令（第 ' + attempt + '/' + MAX_TRY + ' 次）');
+          await readConfig(device, modelId);
+          await new Promise((r) => setTimeout(r, 350 + attempt * 150));
+          if (!hasRgb || rgbSeenRef.current) break;
+          console.warn('[handleReadConfig] 第 ' + attempt + ' 次没收到灯光模式，重试…');
+        }
+        if (hasRgb && !rgbSeenRef.current) {
+          console.warn('[handleReadConfig] 灯光模式始终没读到，界面保持默认（不影响按键配置）');
+        }
       }
 
       toast.success(t('配置读取成功！'), { id: 'read' });
@@ -307,7 +322,8 @@ const KeyboardConfigurator = () => {
     // 普通网格布局
     //   ≤4 键: 单排(N 个) —— 4 键款实物就是一排 4 个
     //   >4 键: 每行 3 个 (12 键即 3×4)
-    const cols = keyCount <= 4 ? keyCount : 3;
+    // 8 键 (layout=grid4x2): 两排 4 个 —— 第一排 K1-K4，第二排 K5-K8（与客户实物一致）
+    const cols = keyCount <= 4 ? keyCount : (layout === 'grid4x2' || keyCount === 8 ? 4 : 3);
     return (
       <div className="grid gap-2.5" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
         {Array.from({ length: keyCount }, (_, i) => renderKeyButton(i, cols === 4))}
