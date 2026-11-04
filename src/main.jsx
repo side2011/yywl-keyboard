@@ -8,6 +8,7 @@ import 'misans/lib/Normal/MiSans-Medium.min.css'
 import 'misans/lib/Normal/MiSans-Demibold.min.css'
 import 'misans/lib/Normal/MiSans-Bold.min.css'
 import App from './App.jsx'
+import ErrorBoundary from './components/ErrorBoundary.jsx'
 import { installLogCapture } from './services/log-buffer'
 
 // 把协议/动作相关日志留一份在内存里，出错时能一键导出给技术支持
@@ -112,6 +113,8 @@ checkForNewBuild();
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <App />
+    <ErrorBoundary>
+      <App />
+    </ErrorBoundary>
   </StrictMode>,
 )
