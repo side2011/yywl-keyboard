@@ -4,6 +4,7 @@ import { fetchActionSummary, toSlotMap } from '../services/action-slots';
 import { useLang } from '../context/LanguageContext.jsx';
 import { isDesktopApp, guideUrl, openActionsWindow } from '../services/env';
 import { KEY_MODE, KEYCODE_LABELS, MEDIA_KEYS, MOUSE_BUTTONS, mouseIndexToDevice, mouseDeviceToIndex, MODIFIERS, BROWSER_CODE_TO_HID, BROWSER_MOD_TO_BIT, HID_TO_CS_SHIFTED, CS_SHIFTED_CODES } from '../services/hid-constants';
+import { toOldProtocolCode, oldProtocolGlobalModifier } from '../services/key-recorder';
 
 // ---- styles ----
 const keyBase = 'h-8 px-1 text-xs border rounded-lg transition-all flex items-center justify-center cursor-pointer select-none font-medium';
@@ -255,6 +256,41 @@ export default function KeyConfigPanel({ config, onChange, multiKeyOnly, multiKe
     };
   }, [capturing, config, onChange]);
 
+  // ---- 多键合一录制：老协议结构 = 一个全局修饰位 + 一串单字节键码（无逐键延时）----
+  useEffect(() => {
+    if (!multiRecording) return;
+    const handler = (e) => {
+      if (BROWSER_MOD_TO_BIT[e.code] !== undefined) {
+        // 纯修饰键：不单独成步，等普通键一起按（Shift 会体现在 shifted code 里）
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
+      e.preventDefault();
+      e.stopPropagation();
+      if (e.code === 'Escape') { setMultiRecording(false); return; }
+      const hidCode = BROWSER_CODE_TO_HID[e.code];
+      if (hidCode === undefined) return;
+
+      let mask = 0;
+      if (e.ctrlKey) mask |= (e.code === 'ControlRight' ? 0x10 : 0x01);
+      if (e.shiftKey) mask |= (e.code === 'ShiftRight' ? 0x20 : 0x02);
+      if (e.altKey) mask |= (e.code === 'AltRight' ? 0x40 : 0x04);
+      if (e.metaKey) mask |= (e.code === 'MetaRight' ? 0x80 : 0x08);
+
+      const keys = [...(config.multiKeys || [])];
+      if (keys.length >= (multiKeyLen || 15)) { setMultiRecording(false); return; }
+      keys.push(toOldProtocolCode(hidCode, mask));
+      const patch = { mode: KEY_MODE.MULTI, multiKeys: keys };
+      const globMod = oldProtocolGlobalModifier(mask);
+      if (globMod) patch.modifier = globMod;   // 老协议只有一个统一修饰位
+      onChange({ ...config, ...patch });
+      if (keys.length >= (multiKeyLen || 15)) setMultiRecording(false);
+    };
+    window.addEventListener('keydown', handler, true);
+    return () => window.removeEventListener('keydown', handler, true);
+  }, [multiRecording, config, multiKeyLen, onChange]);
+
   const currentMode = tabs[activeTab]?.mode || KEY_MODE.KEYBOARD;
   const update = (partial) => onChange({ ...config, mode: currentMode, ...partial });
   const toggleModifier = (bit) => update({ modifier: (config.modifier || 0) ^ bit });
@@ -282,6 +318,7 @@ export default function KeyConfigPanel({ config, onChange, multiKeyOnly, multiKe
     update({ multiKeys: keys });
   };
   const clearMultiKeys = () => update({ multiKeys: [] });
+  const [multiRecording, setMultiRecording] = useState(false);
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
@@ -389,8 +426,20 @@ export default function KeyConfigPanel({ config, onChange, multiKeyOnly, multiKe
               <label className="text-sm font-bold text-gray-700">
                 {t('按键序列')} <span className="text-indigo-600 font-semibold normal-case">({(config.multiKeys || []).length}/{multiKeyLen || 15})</span>
               </label>
-              <button className="px-2.5 py-1 text-xs text-red-500 hover:bg-red-50 border border-red-200 rounded-lg transition-colors cursor-pointer" onClick={clearMultiKeys}>{t('清空')}</button>
+              <div className="flex items-center gap-2">
+                <button
+                  className={`px-2.5 py-1 text-xs rounded-lg border transition-colors cursor-pointer ${multiRecording ? 'bg-rose-600 text-white border-rose-600' : 'text-indigo-600 hover:bg-indigo-50 border-indigo-200'}`}
+                  onClick={() => setMultiRecording((v) => !v)}>
+                  {multiRecording ? '⏹ ' + t('停止录制') : '🎬 ' + t('录制按键')}
+                </button>
+                <button className="px-2.5 py-1 text-xs text-red-500 hover:bg-red-50 border border-red-200 rounded-lg transition-colors cursor-pointer" onClick={clearMultiKeys}>{t('清空')}</button>
+              </div>
             </div>
+            {multiRecording && (
+              <div className="mb-2 text-xs text-rose-600">
+                {t('录制中：直接按键盘上的键，按一次记一个；Shift+符号会自动转成该符号；Esc 结束。老协议不支持逐键延时，录制不会带时间。')}
+              </div>
+            )}
             <div className="flex flex-wrap gap-1.5 min-h-[2.5rem] p-3 bg-gray-50 rounded-xl border border-gray-200 border-dashed">
               {(config.multiKeys || []).length === 0 ? (
                 <span className="text-gray-400 text-sm">{t('点击下方键盘添加按键...')}</span>
