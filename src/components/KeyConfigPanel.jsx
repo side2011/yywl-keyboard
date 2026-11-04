@@ -256,6 +256,10 @@ export default function KeyConfigPanel({ config, onChange, multiKeyOnly, multiKe
     };
   }, [capturing, config, onChange]);
 
+  // 注意：这个 state 必须在下面那个 useEffect **之前**声明，
+  // 否则 effect 的依赖数组在渲染时先被求值 → ReferenceError: Cannot access before initialization（整页白屏）
+  const [multiRecording, setMultiRecording] = useState(false);
+
   // ---- 多键合一录制：老协议结构 = 一个全局修饰位 + 一串单字节键码（无逐键延时）----
   useEffect(() => {
     if (!multiRecording) return;
@@ -318,7 +322,6 @@ export default function KeyConfigPanel({ config, onChange, multiKeyOnly, multiKe
     update({ multiKeys: keys });
   };
   const clearMultiKeys = () => update({ multiKeys: [] });
-  const [multiRecording, setMultiRecording] = useState(false);
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
