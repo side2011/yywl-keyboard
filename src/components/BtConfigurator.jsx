@@ -11,6 +11,7 @@ import {
   BT_MOD_TOKENS, BT_MEDIA_KEYS, BT_MOUSE_ACTIONS, BT_LED_MODES, BT_LED_COLORS,
   BT_KEYCODE_LABELS,
 } from '../services/bt-protocol';
+import { BROWSER_CODE_TO_HID, BROWSER_MOD_TO_BIT } from '../services/hid-constants';
 import BtVirtualKeyboard from './BtVirtualKeyboard';
 import ConfirmDialog from './ConfirmDialog';
 import ForceUpdateButton from './ForceUpdateButton';
@@ -183,6 +184,7 @@ export default function BtConfigurator() {
   // 否则「读取配置(灯光显示默认关闭) → 保存」会把键盘上的灯光关掉。
   const [ledDirty, setLedDirty] = useState(false);
   const [btPassword, setBtPassword] = useState(''); // 一键密码输入
+  const [btRecording, setBtRecording] = useState(false); // 多键合一录制中
   const [ledMode, setLedMode] = useState(0);
   const [ledColors, setLedColors] = useState(() => Array.from({ length: 16 }, () => ({ r: 255, g: 255, b: 255 })));
   const [capturing, setCapturing] = useState(false);
@@ -298,6 +300,46 @@ export default function BtConfigurator() {
     else if (m === MODE.KEY || m === MODE.MEDIA || m === MODE.MOUSE) setActiveTab(m);
     else setActiveTab(MODE.KEY);
   };
+
+  // ---- 多键合一录制（蓝牙款）----
+  // V10 支持逐键延时 → 用真实间隔；旧固件没有该字段 → 固定 50ms
+  useEffect(() => {
+    if (!btRecording) return;
+    let lastTime = 0;
+    const handler = (e) => {
+      if (BROWSER_MOD_TO_BIT[e.code] !== undefined) {
+        // 修饰键不单独成行，按住时记录到后续按键的 mask
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
+      e.preventDefault();
+      e.stopPropagation();
+      if (e.code === 'Escape') { setBtRecording(false); return; }
+      const keyCode = BROWSER_CODE_TO_HID[e.code];
+      if (keyCode === undefined) return;
+
+      let mask = 0;
+      if (e.ctrlKey) mask |= (e.code === 'ControlRight' ? 0x10 : 0x01);
+      if (e.shiftKey) mask |= (e.code === 'ShiftRight' ? 0x20 : 0x02);
+      if (e.altKey) mask |= (e.code === 'AltRight' ? 0x40 : 0x04);
+      if (e.metaKey) mask |= (e.code === 'MetaRight' ? 0x80 : 0x08);
+
+      const now = (typeof performance !== 'undefined' ? performance.now() : Date.now());
+      const measured = lastTime ? Math.round(now - lastTime) : 50;
+      lastTime = now;
+      const delay = isV10 ? Math.min(Math.max(measured, 10), 3000) : 50;
+
+      const list = currentConfig.multiKeys || [];
+      if (list.length >= 18) { setBtRecording(false); return; }
+      updateConfig({
+        mode: MODE.MULTI,
+        multiKeys: [...list, { mask, keyCode, delay }],
+      });
+    };
+    window.addEventListener('keydown', handler, true);
+    return () => window.removeEventListener('keydown', handler, true);
+  }, [btRecording, currentConfig, isV10]);
 
   const toggleModifier = (bit) => {
     const mask = (currentConfig.modifierMask || 0) ^ bit;
@@ -1308,7 +1350,21 @@ export default function BtConfigurator() {
                   {t('间隔 = 这个键按下后等多久再按下一个键')}
                 </div>
 
-                  {/* 一键密码：文本直接生成多键行（蓝牙款；每行间隔 50ms） */}
+                  {/* 录制：直接按键盘把按键序列录进多键行 */}
+                <div className="mt-2 mb-1 flex items-center gap-2 flex-wrap">
+                  <button
+                    onClick={() => setBtRecording((v) => !v)}
+                    className={`px-2.5 py-1.5 text-xs font-bold rounded-lg border transition-colors cursor-pointer ${btRecording ? 'bg-rose-600 text-white border-rose-600' : 'bg-white text-rose-600 border-rose-300 hover:bg-rose-50'}`}>
+                    {btRecording ? '⏹ ' + t('停止录制') : '🎬 ' + t('录制按键')}
+                  </button>
+                  <span className="text-[11px] text-gray-500">
+                    {btRecording
+                      ? t('录制中：直接按键，按一次记一行；Esc 结束' + (isV10 ? '；会记录每步间隔' : '；本机型不支持逐键间隔，统一 50ms'))
+                      : t('不用一个个点，按实际顺序敲一遍键盘即可')}
+                  </span>
+                </div>
+
+                {/* 一键密码：文本直接生成多键行（蓝牙款；每行间隔 50ms） */}
                   <div className="mt-3 p-3 rounded-lg bg-indigo-50/60 border border-indigo-200">
                     <div className="flex items-center gap-2 mb-2">
                       <span className="text-sm font-bold text-indigo-700">🔑 {t('一键密码')}</span>
