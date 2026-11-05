@@ -164,6 +164,72 @@ try {
 }
 Say ''
 
+# ---------- 4.8 键盘驱动绑定检测（Win7/XP 最常见的"驱动没上去"）----------
+# Windows 自带 HID 键盘驱动 kbdhid.sys：
+#   · 键盘接口绑定 kbdhid  → 系统认定是键盘，按键能出字符
+#   · 只绑到 HidUsb        → 只是普通 HID 设备，按键不出字符（客户说的"驱动没上去"）
+# 注意：一个键盘有多个接口（厂商配置通道 / 用户控制 / 键盘），只有键盘接口需要 kbdhid。
+try {
+  $osVer = [Environment]::OSVersion.Version
+  if ($osVer.Major -lt 6) {
+    Say '当前是 Windows XP：HID 键盘免驱，但对 USB 描述符要求更严格' 'warn'
+    Say '  · 必须插 USB2.0 口，且系统打到 SP3' 'warn'
+    Say '  · 网页版与桌面版配置工具都不支持 XP —— 请先在 Win10 电脑配好再用' 'warn'
+  }
+
+  $ours = Get-WmiObject Win32_PnPEntity | Where-Object {
+    $_.DeviceID -match '^HID\\VID_(514C|1189|413D|8808|4C4A)' -or
+    $_.DeviceID -match '^USB\\VID_(514C|1189|413D|8808|4C4A)'
+  }
+
+  if (-not $ours -or $ours.Count -eq 0) {
+    Say '没有找到我们的设备（VID 514C/1189/413D/8808/4C4A）—— 先确认线材与端口' 'warn'
+    Say '  设备管理器里如果有"无法识别的 USB 设备"，说明系统连设备都没认出来' 'warn'
+  } else {
+    $kbdIface = @()
+    $otherIface = @()
+    foreach ($d in $ours) {
+      $svc = [string]$d.Service
+      $err = $d.ConfigManagerErrorCode
+      $isKbdIface = ($svc -eq 'kbdhid') -or ($d.Name -match '键盘|Keyboard')
+      if ($isKbdIface) { $kbdIface += $d } else { $otherIface += $d }
+    }
+
+    if ($kbdIface.Count -gt 0) {
+      Say "键盘接口：$($kbdIface.Count) 个" 'ok'
+      foreach ($d in $kbdIface) {
+        $errText = if ($d.ConfigManagerErrorCode -eq 0) { '正常' } else { "错误码 $($d.ConfigManagerErrorCode)" }
+        Say "  ✓ $($d.Name)  Service=$($d.Service)  $errText" $(if ($d.ConfigManagerErrorCode -eq 0) { 'ok' } else { 'bad' })
+        Say "      $($d.DeviceID)"
+      }
+    } else {
+      Say '键盘接口：0 个（系统没把我们识别成键盘）' 'bad'
+    }
+
+    if ($otherIface.Count -gt 0) {
+      Say "其它接口（配置通道/用户控制等，不需要键盘驱动）：$($otherIface.Count) 个"
+      foreach ($d in $otherIface) { Say "  · $($d.Name)  Service=$($d.Service)" }
+    }
+
+    Say ''
+    if ($kbdIface.Count -gt 0) {
+      Say '结论：系统已把设备识别为键盘，按键应该能正常输出' 'ok'
+      Say '  若仍打不出字：检查输入法/键盘布局/游戏模式，或换台电脑对照' 'warn'
+    } else {
+      Say '结论：设备没有被识别为键盘 —— 这就是"驱动没上去"的真实表现' 'bad'
+      Say '  按顺序排查：' 'warn'
+      Say '  ① 换 USB2.0 黑色口（Win7 的蓝色 USB3.0 口常因缺驱动直接不识别）' 'warn'
+      Say '  ② 换一根确定能传数据的线（有些线只供电）' 'warn'
+      Say '  ③ 设备管理器里卸载该设备 → 拔插一次让系统重装驱动' 'warn'
+      Say '  ④ 报错 43（无法识别的 USB 设备）多为端口供电/线材，换口换线' 'warn'
+      Say '  ⑤ 都不行 → 该型号的 HID 描述符在这版系统上不被接受，需要固件加兼容（联系厂家）' 'warn'
+    }
+  }
+} catch {
+  Say "键盘绑定检测失败: $($_.Exception.Message)" 'warn'
+}
+Say ''
+
 # ---------- 5. 有问题的设备 ----------
 try {
   $benign = @(24, 45, 21)   # 24=设备未安装/未连接, 45=当前未连接, 21=正在启动 —— 都不算故障
