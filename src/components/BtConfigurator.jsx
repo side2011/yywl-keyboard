@@ -551,6 +551,17 @@ export default function BtConfigurator() {
           const kept = list.filter((mk) => mk && mk.keyCode);
           droppedEmptyMulti += list.length - kept.length;
           if (!kept.length) return createDefaultConfig();
+          // 只剩 1 步的多键合一 = 普通按键（协议里都是 mode1 + 1 组），
+          // 折算过去，否则写进设备读回来是 mode1，校验会一直判"不一致"
+          if (kept.length === 1) {
+            const one = kept[0];
+            return {
+              ...createDefaultConfig(),
+              mode: MODE.KEY,
+              modifierMask: one.mask || 0,
+              keyCode: one.keyCode || 0,
+            };
+          }
           return { ...cfg, multiKeys: kept };
         }));
         for (let li = 0; li < fixedMulti.length; li += 1) cached[li] = fixedMulti[li];
@@ -667,7 +678,9 @@ export default function BtConfigurator() {
           return `3|${m.mod || 0}|${m.btn || 0}|${m.wheel || 0}|${m.behavior || 0}`;
         }
         if (mode === 4) {
-          const list = Array.isArray(c.multiKeys) ? c.multiKeys : [];
+          const list = (Array.isArray(c.multiKeys) ? c.multiKeys : []).filter((mk) => mk && mk.keyCode);
+          // 单步多键合一在设备里就是普通按键，校验时按 mode1 归一，避免误报
+          if (list.length === 1) return `1|${list[0].mask || 0}|${list[0].keyCode || 0}`;
           return '4|' + list.map((mk) => `${mk.mask || 0}:${mk.keyCode || 0}`).join(',');
         }
         if (mode === 5) return `5|${c.delay || 0}`;
