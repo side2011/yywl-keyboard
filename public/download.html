@@ -84,6 +84,33 @@
     </div>
   </div>
 
+  <!-- 运行环境自检工具（Win7/XP 用户排查用） -->
+  <div class="card" id="envCheckCard">
+    <h2>🩺 运行环境自检（Win7 / XP 用户必备）</h2>
+    <p style="margin:6px 0 10px;color:#475569;font-size:.94rem;line-height:1.8">
+      键盘插上没反应、提示「无法识别的 USB 设备」、或者网页打不开？先跑一遍自检，
+      它会告诉你系统 / 浏览器 / USB 控制器有没有问题，以及
+      <strong>键盘有没有被系统识别成"键盘"</strong>（绑定 kbdhid 驱动）。
+    </p>
+    <p style="margin:0 0 12px">
+      <a class="btn" href="download/yywl-env-check.zip" style="display:inline-block;padding:10px 20px;border-radius:10px;background:#4f46e5;color:#fff;font-weight:700;text-decoration:none">
+        ⬇ 下载自检工具（zip，约 7 KB）
+      </a>
+      <span style="margin-left:10px;color:#94a3b8;font-size:.85rem">免安装 · 不修改系统设置 · 只生成一份 txt 报告</span>
+    </p>
+    <table>
+      <tr><th style="width:130px">用法</th><th>说明</th></tr>
+      <tr><td>1</td><td>解压后双击 <code>运行环境自检.bat</code>（若中文名乱码，双击 <code>run-env-check.bat</code>）</td></tr>
+      <tr><td>2</td><td>等 10 秒左右，窗口中显示检查结果</td></tr>
+      <tr><td>3</td><td>同目录会生成 <code>yywl-环境自检-&lt;时间&gt;.txt</code>，发给技术支持即可</td></tr>
+    </table>
+    <div class="tip" style="margin-top:12px">
+      💡 <strong>Win7 / XP 用户注意</strong>：HID 键盘<strong>不需要装驱动</strong>。请务必插
+      <strong>USB2.0 黑色接口</strong>（蓝色 USB3.0 口在 Win7 上常因缺驱动直接不识别）；
+      另外 Win7/XP 打不开网页配置工具，请在 Win10 电脑上配好按键，配置存在键盘里，插回旧电脑照常使用。
+    </div>
+  </div>
+
   <!-- 安装说明 -->
   <div class="card">
     <h2>📌 安装与使用</h2>
