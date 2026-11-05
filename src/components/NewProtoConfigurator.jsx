@@ -178,7 +178,10 @@ export default function NewProtoConfigurator() {
   // 防御性钳位: 部分新芯片 0x0B 会返回垃圾值 (如 keyCount=0, layerCount=221)
   const keyCount = Math.min(Math.max(deviceInfo?.keyCount || model?.keyCount || 3, 1), 16);
   const layerCount = Math.min(Math.max(deviceInfo?.layerCount || 1, 1), 16);
-  const hasBacklight = (deviceInfo?.backlightType || 0) > 0;
+  // 灯光能力：0x0B 的 backlightType 只是"声明"，部分固件填 0 但实际支持 0x09/0x0A，
+  // 所以再加一次探测（见下面的 ledProbe）—— C# 上位机也从不拿这个字节隐藏界面。
+  const [ledProbeOk, setLedProbeOk] = useState(null); // null=未探测 / true=有响应 / false=没响应
+  const hasBacklight = (deviceInfo?.backlightType || 0) > 0 || ledProbeOk === true;
   // 方向键款判定: 新协议方向键固件 0x0B 型号名字符串含 "Arrow" (与 C# 上位机一致);
   // 部分固件版本 0x0B 无型号名 (实测 dataLen=7), 此时用 layoutId=1 兜底识别 —
   // 实测方向键 keyCount=4/layerCount=1/layoutId=1/backlightType=1, 麦克风款 layoutId=5, 互不重叠
@@ -274,17 +277,29 @@ export default function NewProtoConfigurator() {
           isReadingRef.current = false;
         }
       })();
-      // 自动读取灯光配置
-      if ((deviceInfo.backlightType || 0) > 0) {
+      // 自动读取灯光配置（同时兼顾 backlightType=0 但实际支持灯光的固件）
+      {
         const handler = getNewHandler();
+        const declared = (deviceInfo.backlightType || 0) > 0;
         if (handler) {
           handler.readLedLayer(0).then(led => {
+            setLedProbeOk(true);   // 有响应 → 认为支持灯光（即使 0x0B 没声明）
             setLedMode(led.mode);
             setLedSleepAllow(led.sleepAllow);
             if (led.colors && led.colors.length > 0) {
               setLedColors(Array.from({ length: 16 }, (_, i) => led.colors[i] || { r: 0, g: 0, b: 0 }));
             }
-          }).catch(e => console.warn('[NewProto] 自动读取灯光配置失败:', e.message));
+            if (!declared) {
+              console.log('[NewProto] 0x0B 声明无灯光，但 0x0A 有响应 → 显示灯光页');
+            }
+          }).catch(e => {
+            if (!declared) {
+              setLedProbeOk(false);
+              console.log('[NewProto] 0x0A 无响应，按"无灯光"处理:', e.message);
+            } else {
+              console.warn('[NewProto] 自动读取灯光配置失败:', e.message);
+            }
+          });
         }
       }
     }
