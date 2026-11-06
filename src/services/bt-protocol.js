@@ -172,16 +172,22 @@ export { btColorIndex };
 function buildGroupsFromConfig(cfg, isV10) {
   const groups = [];
   if (cfg.mode === 4) {
-    // 多键合一：multiKeys = [{ mask, keyCode }, ...]（最多 18 个）
+    // 多键合一：multiKeys = [{ mask, keyCode, delay }]
+    // 界面语义 delay = "这个键按下后等多久"；设备语义 = "按这个键之前等多久"
+    // → 写入时整体前移一格：第 i 步（i>0）的延时 = 界面第 i-1 步的间隔
     const list = Array.isArray(cfg.multiKeys) ? cfg.multiKeys.slice(0, 18) : [];
-    for (const mk of list) {
+    const clampDelay = (v) => Math.min(Math.max(v || 0, 0), 60000);
+    for (let si = 0; si < list.length; si += 1) {
+      const mk = list[si];
       const mask = mk.mask || 0;
       const code = mk.keyCode || 0;
       if (isV10) {
+        const stepStart = groups.length;
         BT_MOD_TOKENS.forEach((m) => { if (mask & m.bit) groups.push({ delay: 0, value: m.token }); });
-        // 延时挂在这个键位的"值槽"上：QT 的 delay_spinBox_N 就是按槽位下标写
-        // [6+index*3]=高字节 / [7+index*3]=低字节，客户可设 0~数千 ms
-        if (code) groups.push({ delay: Math.min(Math.max(mk.delay || 0, 0), 60000), value: code });
+        if (code) groups.push({ delay: 0, value: code });
+        if (si > 0 && groups.length > stepStart) {
+          groups[stepStart].delay = clampDelay(list[si - 1].delay);
+        }
       } else if (mask || code) {
         groups.push({ mask, value: code });
       }
@@ -401,13 +407,16 @@ export function parseBtKeyRecord(data, isV10) {
     const seq = [];
     if (isV10) {
       let pendingMask = 0;
+      let pendingGap = 0;
       for (const g of cfg.groups) {
         const bit = TOKEN_TO_BIT[g.value];
-        if (bit !== undefined) { pendingMask |= bit; continue; }
+        if (bit !== undefined) { pendingMask |= bit; if (g.delay) pendingGap = Math.max(pendingGap, g.delay); continue; }
         if (g.value) {
-          // 每个槽位自带 16bit 延时（QT 延时页面按槽位设置）
-          seq.push({ mask: pendingMask, keyCode: g.value, delay: g.delay || 0 });
+          // 设备里这个槽位的延时 = "按这个键之前等多久" → 记到 gapBefore，后面换算成上一步的间隔
+          if (g.delay) pendingGap = Math.max(pendingGap, g.delay);
+          seq.push({ mask: pendingMask, keyCode: g.value, gapBefore: pendingGap });
           pendingMask = 0;
+          pendingGap = 0;
         }
       }
     } else {
@@ -417,7 +426,12 @@ export function parseBtKeyRecord(data, isV10) {
     }
     if (seq.length >= 2) {
       cfg.mode = 4;
-      cfg.multiKeys = seq.slice(0, 18);
+      // gapBefore 是"按这一步之前等多久"，换算成界面语义：上一步的"间隔"（最后一步为 0）
+      cfg.multiKeys = seq.slice(0, 18).map((s, i, arr) => ({
+        mask: s.mask || 0,
+        keyCode: s.keyCode || 0,
+        delay: (i + 1 < arr.length && arr[i + 1].gapBefore) ? arr[i + 1].gapBefore : 0,
+      }));
       cfg.modifierMask = seq[0].mask;
       cfg.keyCode = seq[0].keyCode;
       return cfg;
