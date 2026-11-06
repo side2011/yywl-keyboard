@@ -56,7 +56,8 @@ check('新协议仍保留自己的宏录制', np.includes('开始录制'));
 const bt = readFileSync('src/components/BtConfigurator.jsx', 'utf8');
 check('蓝牙款加入了录制按钮', bt.includes("t('录制按键')"));
 check('蓝牙款按 isV10 决定是否记录间隔', bt.includes('isV10 ? Math.min(Math.max(measured, 10), 3000) : 50'));
-check('蓝牙款录制不改协议编码（仍然写 mask/keyCode/delay）', bt.includes('multiKeys: [...list, { mask, keyCode, delay }]'));
+check('蓝牙款录制仍然写 mask/keyCode/delay 结构', bt.includes('list.push({ mask, keyCode, delay: 50 })'));
+check('蓝牙款录制把间隔记到上一行（语义：按下后等多久）', bt.includes('prev.delay = gapForPrev;'));
 
 const kcp = readFileSync('src/components/KeyConfigPanel.jsx', 'utf8');
 check('老协议面板加入了录制按钮', kcp.includes("t('录制按键')"));
