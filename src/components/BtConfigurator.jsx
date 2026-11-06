@@ -326,16 +326,21 @@ export default function BtConfigurator() {
       if (e.metaKey) mask |= (e.code === 'MetaRight' ? 0x80 : 0x08);
 
       const now = (typeof performance !== 'undefined' ? performance.now() : Date.now());
-      const measured = lastTime ? Math.round(now - lastTime) : 50;
+      const measured = lastTime ? Math.round(now - lastTime) : 0;
       lastTime = now;
-      const delay = isV10 ? Math.min(Math.max(measured, 10), 3000) : 50;
+      // 界面语义：delay = "这个键按下后等多久" → 测到的间隔属于**上一行**
+      const gapForPrev = isV10 ? Math.min(Math.max(measured, 10), 3000) : 50;
 
-      const list = currentConfig.multiKeys || [];
+      const list = [...(currentConfig.multiKeys || [])];
       if (list.length >= 18) { setBtRecording(false); return; }
-      updateConfig({
-        mode: MODE.MULTI,
-        multiKeys: [...list, { mask, keyCode, delay }],
-      });
+      if (list.length > 0) {
+        const prev = { ...list[list.length - 1] };
+        prev.delay = gapForPrev;
+        list[list.length - 1] = prev;
+      }
+      // 新行自己的间隔先给默认 50，等下一个键按下时再被覆盖
+      list.push({ mask, keyCode, delay: 50 });
+      updateConfig({ mode: MODE.MULTI, multiKeys: list });
     };
     window.addEventListener('keydown', handler, true);
     return () => window.removeEventListener('keydown', handler, true);
@@ -388,10 +393,14 @@ export default function BtConfigurator() {
     const room = Math.max(0, 18 - list.length);
     const take = rows.slice(0, room);
     if (!take.length) { toast.error(t('槽位已满（最多 18 个），请先删除一些按键')); return; }
-    updateConfig({
-      mode: MODE.MULTI,
-      multiKeys: [...list, ...take],
-    });
+    // 间隔语义是"按下后等多久"：最后一行没有下一个键 → 延时归零
+    const merged = [...list, ...take].map((mk, i, arr) => (i === arr.length - 1 ? { ...mk, delay: 0 } : mk));
+    // 若原来已有内容，原最后一个键现在后面接新键了 → 给它补上默认 50ms
+    if (list.length > 0 && take.length > 0) {
+      const prevIdx = list.length - 1;
+      if (!merged[prevIdx].delay) merged[prevIdx] = { ...merged[prevIdx], delay: 50 };
+    }
+    updateConfig({ mode: MODE.MULTI, multiKeys: merged });
     setBtPassword('');
     if (take.length < rows.length) {
       toast.success(t('已追加 {n} 个按键（槽位不足，其余 {m} 个未添加）', { n: take.length, m: rows.length - take.length }));
