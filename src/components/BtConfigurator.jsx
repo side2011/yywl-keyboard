@@ -143,7 +143,11 @@ export default function BtConfigurator() {
       setKnobSwap(Array.isArray(arr) ? arr.map(Boolean) : defaultKnobSwap(keyCount, knobCount));
     } catch { setKnobSwap([]); }
   }, [knobSwapKey]);
+  const knobManualKey = `bt-knob-manual5:${modelId || 'bt'}-${keyCount}k${knobCount}r`;
+  const isKnobSwapManual = () => { try { return localStorage.getItem(knobManualKey) === '1'; } catch { return false; } };
+
   const toggleKnobSwap = (n, next) => {
+    try { localStorage.setItem(knobManualKey, '1'); } catch { /* 忽略 */ }
     const arr = [...knobSwap];
     while (arr.length <= n) arr.push(false);
     arr[n] = next;
@@ -481,6 +485,28 @@ export default function BtConfigurator() {
         console.log('[BtKnob] 层' + (l + 1) + ' keyCount=' + keyCount + ' knobCount=' + knobCount +
           ' swap=' + JSON.stringify(knobSwap) +
           ' 设备槽16~21=' + [6, 7, 8, 9, 10, 11].slice(0, knobCount * 3).map((s) => 'keyNo' + (16 + s - keyCount) + ':' + (configs[s] ? configs[s].keyCode : '?')).join(' '));
+        // ---- 旋钮方向自动判定（按设备出厂的旋钮动作）----
+        // 音量- = 0x00EA，音量+ = 0x00E9（BT_MEDIA_KEYS）
+        if (knobCount > 0 && !isKnobSwapManual()) {
+          const s0 = configs[keyCount];              // 设备 keyNo16
+          const s2 = configs[keyCount + 2];          // 设备 keyNo18
+          const isMedia = (x) => x && x.mode === 2;
+          if (isMedia(s0) && isMedia(s2)) {
+            const k0 = s0.mediaCode, k2 = s2.mediaCode;
+            let wantSwap = null;
+            if (k0 === 0x00EA && k2 === 0x00E9) wantSwap = false;   // 16=音量- → 左是音量-，方向正确
+            else if (k0 === 0x00E9 && k2 === 0x00EA) wantSwap = true; // 16=音量+ → 设备把右转存在 16，需要对调
+            if (wantSwap !== null) {
+              console.log('[BtKnob] 旋钮方向自动判定: 16=' + k0.toString(16) + ' 18=' + k2.toString(16) +
+                ' → ' + (wantSwap ? '需要对调' : '方向正确，不对调'));
+              const arr = Array.from({ length: knobCount }, () => wantSwap);
+              if (JSON.stringify(arr) !== JSON.stringify(knobSwap)) setKnobSwap(arr);
+            } else {
+              console.log('[BtKnob] 旋钮动作不是出厂默认(16=' + k0.toString(16) + ' 18=' + k2.toString(16) + ')，保持当前设置 ' + JSON.stringify(knobSwap));
+            }
+          }
+        }
+
         const padded = Array.from({ length: totalSlots }, (_, i) => configs[i] || createDefaultConfig());
         const ui = new Array(totalSlots);
         for (let i = 0; i < totalSlots; i += 1) ui[mapSlot(i)] = padded[i];
