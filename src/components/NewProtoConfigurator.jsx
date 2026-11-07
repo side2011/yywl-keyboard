@@ -224,7 +224,6 @@ export default function NewProtoConfigurator() {
   const rgbModes = getNewProtoRgbModes() || [];
   const [ledMode, setLedMode] = useState(0);
   const [ledColors, setLedColors] = useState(() => Array.from({ length: 16 }, () => ({ r: 0, g: 0, b: 0 })));
-  const [ledSleepAllow, setLedSleepAllow] = useState(1);
   const [ledLoading, setLedLoading] = useState(false);
 
   const tabs = [
@@ -285,7 +284,7 @@ export default function NewProtoConfigurator() {
           handler.readLedLayer(0).then(led => {
             setLedProbeOk(true);   // 有响应 → 认为支持灯光（即使 0x0B 没声明）
             setLedMode(led.mode);
-            setLedSleepAllow(led.sleepAllow);
+            console.log('[NewProto] 灯光 sleepAllow(设备值)=' + led.sleepAllow + '（不开放给用户改）');
             if (led.colors && led.colors.length > 0) {
               setLedColors(Array.from({ length: 16 }, (_, i) => led.colors[i] || { r: 0, g: 0, b: 0 }));
             }
@@ -628,7 +627,7 @@ export default function NewProtoConfigurator() {
       if (!handler) throw new Error('Protocol handler not available');
       const led = await handler.readLedLayer(currentLayer);
       setLedMode(led.mode);
-      setLedSleepAllow(led.sleepAllow);
+            console.log('[NewProto] 灯光 sleepAllow(设备值)=' + led.sleepAllow + '（不开放给用户改）');
       if (led.colors && led.colors.length > 0) {
         const newColors = Array.from({ length: 16 }, (_, i) => led.colors[i] || { r: 0, g: 0, b: 0 });
         setLedColors(newColors);
@@ -648,7 +647,7 @@ export default function NewProtoConfigurator() {
       // 灯光配置写入所有层 — 多层键盘(如6键3层款)所有层统一生效,
       // 否则只改当前层会出现其他层灯光没关闭/没生效的问题
       for (let l = 0; l < layerCount; l++) {
-        await handler.writeLedLayer(l, ledMode, ledColors, ledSleepAllow);
+        await handler.writeLedLayer(l, ledMode, ledColors, 1);   // C# 上位机固定写 0x01，不对用户开放
       }
       toast.success(t('灯光配置已保存到所有层！'), { id: 'led-save' });
     } catch (e) {
@@ -1409,11 +1408,7 @@ export default function NewProtoConfigurator() {
                     onClick={handleReadLed} disabled={ledLoading}>{t('读取灯光')}</button>
                   <button className="px-6 py-2.5 text-base font-bold bg-gradient-to-r from-indigo-600 to-violet-600 text-white rounded-lg hover:from-indigo-500 hover:to-violet-500 transition-all cursor-pointer shadow-md"
                     onClick={handleSaveLed} disabled={ledLoading}>{t('保存灯光')}</button>
-                  <label className="flex items-center gap-2 ml-auto text-base text-gray-600 cursor-pointer select-none">
-                    <input type="checkbox" className="checkbox checkbox-sm checkbox-indigo" checked={ledSleepAllow === 1}
-                      onChange={(e) => setLedSleepAllow(e.target.checked ? 1 : 0)} />
-                    {t('休眠允许')}
-                  </label>
+                  
                 </div>
 
                 {/* 灯光模式选择 — 2列布局 (与上位机一致) */}
