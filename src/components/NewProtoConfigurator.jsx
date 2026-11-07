@@ -648,8 +648,24 @@ export default function NewProtoConfigurator() {
       // 否则只改当前层会出现其他层灯光没关闭/没生效的问题
       for (let l = 0; l < layerCount; l++) {
         await handler.writeLedLayer(l, ledMode, ledColors, 1);   // C# 上位机固定写 0x01，不对用户开放
+        await new Promise((r) => setTimeout(r, 120));
       }
-      toast.success(t('灯光配置已保存到所有层！'), { id: 'led-save' });
+      // 保存后立刻回读，把"设备里实际存的模式和颜色"告诉用户（避免"设了没生效"扯不清）
+      let back = null;
+      try { back = await handler.readLedLayer(currentLayer); } catch (e) { console.warn('[NewProto] 保存后回读失败:', e.message); }
+      if (back) {
+        const c0 = (back.colors && back.colors[0]) || { r: 0, g: 0, b: 0 };
+        const hex = '#' + [c0.r, c0.g, c0.b].map((v) => Number(v).toString(16).padStart(2, '0')).join('');
+        const name = rgbModes[back.mode] || ('模式' + back.mode);
+        console.log('[NewProto] 保存后回读: mode=' + back.mode + '(' + name + ') 颜色0=' + hex);
+        if (back.mode !== ledMode) {
+          toast.error(t('设备回读的模式是「{got}」，与设置的「{want}」不一致', { got: name, want: rgbModes[ledMode] || ledMode }), { id: 'led-save', duration: 9000 });
+        } else {
+          toast.success(t('灯光已保存到所有层（设备回读：{mode}，颜色 {hex}）', { mode: name, hex }), { id: 'led-save', duration: 7000 });
+        }
+      } else {
+        toast.success(t('灯光配置已保存到所有层！'), { id: 'led-save' });
+      }
     } catch (e) {
       toast.error(t('保存灯光配置失败: {msg}', { msg: e.message }), { id: 'led-save' });
     } finally { setLedLoading(false); }
@@ -1427,6 +1443,9 @@ export default function NewProtoConfigurator() {
                       </button>
                     ))}
                   </div>
+                  <p className="mt-3 text-xs text-gray-500 leading-relaxed">
+                    {t('「自定义颜色」= 所有按键常亮显示你选的颜色；「按键触发」= 按下才亮、松开熄灭。两者效果不同，按需要选。')}
+                  </p>
                 </div>
 
                 {/* 基础颜色设置 */}
