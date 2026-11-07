@@ -11,15 +11,10 @@
 //   · 客户仍可在「固件信息」里逐个旋钮取消勾选，换批次时不用改代码
 
 /** 该型号默认是否需要对调左右（true = 设备存反了） */
-export function defaultKnobSwap(keyCount, knobCount) {
-  // 目前只有 4+1 款确认需要默认对调（现场读回 keyNo16=音量+，而 QT 定义 16=左）。
-  // 其它型号一律默认不对调 —— 6+1 已确认是正的；剩余款式等客户反馈再逐个添加。
-  // 个别批次真的相反时，售后可在「固件信息」里勾选「旋钮 N 左右对调」临时纠正。
-  const knob = Number(knobCount) || 0;
-  const keys = Number(keyCount) || 0;
-  if (!knob) return [];
-  const swapOn = keys === 4 && knob === 1;
-  return Array.from({ length: knob }, () => swapOn);
+export function defaultKnobSwap() {
+  // 默认一律不对调：实际方向交给 BtConfigurator 在读到设备数据后**自动判定**
+  // （读 keyNo16/18 的出厂动作是音量-还是音量+），这样不同批次都能自适应。
+  return [];
 }
 
 /**
