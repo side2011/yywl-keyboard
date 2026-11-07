@@ -225,6 +225,10 @@ export default function NewProtoConfigurator() {
   const [ledMode, setLedMode] = useState(0);
   const [ledColors, setLedColors] = useState(() => Array.from({ length: 16 }, () => ({ r: 0, g: 0, b: 0 })));
   const [ledLoading, setLedLoading] = useState(false);
+  // 灯光模式对照测试：只在 URL 带 ?ledtest=1 时出现，客户默认看不到
+  const ledTestMode = (() => {
+    try { return new URLSearchParams(location.search).get('ledtest') === '1'; } catch { return false; }
+  })();
 
   const tabs = [
     { label: t('键盘'), mode: KEY_MODE.KEYBOARD },
@@ -1472,7 +1476,34 @@ export default function NewProtoConfigurator() {
                   </div>
                   <p className="mt-3 text-xs text-gray-500 leading-relaxed">
                     {t('「自定义颜色」= 所有按键常亮显示你选的颜色；「按键触发」= 按下才亮、松开熄灭。两者效果不同，按需要选。')}
-                  </p>
+
+                  {ledTestMode && (
+                    <div className="mt-3 p-3 rounded-lg border border-amber-300 bg-amber-50">
+                      <div className="text-xs font-bold text-amber-800 mb-2">
+                        灯光模式对照测试（内部用，?ledtest=1 才显示）：逐个点，观察键盘效果并记下来
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {rgbModes.map((n, i) => (
+                          <button key={i}
+                            className="px-2.5 py-1 text-xs rounded-md border border-amber-400 bg-white text-amber-800 hover:bg-amber-100 cursor-pointer"
+                            onClick={async () => {
+                              const handler = getNewHandler();
+                              if (!handler) { toast.error(t('键盘未连接')); return; }
+                              try {
+                                await handler.writeLedLayer(currentLayer, i, ledColors, 1);
+                                toast.success(t('已写入模式 {n}，请看键盘效果', { n: i }), { id: 'ledtest' });
+                                console.log('[LED-TEST] 写入模式 ' + i);
+                              } catch (e) { toast.error(t('写入失败：{msg}', { msg: e.message })); }
+                            }}>
+                            {i} · {t(n)}
+                          </button>
+                        ))}
+                      </div>
+                      <div className="mt-2 text-[11px] text-amber-700 leading-relaxed">
+                        记法示例：0=全灭，1=按下才亮，2=常亮，…  把这张表发给我们，就能把模式名定死
+                      </div>
+                    </div>
+                  )}                  </p>
                 </div>
 
                 {/* 基础颜色设置 */}
