@@ -9,14 +9,8 @@ const check = (name, ok, extra = '') => {
   else { fail += 1; console.log('  ✗ ' + name + (extra ? '  → ' + extra : '')); }
 };
 
-// 1) 从 C# 资源取权威文案（fxjnew_rgb_0..9）
-const resx = readFileSync('yywlkey/Hid_Common/Properties/Resources.resx', 'utf8');
-const want = [];
-for (let i = 0; i <= 9; i += 1) {
-  const m = resx.match(new RegExp(`<data name="fxjnew_rgb_${i}"[^>]*>\\s*<value>([^<]*)</value>`));
-  want.push(m ? m[1] : `(缺失${i})`);
-}
-console.log('  C# 顺序: ' + want.join(' / '));
+// 1) 新协议 2.0 没有 C# 上位机，模式表只能按"设备实测确认"维护：
+//    0 = 关闭灯光，1 = 按键触发（客户现场确认），其余 2..9 标成「模式N」待确认
 
 // 2) 从 JS 取表
 const src = readFileSync('src/services/new-protocol.js', 'utf8');
@@ -24,14 +18,13 @@ const table = src.match(/export const RGB_MODES_J = \[([\s\S]*?)\];/);
 if (!table) { console.log('  ✗ 找不到 RGB_MODES_J'); process.exit(1); }
 const got = [...table[1].matchAll(/'([^']+)'/g)].map((m) => m[1]);
 
-check('模式数量一致（10 项）', want.length === got.length && got.length === 10, `${want.length} vs ${got.length}`);
-for (let i = 0; i < Math.min(want.length, got.length); i += 1) {
-  check(`[${i}] ${want[i]}`, want[i] === got[i], `C#=${want[i]} JS=${got[i]}`);
+check('模式数量 10 项', got.length === 10, String(got.length));
+check('index 0 = 关闭灯光', got[0] === '关闭灯光', got[0]);
+check('index 1 = 按键触发（实测确认）', got[1] === '按键触发', got[1]);
+for (let i = 2; i <= 9; i += 1) {
+  check(`index ${i} 标为待确认「模式${i}」`, got[i] === `模式${i}`, got[i]);
 }
 
-// 3) 具体盯住历史错项
-check('index 1 是「自定义颜色」而不是「灯光常量」', got[1] === '自定义颜色', got[1]);
-check('index 3 是「按键触发」', got[3] === '按键触发', got[3]);
 
 // 4) 「休眠允许」不再出现在界面上
 const ui = readFileSync('src/components/NewProtoConfigurator.jsx', 'utf8');
