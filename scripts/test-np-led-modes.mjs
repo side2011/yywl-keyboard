@@ -1,4 +1,4 @@
-// 回归测试：新协议灯光模式表必须与 C# 完全一致 + 不再暴露"休眠允许"
+// 回归测试：新协议 2.0 灯光模式表必须与 QT 上位机界面一致（用户 + 下位机技术确认）
 // 用法: node scripts/test-np-led-modes.mjs
 import { readFileSync } from 'node:fs';
 
@@ -9,30 +9,27 @@ const check = (name, ok, extra = '') => {
   else { fail += 1; console.log('  ✗ ' + name + (extra ? '  → ' + extra : '')); }
 };
 
-// 1) 新协议 2.0 没有 C# 上位机，模式表只能按"设备实测确认"维护：
-//    0 = 关闭灯光，1 = 按键触发（客户现场确认），其余 2..9 标成「模式N」待确认
+// QT 软件「灯效」界面的顺序（2 列，左→右、上→下）
+const QT_MODES = ['关闭灯光','灯光常量','流光','按键触发','彩虹流光','波浪','彩虹跑马','呼吸','涟漪','交叉涟漪'];
 
-// 2) 从 JS 取表
 const src = readFileSync('src/services/new-protocol.js', 'utf8');
 const table = src.match(/export const RGB_MODES_J = \[([\s\S]*?)\];/);
 if (!table) { console.log('  ✗ 找不到 RGB_MODES_J'); process.exit(1); }
 const got = [...table[1].matchAll(/'([^']+)'/g)].map((m) => m[1]);
 
 check('模式数量 10 项', got.length === 10, String(got.length));
-check('index 0 = 关闭灯光', got[0] === '关闭灯光', got[0]);
-check('index 1 = 按键触发（实测确认）', got[1] === '按键触发', got[1]);
-for (let i = 2; i <= 9; i += 1) {
-  check(`index ${i} 标为待确认「模式${i}」`, got[i] === `模式${i}`, got[i]);
+for (let i = 0; i < QT_MODES.length; i += 1) {
+  check(`[${i}] ${QT_MODES[i]}`, got[i] === QT_MODES[i], `QT=${QT_MODES[i]} JS=${got[i]}`);
 }
 
-
-// 4) 「休眠允许」不再出现在界面上
+// 界面：不再显示「设备回读」，不再有临时测试面板
 const ui = readFileSync('src/components/NewProtoConfigurator.jsx', 'utf8');
-check('界面不再有「休眠允许」控件', !ui.includes('休眠允许'));
+check('不再弹「设备回读」提示', !/toast\.(success|error)\(t\('灯光已保存到所有层（设备回读/.test(ui) && !ui.includes('设备回读：{mode}'));
+check('没有 ?ledtest 测试面板', !ui.includes('ledTestMode'));
 check('写入固定 sleepAllow=1', ui.includes('writeLedLayer(l, ledMode, ledColors, 1)'));
-check('不再有 ledSleepAllow 状态', !ui.includes('setLedSleepAllow'));
+check('界面不再有「休眠允许」控件', !ui.includes('休眠允许'));
 
-// 5) 协议隔离：老协议 / 蓝牙款不被牵连
+// 协议隔离
 const kc = readFileSync('src/components/KeyboardConfigurator.jsx', 'utf8');
 const bt = readFileSync('src/components/BtConfigurator.jsx', 'utf8');
 check('老协议未引入 RGB_MODES_J', !kc.includes('RGB_MODES_J'));
