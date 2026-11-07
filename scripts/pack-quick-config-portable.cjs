@@ -86,23 +86,11 @@ for (const f of [zipVersioned, zipStable]) {
   console.log('  ' + path.basename(f) + '  ' + (fs.statSync(f).size / 1048576).toFixed(1) + ' MB');
 }
 
-// 5) 上传
-const env = loadEnv();
-const { FTP_HOST: HOST, FTP_USER: USER, FTP_PASS: PASS } = env;
-if (!HOST || !USER) { console.error('缺少 FTP 凭据（quick-config/.env）'); process.exit(1); }
-const CRED = `${USER}:${PASS}`;
-for (const f of [zipVersioned, zipStable]) {
-  const name = path.basename(f);
-  console.log('上传 ' + name + ' …');
-  execFileSync('curl.exe', ['-sS', '--fail', '--max-time', '1800', '--retry', '3', '--retry-delay', '10', '--retry-all-errors',
-    '-T', f, `ftp://${HOST}/download/${name}`, '--user', CRED], { stdio: 'pipe' });
-  console.log('  ✓ ' + name);
-}
-
-// 6) 校验
-for (const name of [path.basename(zipVersioned), path.basename(zipStable)]) {
-  const out = execFileSync('curl.exe', ['-sI', '--max-time', '60', `https://key.itytsoft.com/download/${name}`], { encoding: 'utf8' });
-  const type = (out.match(/content-type:\s*(\S+)/i) || [])[1] || '?';
-  const len = Number((out.match(/content-length:\s*(\d+)/i) || [])[1] || 0);
-  console.log(`  ${name}: ${type}  ${(len / 1048576).toFixed(1)} MB ${type.includes('html') ? '（❌ 未生效）' : '✓'}`);
-}
+// 5) 只做本地打包 —— 这是内部工具，不要上传到公网下载服务器
+console.log('');
+console.log('本地文件（不上传服务器）：');
+console.log('  ' + path.relative(ROOT, zipVersioned));
+console.log('  ' + path.relative(ROOT, zipStable));
+console.log('');
+console.log('如需手动上传（确认后再执行）：');
+console.log('  curl -T "<zip路径>" ftp://<FTP_HOST>/download/<文件名> --user <FTP_USER>:<FTP_PASS>');
