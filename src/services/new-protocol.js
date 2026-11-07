@@ -1105,6 +1105,10 @@ export class NewProtocolHandler {
       data[5 + i * 3] = c.g;
       data[6 + i * 3] = c.b;
     }
+    // 留一份真实字节，出问题时能直接和 C# 上位机对比
+    const hexHead = Array.from(data.slice(0, 10)).map((b) => b.toString(16).padStart(2, '0')).join(' ');
+    console.log('[NewProto] 写灯光 层' + (layer + 1) + ' mode=' + data[0] + ' sleepAllow=' + data[1] +
+      ' 前10字节=[' + hexHead + '] 颜色0=rgb(' + data[4] + ',' + data[5] + ',' + data[6] + ')');
     await this._sendPacket(CMD.WRITE_LED_LAYER, layer, 0xFE, Array.from(data));
     await this._waitForAck(CMD.WRITE_LED_LAYER, layer, 0xFE, 8000);
     // 保存到 flash, 确保灯光模式持久化
@@ -1120,6 +1124,9 @@ export class NewProtocolHandler {
       5000
     );
     const data = body.slice(4, 4 + 52);
+      console.log('[NewProto] 读灯光 层' + (layer + 1) + ' dataLen=' + body[3] +
+        ' [0]=mode=' + (data[0] || 0) + ' [1]=sleepAllow=' + (data[1] || 0) +
+        ' 前10字节=[' + Array.from(data.slice(0, 10)).map((b) => b.toString(16).padStart(2, '0')).join(' ') + ']');
     const mode = data[0];
     const sleepAllow = data[1];
     const colors = [];
