@@ -225,10 +225,6 @@ export default function NewProtoConfigurator() {
   const [ledMode, setLedMode] = useState(0);
   const [ledColors, setLedColors] = useState(() => Array.from({ length: 16 }, () => ({ r: 0, g: 0, b: 0 })));
   const [ledLoading, setLedLoading] = useState(false);
-  // 灯光模式对照测试：只在 URL 带 ?ledtest=1 时出现，客户默认看不到
-  const ledTestMode = (() => {
-    try { return new URLSearchParams(location.search).get('ledtest') === '1'; } catch { return false; }
-  })();
 
   const tabs = [
     { label: t('键盘'), mode: KEY_MODE.KEYBOARD },
@@ -681,22 +677,13 @@ export default function NewProtoConfigurator() {
         await handler.writeLedLayer(l, ledMode, ledColors, 1);   // C# 上位机固定写 0x01，不对用户开放
         await new Promise((r) => setTimeout(r, 120));
       }
-      // 保存后立刻回读，把"设备里实际存的模式和颜色"告诉用户（避免"设了没生效"扯不清）
-      let back = null;
-      try { back = await handler.readLedLayer(currentLayer); } catch (e) { console.warn('[NewProto] 保存后回读失败:', e.message); }
-      if (back) {
-        const c0 = (back.colors && back.colors[0]) || { r: 0, g: 0, b: 0 };
-        const hex = '#' + [c0.r, c0.g, c0.b].map((v) => Number(v).toString(16).padStart(2, '0')).join('');
-        const name = rgbModes[back.mode] || ('模式' + back.mode);
-        console.log('[NewProto] 保存后回读: mode=' + back.mode + '(' + name + ') 颜色0=' + hex);
-        if (back.mode !== ledMode) {
-          toast.error(t('设备回读的模式是「{got}」，与设置的「{want}」不一致', { got: name, want: rgbModes[ledMode] || ledMode }), { id: 'led-save', duration: 9000 });
-        } else {
-          toast.success(t('灯光已保存到所有层（设备回读：{mode}，颜色 {hex}）', { mode: name, hex }), { id: 'led-save', duration: 7000 });
-        }
-      } else {
-        toast.success(t('灯光配置已保存到所有层！'), { id: 'led-save' });
-      }
+      // 只留日志做诊断：6 键蓝牙款默认灯光为空时回读会固定返回 1，
+      // 显示成"设备回读：xxx"只会误导客户（下位机技术已确认）
+      try {
+        const back = await handler.readLedLayer(currentLayer);
+        if (back) console.log('[NewProto] 保存后回读: mode=' + back.mode + ' 颜色0=' + JSON.stringify(back.colors?.[0] || null));
+      } catch (e) { console.warn('[NewProto] 保存后回读失败:', e.message); }
+      toast.success(t('灯光配置已保存到所有层！'), { id: 'led-save' });
     } catch (e) {
       toast.error(t('保存灯光配置失败: {msg}', { msg: e.message }), { id: 'led-save' });
     } finally { setLedLoading(false); }
@@ -1474,36 +1461,6 @@ export default function NewProtoConfigurator() {
                       </button>
                     ))}
                   </div>
-                  <p className="mt-3 text-xs text-gray-500 leading-relaxed">
-                    {t('「自定义颜色」= 所有按键常亮显示你选的颜色；「按键触发」= 按下才亮、松开熄灭。两者效果不同，按需要选。')}
-
-                  {ledTestMode && (
-                    <div className="mt-3 p-3 rounded-lg border border-amber-300 bg-amber-50">
-                      <div className="text-xs font-bold text-amber-800 mb-2">
-                        灯光模式对照测试（内部用，?ledtest=1 才显示）：逐个点，观察键盘效果并记下来
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        {rgbModes.map((n, i) => (
-                          <button key={i}
-                            className="px-2.5 py-1 text-xs rounded-md border border-amber-400 bg-white text-amber-800 hover:bg-amber-100 cursor-pointer"
-                            onClick={async () => {
-                              const handler = getNewHandler();
-                              if (!handler) { toast.error(t('键盘未连接')); return; }
-                              try {
-                                await handler.writeLedLayer(currentLayer, i, ledColors, 1);
-                                toast.success(t('已写入模式 {n}，请看键盘效果', { n: i }), { id: 'ledtest' });
-                                console.log('[LED-TEST] 写入模式 ' + i);
-                              } catch (e) { toast.error(t('写入失败：{msg}', { msg: e.message })); }
-                            }}>
-                            {i} · {t(n)}
-                          </button>
-                        ))}
-                      </div>
-                      <div className="mt-2 text-[11px] text-amber-700 leading-relaxed">
-                        记法示例：0=全灭，1=按下才亮，2=常亮，…  把这张表发给我们，就能把模式名定死
-                      </div>
-                    </div>
-                  )}                  </p>
                 </div>
 
                 {/* 基础颜色设置 */}
