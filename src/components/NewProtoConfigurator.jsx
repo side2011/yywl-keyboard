@@ -625,14 +625,41 @@ export default function NewProtoConfigurator() {
       toast.loading(t('正在读取灯光配置...'), { id: 'led-read' });
       const handler = getNewHandler();
       if (!handler) throw new Error('Protocol handler not available');
-      const led = await handler.readLedLayer(currentLayer);
+      // 把所有层的灯光都读一遍：设备是每层一份灯光，只读当前层容易和"正在亮的那层"错位
+      const perLayer = [];
+      const totalLayers = Math.max(1, layerCount || 1);
+      for (let l = 0; l < totalLayers; l += 1) {
+        try {
+          const one = await handler.readLedLayer(l);
+          perLayer.push({ layer: l, led: one });
+          console.log('[NewProto] 层' + (l + 1) + ' 灯光: mode=' + one.mode +
+            (rgbModes[one.mode] ? '(' + rgbModes[one.mode] + ')' : '') +
+            ' sleepAllow=' + one.sleepAllow);
+        } catch (e) {
+          perLayer.push({ layer: l, led: null });
+          console.warn('[NewProto] 层' + (l + 1) + ' 灯光读取失败: ' + e.message);
+        }
+      }
+      const cur = perLayer[currentLayer] || perLayer[0];
+      const led = cur && cur.led;
+      if (!led) throw new Error(t('当前层灯光读取失败'));
+
+      // 各层模式不一致时明确提示（否则客户会以为"读错了"）
+      const modes = perLayer.map((x) => (x.led ? x.led.mode : -1));
+      const uniq = [...new Set(modes.filter((m) => m >= 0))];
+      if (uniq.length > 1) {
+        const detail = perLayer.map((x) => '层' + (x.layer + 1) + '=' + (x.led ? (rgbModes[x.led.mode] || x.led.mode) : '读取失败')).join('，');
+        console.warn('[NewProto] 各层灯光模式不一致：' + detail);
+        toast(t('各层灯光模式不一致：{detail}。界面显示的是当前层（层{cur}）', { detail, cur: currentLayer + 1 }), { id: 'led-read', duration: 9000 });
+      } else {
+        toast.success(t('灯光配置读取成功！'), { id: 'led-read' });
+      }
+
       setLedMode(led.mode);
-            console.log('[NewProto] 灯光 sleepAllow(设备值)=' + led.sleepAllow + '（不开放给用户改）');
       if (led.colors && led.colors.length > 0) {
         const newColors = Array.from({ length: 16 }, (_, i) => led.colors[i] || { r: 0, g: 0, b: 0 });
         setLedColors(newColors);
       }
-      toast.success(t('灯光配置读取成功！'), { id: 'led-read' });
     } catch (e) {
       toast.error(t('读取灯光配置失败: {msg}', { msg: e.message }), { id: 'led-read' });
     } finally { setLedLoading(false); }
