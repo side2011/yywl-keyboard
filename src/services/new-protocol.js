@@ -28,8 +28,8 @@ export const NEW_MODEL_NAMES = {
 
 // 新协议 RGB 灯光模式 (10 modes) — 与上位机软件一致
 export const RGB_MODES_J = [
-  '关闭灯光',     // 0
-  '灯光常量',     // 1
+  '关闭灯光',     // 0  fxjnew_rgb_0
+  '自定义颜色',   // 1  fxjnew_rgb_1  ← 之前误写成「灯光常量」
   '流光',         // 2
   '按键触发',     // 3
   '彩虹流光',     // 4
