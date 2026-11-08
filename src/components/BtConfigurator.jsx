@@ -1231,16 +1231,15 @@ export default function BtConfigurator() {
             </div>
           </div>
 
-          {/* 蓝牙款专属使用说明：这台固件的"只写不读"特性容易让人误会 */}
+          {/* 当前款式注意事项：这台固件的"只写不读"特性容易让人误会 */}
           <details className="mt-4 rounded-xl border border-gray-200 bg-white p-4 text-sm text-gray-600">
             <summary className="cursor-pointer font-bold text-gray-700 select-none">
-              {t('蓝牙款使用说明（灯光 / 延时 只写不读）')}
+              {t('当前款式注意事项')}
             </summary>
             <ul className="mt-3 space-y-1.5 list-disc pl-5 leading-relaxed">
               <li>{t('灯光：只能设置写入，读取配置时不会带出当前灯光，显示默认值属正常。')}</li>
               <li>{t('延时：同上，只能设置写入；读取后显示 0 属正常，要改就重新填值再保存。')}</li>
               <li>{t('多键合一：按顺序依次触发，但本机型固件没有"每步之间的间隔"，需要停顿请用「整键延时」或桌面版扩展动作。')}</li>
-              <li>{t('16 键款的第 16 个键在内部 18 号槽位，本工具已自动处理，无需手动设置。')}</li>
               <li>{t('新协议（版本 2.0）机型不受上述限制，延时与灯光都可以正常读取。')}</li>
             </ul>
           </details>
