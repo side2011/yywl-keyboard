@@ -31,7 +31,7 @@ export function getConfigs(keyboardId) {
 /**
  * 新增配置
  */
-export function addConfig({ configName, keyboardId, keyConfigs, rgbMode, customColor, delays, extra }) {
+export function addConfig({ configName, keyboardId, modelKey, keyConfigs, rgbMode, customColor, delays, extra }) {
   const all = getAll();
   // 检查同名
   if (all.some(c => c.configName === configName && c.keyboardId === keyboardId)) {
@@ -41,6 +41,9 @@ export function addConfig({ configName, keyboardId, keyConfigs, rgbMode, customC
     id: genId(),
     configName,
     keyboardId,
+    // 机型 key（BT-6+0 / 6K / 4K…）——给「快速配置」这类外部工具识别用，
+    // 不能用 keyboardId：网页新协议页的 keyboardId 是芯片名 AC632N
+    modelKey: modelKey || keyboardId,
     keyConfigs,
     rgbMode: rgbMode ?? 0,
     customColor: customColor ?? { r: 255, g: 255, b: 255 },
@@ -56,7 +59,7 @@ export function addConfig({ configName, keyboardId, keyConfigs, rgbMode, customC
 /**
  * 更新配置
  */
-export function updateConfig(id, { configName, keyboardId, keyConfigs, rgbMode, customColor, delays, extra }) {
+export function updateConfig(id, { configName, keyboardId, modelKey, keyConfigs, rgbMode, customColor, delays, extra }) {
   const all = getAll();
   // 检查同名（排除自身）
   if (all.some(c => c.configName === configName && c.keyboardId === keyboardId && c.id !== id)) {
@@ -64,7 +67,7 @@ export function updateConfig(id, { configName, keyboardId, keyConfigs, rgbMode, 
   }
   const idx = all.findIndex(c => c.id === id);
   if (idx === -1) throw new Error('配置不存在');
-  all[idx] = { ...all[idx], configName, keyboardId, keyConfigs, rgbMode, customColor, delays, extra: extra ?? all[idx].extra ?? null };
+  all[idx] = { ...all[idx], configName, keyboardId, modelKey: modelKey || all[idx].modelKey || keyboardId, keyConfigs, rgbMode, customColor, delays, extra: extra ?? all[idx].extra ?? null };
   saveAll(all);
   return all[idx];
 }
