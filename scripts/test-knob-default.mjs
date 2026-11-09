@@ -1,4 +1,4 @@
-// 回归测试：旋钮左右只对 6+2 硬编码互换，其它款式必须保持不预设
+// 回归测试：旋钮左右只对 4+1 与 6+2 硬编码互换，其它款式必须保持不预设
 // 用法: node scripts/test-knob-default.mjs
 import { readFileSync } from 'node:fs';
 import { defaultKnobSwap, mapKnobSlot } from '../src/services/knob-order.js';
@@ -10,9 +10,12 @@ const check = (name, ok, extra = '') => {
   else { fail += 1; console.log('  ✗ ' + name + (extra ? '  → ' + extra : '')); }
 };
 
-// ---- 只有 6+2 互换 ----
+// ---- 只有 4+1 与 6+2 互换 ----
 check('6+2 → 两个旋钮都互换', JSON.stringify(defaultKnobSwap(6, 2)) === '[true,true]', JSON.stringify(defaultKnobSwap(6, 2)));
-const others = [[1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0],[8,0],[9,0],[12,0],[16,0],[4,1],[6,1],[9,2],[6,3],[16,2]];
+check('4+1 → 单个旋钮互换', JSON.stringify(defaultKnobSwap(4, 1)) === '[true]', JSON.stringify(defaultKnobSwap(4, 1)));
+check('4+1 与 6+2 之外全部不互换（含 6+1、9+2、16+2、5+1、3+1）',
+  [[6,1],[9,2],[16,2],[5,1],[3,1],[1,1]].every(([k, n]) => defaultKnobSwap(k, n).every((v) => v === false)));
+const others = [[1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0],[8,0],[9,0],[12,0],[16,0],[6,1],[9,2],[6,3],[16,2],[5,1],[3,1]];
 for (const [k, n] of others) {
   const got = defaultKnobSwap(k, n);
   check(`${k}+${n} 不互换`, Array.isArray(got) && got.every((v) => v === false), JSON.stringify(got));
