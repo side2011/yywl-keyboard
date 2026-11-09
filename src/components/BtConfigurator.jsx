@@ -1076,6 +1076,9 @@ export default function BtConfigurator() {
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-base font-bold text-gray-600">{t('物理按键')}</h3>
+              {knobCount > 0 && (
+                <p className="text-[10px] text-gray-400 mt-0.5">{t('旋钮的「左 / 右」与实物相反时，点旋钮上的 ⇄ 一键互换（自动记住）')}</p>
+              )}
 
               {btLayerCount > 1 && (
                 <button onClick={() => setCopyAllOpen(true)} disabled={loading}
@@ -1111,8 +1114,12 @@ export default function BtConfigurator() {
                       {Array.from({ length: keyCount }, (_, i) => renderSlot(i, 'min-w-0 px-1.5'))}
                     </div>
                     <div className="rounded-xl border-2 border-dashed border-indigo-200 bg-indigo-50/50 p-1.5 flex-shrink-0 w-[132px]">
-                      <div className="text-[11px] font-bold text-indigo-500 mb-1 text-center tracking-wide">
-                        {t('旋钮')} 1
+                      <div className="flex items-center justify-center gap-1 mb-1">
+                        <span className="text-[11px] font-bold text-indigo-500 tracking-wide">{t('旋钮')} 1</span>
+                        <button
+                          className={"w-4 h-4 rounded flex items-center justify-center text-[10px] leading-none font-bold transition-colors cursor-pointer " + (knobSwap[0] ? "bg-indigo-500 text-white" : "bg-white text-indigo-400 border border-indigo-200 hover:bg-indigo-100")}
+                          title={t('左右与实际相反时点这里互换（会记住）')}
+                          onClick={(e) => { e.stopPropagation(); toggleKnobSwap(0, !knobSwap[0]); }}>⇄</button>
                       </div>
                       <div className="grid grid-cols-3 gap-1">
                         {[t('左'), t('中'), t('右')].map((pos, k) => {
@@ -1148,8 +1155,12 @@ export default function BtConfigurator() {
                         const base = keyCount + n * 3;
                         return (
                           <div key={n} className="rounded-xl border-2 border-dashed border-indigo-200 bg-indigo-50/50 p-2">
-                            <div className="text-[11px] font-bold text-indigo-500 mb-1.5 text-center tracking-wide">
-                              {t('旋钮')} {n + 1}
+                            <div className="flex items-center justify-center gap-1 mb-1.5">
+                              <span className="text-[11px] font-bold text-indigo-500 tracking-wide">{t('旋钮')} {n + 1}</span>
+                              <button
+                                className={"w-4 h-4 rounded flex items-center justify-center text-[10px] leading-none font-bold transition-colors cursor-pointer " + (knobSwap[n] ? "bg-indigo-500 text-white" : "bg-white text-indigo-400 border border-indigo-200 hover:bg-indigo-100")}
+                                title={t('左右与实际相反时点这里互换（会记住）')}
+                                onClick={(e) => { e.stopPropagation(); toggleKnobSwap(n, !knobSwap[n]); }}>⇄</button>
                             </div>
                             <div className="grid grid-cols-3 gap-1.5">
                               {[t('左'), t('中'), t('右')].map((pos, k) => {
