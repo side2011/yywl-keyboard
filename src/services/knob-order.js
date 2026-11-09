@@ -12,13 +12,15 @@
 
 /** 该型号默认是否需要对调左右（true = 设备存反了） */
 export function defaultKnobSwap(keyCount, knobCount) {
-  // 只对「6 键 + 2 旋钮」这一款硬编码互换（2026-11 用户确认左右是反的）。
-  // 其它款式一律不预设，避免像以前那样"改一款影响一片"。
+  // 硬编码（2026-11 用户确认）：目前只有这两款旋钮左右是反的
+  //   · 4 键 + 1 旋钮
+  //   · 6 键 + 2 旋钮
+  // 其它款式一律不预设，避免"改一款影响一片"。
   // 个别批次方向不同的，用「固件信息」里的「旋钮N 左右对调」勾选兜底。
   const keys = Number(keyCount) || 0;
   const knob = Number(knobCount) || 0;
   if (!knob) return [];
-  const swapOn = keys === 6 && knob === 2;
+  const swapOn = (keys === 4 && knob === 1) || (keys === 6 && knob === 2);
   return Array.from({ length: knob }, () => swapOn);
 }
 
