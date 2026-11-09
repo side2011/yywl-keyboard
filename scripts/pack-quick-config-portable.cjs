@@ -58,17 +58,18 @@ const readme = `YYWL 快速配置 · 绿色版 v${VERSION}（免安装）
 `;
 fs.writeFileSync(path.join(UNPACKED, '绿色版使用说明.txt'), readme, 'utf8');
 
-// 3.5) 组装 zip 目录：用 rename 把 win-unpacked 临时改成中文名（同盘瞬时完成，不复制大文件）
+// 3.5) 组装 zip 目录：用 robocopy 复制到中文名目录（rename 在 Windows 上常被占用/杀软锁住 → EPERM）
 const stageRoot = path.join(OUT_DIR, 'stage-green');
 const stageDir = path.join(stageRoot, 'YYWL快速配置-绿色版');
 fs.rmSync(stageRoot, { recursive: true, force: true });
 fs.mkdirSync(stageRoot, { recursive: true });
-fs.renameSync(UNPACKED, stageDir);
-const restoreUnpacked = () => {
-  try { if (fs.existsSync(stageDir)) { fs.rmSync(UNPACKED, { recursive: true, force: true }); fs.renameSync(stageDir, UNPACKED); } } catch (err) { console.log('还原 win-unpacked 失败: ' + err.message); }
-};
-process.on('exit', restoreUnpacked);
-console.log('已组装 zip 目录: YYWL快速配置-绿色版（rename）');
+try {
+  execFileSync('robocopy', [UNPACKED, stageDir, '/E', '/NFL', '/NDL', '/NJH', '/NJS', '/NP', '/R:2', '/W:2'], { stdio: 'pipe' });
+} catch (e) {
+  // robocopy 返回码 < 8 都算成功
+  if (typeof e.status !== 'number' || e.status >= 8) throw e;
+}
+console.log('已组装 zip 目录: YYWL快速配置-绿色版（robocopy）');
 
 // 4) 打 zip（.NET，UTF-8 文件名）
 const zipVersioned = path.join(OUT_DIR, `yywl-quick-config-${VERSION}-win-x64-portable.zip`);
@@ -79,7 +80,6 @@ const ps = (zip) => `Add-Type -AssemblyName System.IO.Compression.FileSystem; ` 
   `[System.IO.Compression.CompressionLevel]::Optimal, $false)`;
 execFileSync('powershell', ['-NoProfile', '-Command', ps(zipVersioned)], { stdio: 'pipe' });
 fs.copyFileSync(zipVersioned, zipStable);
-restoreUnpacked();
 fs.rmSync(stageRoot, { recursive: true, force: true });
 console.log('已打包:');
 for (const f of [zipVersioned, zipStable]) {
