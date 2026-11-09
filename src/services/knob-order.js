@@ -11,10 +11,15 @@
 //   · 客户仍可在「固件信息」里逐个旋钮取消勾选，换批次时不用改代码
 
 /** 该型号默认是否需要对调左右（true = 设备存反了） */
-export function defaultKnobSwap() {
-  // 默认一律不对调：实际方向交给 BtConfigurator 在读到设备数据后**自动判定**
-  // （读 keyNo16/18 的出厂动作是音量-还是音量+），这样不同批次都能自适应。
-  return [];
+export function defaultKnobSwap(keyCount, knobCount) {
+  // 只对「6 键 + 2 旋钮」这一款硬编码互换（2026-11 用户确认左右是反的）。
+  // 其它款式一律不预设，避免像以前那样"改一款影响一片"。
+  // 个别批次方向不同的，用「固件信息」里的「旋钮N 左右对调」勾选兜底。
+  const keys = Number(keyCount) || 0;
+  const knob = Number(knobCount) || 0;
+  if (!knob) return [];
+  const swapOn = keys === 6 && knob === 2;
+  return Array.from({ length: knob }, () => swapOn);
 }
 
 /**
