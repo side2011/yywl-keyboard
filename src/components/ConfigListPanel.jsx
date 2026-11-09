@@ -4,7 +4,7 @@ import { useLang } from '../context/LanguageContext.jsx';
 import { getConfigs, addConfig, updateConfig, deleteConfig, exportConfigs, importConfigs } from '../services/config-storage';
 import toast from 'react-hot-toast';
 
-export default function ConfigListPanel({ modelId, keyConfigs, rgbMode, rgbMode2, customColor, customColor2, delays, extra, layers, onLoadConfig }) {
+export default function ConfigListPanel({ modelId, modelKey, keyConfigs, rgbMode, rgbMode2, customColor, customColor2, delays, extra, layers, onLoadConfig }) {
   const { t } = useLang();
   const [configs, setConfigs] = useState([]);
   const [configName, setConfigName] = useState('');
@@ -28,7 +28,7 @@ export default function ConfigListPanel({ modelId, keyConfigs, rgbMode, rgbMode2
   const handleSave = () => {
     if (!configName.trim()) { toast.error(t('请输入配置名称')); return; }
     try {
-      const entry = addConfig({ configName: configName.trim(), keyboardId: modelId, keyConfigs, rgbMode, rgbMode2, customColor, customColor2, delays, extra: buildExtra() });
+      const entry = addConfig({ configName: configName.trim(), keyboardId: modelId, modelKey: modelKey || modelId, keyConfigs, rgbMode, rgbMode2, customColor, customColor2, delays, extra: buildExtra() });
       toast.success(t('配置已保存'));
       setConfigName('');
       setSelectedId(entry.id);
@@ -40,7 +40,7 @@ export default function ConfigListPanel({ modelId, keyConfigs, rgbMode, rgbMode2
     if (!selectedId) { toast.error(t('请先选择一个配置')); return; }
     if (!configName.trim()) { toast.error(t('请输入配置名称')); return; }
     try {
-      updateConfig(selectedId, { configName: configName.trim(), keyboardId: modelId, keyConfigs, rgbMode, rgbMode2, customColor, customColor2, delays, extra: buildExtra() });
+      updateConfig(selectedId, { configName: configName.trim(), keyboardId: modelId, modelKey: modelKey || modelId, keyConfigs, rgbMode, rgbMode2, customColor, customColor2, delays, extra: buildExtra() });
       toast.success(t('配置已更新'));
       refresh();
     } catch (e) { toast.error(e.message); }
