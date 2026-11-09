@@ -1224,7 +1224,15 @@ export default function NewProtoConfigurator() {
                 {/* 手动插入按键面板 */}
                 {insertKeyOpen && !macroRecording && (
                   <div className="mb-4 p-4 bg-gray-50 rounded-xl border border-gray-200">
-                    <p className="text-xs text-gray-400 mb-3">{t('点击下方按键插入到宏中 (插入到选中步骤后，未选中则追加到末尾)')}</p>
+                    <div className="flex items-center justify-between mb-3 gap-3">
+                      <p className="text-xs text-gray-400">{t('点击下方按键插入到宏中 (插入到选中步骤后，未选中则追加到末尾)')}</p>
+                      <button
+                        className="px-2.5 py-1 text-xs font-semibold rounded-md border border-gray-300 text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors cursor-pointer flex-shrink-0"
+                        onClick={() => setInsertKeyOpen(false)}
+                        title={t('关闭')}>
+                        × {t('关闭')}
+                      </button>
+                    </div>
                     <VirtualKeyboard
                       onSelect={insertMacroKey}
                       selectedCode={null}
@@ -1254,66 +1262,63 @@ export default function NewProtoConfigurator() {
                   </div>
                 )}
 
-                {/* 步骤时间线 */}
-                <div className="space-y-1.5 max-h-[400px] overflow-y-auto pr-1">
+                {/* 步骤：横向小卡片（每张卡右上角 × 可删） */}
+                <div className="flex flex-wrap gap-2 max-h-[320px] overflow-y-auto pr-1">
                   {(currentConfig.macroSteps || []).length === 0 ? (
-                    <div className="text-center py-8 text-gray-400">
+                    <div className="w-full text-center py-8 text-gray-400">
                       <div className="text-3xl mb-2">🎬</div>
                       <p className="text-sm">{macroRecording ? t('等待按键输入...') : t('点击"开始录制"来录制宏，或手动添加步骤')}</p>
                     </div>
                   ) : (
                     (currentConfig.macroSteps || []).map((step, idx) => (
-                      <React.Fragment key={idx}>
                       <div
-                        className={`flex items-center gap-2 p-2.5 rounded-lg border-2 transition-all ${
-                          !macroRecording ? 'cursor-pointer' : ''
-                        } ${
+                        key={idx}
+                        className={'relative w-[124px] rounded-xl border-2 px-2 pt-2 pb-2.5 transition-all ' + (
                           selectedStepIdx === idx
                             ? 'border-indigo-400 bg-indigo-50 shadow-sm'
                             : step.action === MACRO_STEP.DELAY ? 'bg-amber-50 border-amber-200 hover:border-amber-300' : 'bg-white border-gray-200 hover:border-gray-300'
-                        }`}
+                        ) + (!macroRecording && step.action !== MACRO_STEP.DELAY ? ' cursor-pointer' : '')}
                         onClick={() => {
                           if (macroRecording) return;
-                          if (step.action === MACRO_STEP.DELAY) return; // DELAY 步骤不可选中
+                          if (step.action === MACRO_STEP.DELAY) return;
                           setSelectedStepIdx(selectedStepIdx === idx ? null : idx);
                         }}>
-                        <span className="text-xs text-gray-400 font-mono w-6 text-right flex-shrink-0">#{idx + 1}</span>
-                        <span className={`text-sm font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${
-                          step.action === MACRO_STEP.PRESS ? 'bg-indigo-100 text-indigo-700' :
-                          step.action === MACRO_STEP.DOWN ? 'bg-blue-100 text-blue-700' :
-                          step.action === MACRO_STEP.UP ? 'bg-gray-100 text-gray-600' :
-                          'bg-amber-100 text-amber-700'
-                        }`}>
-                          {t(MACRO_STEP_LABELS[step.action] || '未知')}
-                        </span>
+                        <div className="flex items-center justify-between gap-1 mb-1">
+                          <span className="text-[11px] text-gray-400 font-mono">#{idx + 1}</span>
+                          <span className={'text-[10px] font-bold px-1.5 py-0.5 rounded-full ' + (
+                            step.action === MACRO_STEP.PRESS ? 'bg-indigo-100 text-indigo-700'
+                              : step.action === MACRO_STEP.DOWN ? 'bg-blue-100 text-blue-700'
+                                : step.action === MACRO_STEP.UP ? 'bg-gray-100 text-gray-600'
+                                  : 'bg-amber-100 text-amber-700'
+                          )}>
+                            {t(MACRO_STEP_LABELS[step.action] || '未知')}
+                          </span>
+                        </div>
                         {step.action !== MACRO_STEP.DELAY && (
-                          <span className="text-sm font-semibold text-gray-800 min-w-[3rem]">
+                          <div className="text-sm font-semibold text-gray-800 truncate pr-3" title={keyCodeToLabel(step.keyCode)}>
                             {step.modifier ? MODIFIERS.filter(m => step.modifier & m.bit).map(m => t(m.label)).join('+') + '+' : ''}
                             {keyCodeToLabel(step.keyCode)}
-                          </span>
+                          </div>
                         )}
                         {step.action === MACRO_STEP.DELAY && (
                           <div className="flex items-center gap-1">
-                            <input type="number" className="w-20 rounded-lg border border-amber-300 text-sm px-2 py-1 outline-none focus:border-amber-500"
+                            <input type="number" className="w-16 rounded-lg border border-amber-300 text-sm px-1.5 py-1 outline-none focus:border-amber-500"
                               value={step.delay || 0} min={0} max={65535}
                               onChange={(e) => updateMacroStep(idx, 'delay', Math.max(0, Math.min(65535, Number(e.target.value) || 0)))}
                               disabled={macroRecording} />
-                            <span className="text-sm text-amber-600">ms</span>
+                            <span className="text-xs text-amber-600">ms</span>
                           </div>
                         )}
-                        <div className="flex-1" />
+                        {selectedStepIdx === idx && (
+                          <div className="mt-1 text-[10px] text-indigo-500 leading-tight">{t('延时插在此步后')}</div>
+                        )}
                         {!macroRecording && (
-                          <button className="w-5 h-5 rounded-full hover:bg-red-100 flex items-center justify-center text-red-400 hover:text-red-600 text-xs cursor-pointer flex-shrink-0"
+                          <button
+                            className="absolute top-1 right-1 w-4 h-4 rounded-full text-gray-300 hover:text-red-500 hover:bg-red-50 flex items-center justify-center text-xs leading-none cursor-pointer"
+                            title={t('删除此步')}
                             onClick={(e) => { e.stopPropagation(); removeMacroStep(idx); }}>×</button>
                         )}
                       </div>
-                      {selectedStepIdx === idx && !macroRecording && (
-                        <div className="flex items-center gap-1.5 px-3 py-1 text-xs text-indigo-500 font-medium">
-                          <span>↓</span>
-                          <span>{t('延时将插入到此位置')}</span>
-                        </div>
-                      )}
-                      </React.Fragment>
                     ))
                   )}
                 </div>
