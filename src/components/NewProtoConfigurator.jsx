@@ -1062,6 +1062,7 @@ export default function NewProtoConfigurator() {
           {/* 配置列表 */}
           <ConfigListPanel
             modelId={modelId || 'AC632N'}
+      modelKey={`${keyCount}K${deviceInfo?.encoderCount ? `-E${deviceInfo.encoderCount}` : ''}${deviceInfo?.layoutId ? `-L${deviceInfo.layoutId}` : ''}`}
             keyConfigs={keyConfigs}
             layers={allLayerConfigsRef.current}
             rgbMode={0}
