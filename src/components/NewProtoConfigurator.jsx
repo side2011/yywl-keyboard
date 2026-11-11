@@ -259,6 +259,8 @@ export default function NewProtoConfigurator() {
           const handler = getNewHandler();
           if (!handler) throw new Error('Protocol handler not available');
           const lc = deviceInfo.layerCount || 1;
+          // 换设备先清缓存，避免上一台（如 3 层 6 键）的层数据残留到这一台（如 1 层 2 键）
+          allLayerConfigsRef.current = [];
           const allConfigs = [];
           for (let l = 0; l < lc; l++) {
             const configs = await handler.readLayer(l, keyCount);
@@ -451,7 +453,12 @@ export default function NewProtoConfigurator() {
       //   固件每次 SAVE_LAYER 之后会把"当前活动层"切到刚保存的那一层；
       //   若按 1→2→3 保存，最后停在第三层，客户一上手看到的就是第 3 层配置。
       //   倒序保存后，最后写入的是第 1 层，设备停在正常使用的第 1 层。
-      const totalLayers = cached.length || 1;
+      // ★ 只保存设备真正支持的层数：1 层款就只写 1 层
+      //   （之前用 cached.length，切过 3 层设备后残留 3 条缓存，会把 1 层设备按 3 层写）
+      const totalLayers = Math.max(1, Math.min(layerCount, cached.length || layerCount));
+      if (cached.length > layerCount) {
+        console.log('[NewProto] 缓存层数(' + cached.length + ') 多于设备层数(' + layerCount + ')，按设备层数保存');
+      }
       for (let l = totalLayers - 1; l >= 0; l -= 1) {
         // 防御：按设备实际键数补齐/截断，避免少写或多写
         const raw = cached[l];
