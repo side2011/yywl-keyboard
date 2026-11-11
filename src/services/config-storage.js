@@ -14,6 +14,11 @@ function saveAll(configs) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(configs));
 }
 
+// 一条配置属于哪个机型：优先 modelKey（2K/6K/BT-6+0/4K…），老数据回落到 keyboardId
+function scopeKeyOf(c) {
+  return c.modelKey || c.keyboardId;
+}
+
 // 生成唯一 ID
 function genId() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
@@ -24,8 +29,9 @@ function genId() {
  * @param {string} keyboardId - 设备型号，如 "3K", "6K"
  * @returns {Array} 配置列表
  */
-export function getConfigs(keyboardId) {
-  return getAll().filter(c => c.keyboardId === keyboardId);
+export function getConfigs(key) {
+  if (!key) return [];
+  return getAll().filter((c) => scopeKeyOf(c) === key);
 }
 
 /**
@@ -34,7 +40,7 @@ export function getConfigs(keyboardId) {
 export function addConfig({ configName, keyboardId, modelKey, keyConfigs, rgbMode, customColor, delays, extra }) {
   const all = getAll();
   // 检查同名
-  if (all.some(c => c.configName === configName && c.keyboardId === keyboardId)) {
+  if (all.some(c => c.configName === configName && scopeKeyOf(c) === (modelKey || keyboardId))) {
     throw new Error('名称已存在');
   }
   const entry = {
@@ -62,7 +68,7 @@ export function addConfig({ configName, keyboardId, modelKey, keyConfigs, rgbMod
 export function updateConfig(id, { configName, keyboardId, modelKey, keyConfigs, rgbMode, customColor, delays, extra }) {
   const all = getAll();
   // 检查同名（排除自身）
-  if (all.some(c => c.configName === configName && c.keyboardId === keyboardId && c.id !== id)) {
+  if (all.some(c => c.configName === configName && scopeKeyOf(c) === (modelKey || keyboardId) && c.id !== id)) {
     throw new Error('名称已存在');
   }
   const idx = all.findIndex(c => c.id === id);
@@ -83,9 +89,29 @@ export function deleteConfig(id) {
 /**
  * 导出所有配置为 JSON 字符串
  */
-export function exportConfigs(keyboardId) {
-  const configs = keyboardId ? getConfigs(keyboardId) : getAll();
+export function exportConfigs(key) {
+  const configs = key ? getConfigs(key) : getAll();
   return JSON.stringify(configs, null, 2);
+}
+
+/**
+ * 老数据迁移：新协议页历史配置的 keyboardId 都是 AC632N（没有 modelKey），
+ * 按 keyConfigs/layers 的键数补上 modelKey（2K/6K…），这样各机型列表才会分开。
+ * 返回迁移条数。
+ */
+export function migrateLegacyModelKeys(protocolId) {
+  if (!protocolId) return 0;
+  const all = getAll();
+  let changed = 0;
+  for (const c of all) {
+    if (c.modelKey || c.keyboardId !== protocolId) continue;
+    const n = (Array.isArray(c.layers) && c.layers[0]?.length) || (c.keyConfigs?.length) || 0;
+    if (!n) continue;
+    c.modelKey = `${n}K`;
+    changed += 1;
+  }
+  if (changed) saveAll(all);
+  return changed;
 }
 
 /**
@@ -98,7 +124,7 @@ export function importConfigs(jsonStr) {
   let count = 0;
   for (const cfg of imported) {
     if (!cfg.configName || !cfg.keyboardId) continue;
-    if (all.some(c => c.configName === cfg.configName && c.keyboardId === cfg.keyboardId)) continue;
+    if (all.some(c => c.configName === cfg.configName && scopeKeyOf(c) === scopeKeyOf(cfg))) continue;
     all.push({ ...cfg, id: genId() });
     count++;
   }
