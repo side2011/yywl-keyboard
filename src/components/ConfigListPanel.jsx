@@ -1,7 +1,7 @@
 // src/components/ConfigListPanel.jsx
 import React, { useState, useEffect, useCallback } from 'react';
 import { useLang } from '../context/LanguageContext.jsx';
-import { getConfigs, addConfig, updateConfig, deleteConfig, exportConfigs, importConfigs } from '../services/config-storage';
+import { getConfigs, addConfig, updateConfig, deleteConfig, exportConfigs, importConfigs, migrateLegacyModelKeys } from '../services/config-storage';
 import toast from 'react-hot-toast';
 
 export default function ConfigListPanel({ modelId, modelKey, keyConfigs, rgbMode, rgbMode2, customColor, customColor2, delays, extra, layers, onLoadConfig }) {
@@ -10,9 +10,19 @@ export default function ConfigListPanel({ modelId, modelKey, keyConfigs, rgbMode
   const [configName, setConfigName] = useState('');
   const [selectedId, setSelectedId] = useState(null);
 
+  // 列表按"机型"分开：新协议页的 modelId 是协议标记 AC632N，真正区分机型要用 modelKey（2K/6K…）
+  const scopeKey = modelKey || modelId;
+
   const refresh = useCallback(() => {
-    if (modelId) setConfigs(getConfigs(modelId));
-  }, [modelId]);
+    if (!scopeKey) return;
+    // 新协议页：把历史遗留（只有 keyboardId=AC632N、没有 modelKey）的配置按键数迁移一次，
+    // 否则老的 6 键配置会出现在 2 键、9 键… 每个机型的列表里
+    if (modelKey && modelId && modelKey !== modelId) {
+      const moved = migrateLegacyModelKeys(modelId);
+      if (moved) console.log('[ConfigList] 老配置已按机型迁移 ' + moved + ' 条（' + modelId + ' → 键数K）');
+    }
+    setConfigs(getConfigs(scopeKey));
+  }, [scopeKey, modelId, modelKey]);
 
   useEffect(() => { refresh(); }, [refresh]);
 
@@ -79,7 +89,7 @@ export default function ConfigListPanel({ modelId, modelKey, keyConfigs, rgbMode
   };
 
   const handleExport = () => {
-    const json = exportConfigs(modelId);
+    const json = exportConfigs(scopeKey);
     const blob = new Blob([json], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
