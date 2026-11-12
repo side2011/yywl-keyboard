@@ -848,6 +848,23 @@ function buildMenu() {
           checked: appConfig.autoUpdate !== false,
           click: (item) => saveConfig({ autoUpdate: item.checked }),
         },
+        {
+          label: '打开动作日志（排查扩展动作）',
+          click: () => {
+            try {
+              const file = actionLogFile_();
+              if (!fs.existsSync(file)) fs.writeFileSync(file, '', 'utf8');
+              actionLog('用户从菜单打开日志');
+              shell.openPath(file);
+            } catch (e) {
+              dialog.showMessageBox(mainWindow, { type: 'error', message: '打开日志失败', detail: e.message, buttons: ['知道了'] });
+            }
+          },
+        },
+        {
+          label: '打开数据目录（配置/动作/日志）',
+          click: () => { try { shell.openPath(app.getPath('userData')); } catch { /* 忽略 */ } },
+        },
         { label: '版本信息', click: showAbout },
       ],
     },
@@ -937,6 +954,35 @@ const HOTKEY_CANDIDATES = (() => {
 
 let hotkeyConflicts = [];
 
+// ---------- 扩展动作日志（客户报"没效果"时的唯一证据来源）----------
+let actionLogFile = null;
+function actionLogFile_() {
+  if (actionLogFile) return actionLogFile;
+  try {
+    const dir = app.getPath('userData');
+    fs.mkdirSync(dir, { recursive: true });
+    actionLogFile = path.join(dir, 'actions.log');
+  } catch {
+    actionLogFile = path.join(app.getPath('temp'), 'yywl-actions.log');
+  }
+  return actionLogFile;
+}
+function actionLog(msg) {
+  const line = '[' + new Date().toISOString() + '] ' + msg;
+  try { console.log('[action] ' + msg); } catch { /* 忽略 */ }
+  try {
+    const file = actionLogFile_();
+    // 超过 2MB 就截断重来，避免无限增长
+    try {
+      const st = fs.statSync(file);
+      if (st.size > 2 * 1024 * 1024) fs.renameSync(file, file + '.old');
+    } catch { /* 文件不存在时忽略 */ }
+    fs.appendFileSync(file, line + '\r\n', 'utf8');
+  } catch { /* 忽略 */ }
+}
+
+
+
 function registerHotkeys() {
   // 动作被修改/禁用后，旧的自动循环必须停掉，否则会一直跑下去
   try { executor.stopAllLoops?.(); } catch { /* 忽略 */ }
@@ -953,14 +999,18 @@ function registerHotkeys() {
     for (const acc of accs) {
       try {
         const ok = globalShortcut.register(acc, () => {
+          const label = act.name || ('#' + act.slot);
+          actionLog('触发热键 ' + acc + ' → ' + label + '（步骤 ' + (act.steps || []).length + ' 个）');
           executor.runAction(act)
             .then((r) => {
-              if (!r.ok) { console.warn('[action] 执行失败:', act.name || act.slot, r.error); return; }
-              if (r.looping !== undefined) {
-                console.log('[action] ' + (r.looping ? '开始' : '停止') + '自动循环:', act.name || ('#' + act.slot));
+              if (!r.ok) {
+                actionLog('执行失败 ' + label + ': ' + r.error + (r.stepIndex != null ? ' @步骤' + (r.stepIndex + 1) : ''));
+                return;
               }
+              if (r.looping !== undefined) actionLog((r.looping ? '开始' : '停止') + '自动循环: ' + label);
+              else actionLog('执行成功 ' + label + '（' + (r.ms || 0) + 'ms）');
             })
-            .catch((e) => console.warn('[action] 执行异常:', e.message));
+            .catch((e) => actionLog('执行异常 ' + label + ': ' + e.message));
         });
         if (ok) registeredShortcuts.push(acc);
         else {
