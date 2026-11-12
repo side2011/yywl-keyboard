@@ -27,8 +27,10 @@ const path = require('path');
 //       "PowerShellWorker is not defined"（扩展动作测试报的就是这个）。
 //       非 Windows 或文件缺失时降级为 null，后续自动退回"单次 spawn powershell"。
 let PowerShellWorker = null;
+let ADD_TYPE_PS = null;   // C# 类型定义（单次 spawn 兜底时必须带上）
 try {
   ({ PowerShellWorker } = require('./ps-worker.cjs'));
+  ({ ADD_TYPE_PS } = require('./ps-worker.cjs'));
 } catch (err) {
   console.warn('[actions] ps-worker.cjs 未加载，将退回单次 spawn 模式:', err.message);
 }
@@ -165,7 +167,9 @@ function createExecutor(deps, opts = {}) {
         console.warn('[actions] PowerShell 代理失败，退回单次 spawn:', e.message);
       }
     }
-    await run('powershell', ['-NoProfile', '-NonInteractive', '-Command', psLines]);
+    // 兜底：单次 spawn。**必须**把 Add-Type 带上，否则 [YywlSend]::xxx 会 TypeNotFound
+    const fallback = ADD_TYPE_PS ? (ADD_TYPE_PS + '\n' + psLines) : psLines;
+    await run('powershell', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', fallback]);
   };
 
   async function sendKeys(keys) {
