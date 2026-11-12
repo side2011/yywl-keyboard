@@ -1,7 +1,7 @@
 {
   "name": "yywl-keyboard-app",
   "private": true,
-  "version": "1.4.16",
+  "version": "1.4.17",
   "description": "YYWL 多功能小键盘配置工具（网页版 / Electron 桌面版）",
   "author": "YYWL <1291285148@qq.com>",
   "type": "module",
@@ -37,6 +37,7 @@
       "dist/**/*",
       "desktop-main.cjs",
       "desktop-updater.cjs",
+        "desktop-update-apply.cjs",
       "desktop-actions.cjs",
       "ps-worker.cjs",
       "desktop-preload.cjs",
