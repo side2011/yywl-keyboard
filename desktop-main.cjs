@@ -1384,6 +1384,18 @@ function setAutoStart(enabled) {
 
 const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock) {
+  // 已经有实例在跑（常见：客户装了新版又双击新版 exe，或旧版还在托盘里 → 看起来"新版没生效"）
+  try { actionLog('第二个实例被拦下 version=' + app.getVersion() + ' | exec=' + process.execPath); } catch { /* 忽略 */ }
+  try {
+    dialog.showMessageBoxSync({
+      type: 'info',
+      title: '程序已经在运行',
+      message: '检测到已经有一个「YYWL键盘配置工具」在运行',
+      detail: '本次启动的版本：' + app.getVersion() + '\n路径：' + process.execPath
+        + '\n\n如果已打开的窗口里显示的是旧版本，请：\n1) 在托盘图标上右键 → 「退出」\n2) 再重新运行本程序',
+      buttons: ['知道了'],
+    });
+  } catch { /* 忽略 */ }
   app.quit();
 } else {
   // 用户关窗口后程序会缩在托盘里。这时再双击图标启动，应该把已有的窗口唤出来，
@@ -1418,6 +1430,10 @@ if (!gotTheLock) {
     const pointer = updater.readPointer(webBase);
     webRoot = pointer ? pointer.dir : BUNDLED_DIST;
     console.log('[web] 使用目录:', webRoot, '版本:', (updater.readVersion(webRoot) || {}).buildId || 'embedded');
+    actionLog('程序启动 version=' + app.getVersion() +
+      ' | exec=' + process.execPath +
+      ' | userData=' + app.getPath('userData') +
+      ' | webBuild=' + ((updater.readVersion(webRoot) || {}).buildId || 'embedded'));
 
     loadActions();
     setupActionsIpc();
