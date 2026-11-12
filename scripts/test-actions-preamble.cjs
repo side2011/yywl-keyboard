@@ -23,7 +23,7 @@ check('WORKER_PS 仍含 stdio 协议 QUIT/DONE', m.WORKER_PS.includes("'QUIT'") 
 
 const src = fs.readFileSync(pathMod.join(ROOT, 'desktop-actions.cjs'), 'utf8');
 check('desktop-actions 引入 ADD_TYPE_PS', src.includes('ADD_TYPE_PS = require(') || src.includes('({ ADD_TYPE_PS } = require('));
-check('兜底路径拼上 ADD_TYPE_PS', src.includes('const fallback = ADD_TYPE_PS'));
+check('兜底路径拼上 Add-Type（ps-worker 缺失时用内联兜底）', src.includes('const preamble = ADD_TYPE_PS || INLINE_ADD_TYPE_PS') && src.includes('const fallback = preamble'));
 check('兜底命令带 -ExecutionPolicy Bypass', src.includes("'-ExecutionPolicy', 'Bypass'"));
 check('desktop-actions 导出 createExecutor', typeof a.createExecutor === 'function');
 
