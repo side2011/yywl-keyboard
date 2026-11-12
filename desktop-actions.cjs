@@ -28,6 +28,25 @@ const path = require('path');
 //       非 Windows 或文件缺失时降级为 null，后续自动退回"单次 spawn powershell"。
 let PowerShellWorker = null;
 let ADD_TYPE_PS = null;   // C# 类型定义（单次 spawn 兜底时必须带上）
+// ps-worker.cjs 万一没打进包（历史打包漏文件），这里还有一份最小定义兜底，
+// 否则 [YywlSend]::xxx 会 TypeNotFound —— 客户报的鼠标动作失败就是这个
+// 最小 Add-Type（与 ps-worker.cjs 里的一致），ps-worker 缺失时兜底用
+const INLINE_ADD_TYPE_PS = [
+  "$ErrorActionPreference = 'Stop'",
+  "if (-not ('YywlSend' -as [type])) {",
+  'Add-Type -TypeDefinition @"',
+  'using System;',
+  'using System.Runtime.InteropServices;',
+  'public class YywlSend {',
+  '  [DllImport("user32.dll")] public static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, IntPtr dwExtraInfo);',
+  '  [DllImport("user32.dll")] public static extern bool SetCursorPos(int x, int y);',
+  '  [DllImport("user32.dll")] public static extern void mouse_event(uint f, uint dx, uint dy, uint d, int e);',
+  '  [StructLayout(LayoutKind.Sequential)] public struct POINT { public int X; public int Y; }',
+  '  [DllImport("user32.dll")] public static extern bool GetCursorPos(out POINT p);',
+  '}',
+  '"@',
+  '}',
+].join('\n');
 try {
   ({ PowerShellWorker } = require('./ps-worker.cjs'));
   ({ ADD_TYPE_PS } = require('./ps-worker.cjs'));
@@ -168,7 +187,8 @@ function createExecutor(deps, opts = {}) {
       }
     }
     // 兜底：单次 spawn。**必须**把 Add-Type 带上，否则 [YywlSend]::xxx 会 TypeNotFound
-    const fallback = ADD_TYPE_PS ? (ADD_TYPE_PS + '\n' + psLines) : psLines;
+    const preamble = ADD_TYPE_PS || INLINE_ADD_TYPE_PS;
+    const fallback = preamble + '\n' + psLines;
     await run('powershell', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', fallback]);
   };
 
