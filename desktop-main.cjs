@@ -16,6 +16,7 @@ const fs = require('fs');
 const path = require('path');
 const { URL } = require('url');
 const updater = require('./desktop-updater.cjs');
+const updateApply = require('./desktop-update-apply.cjs');
 const { createExecutor } = require('./desktop-actions.cjs');
 
 // 安装包内置的网页 (只读, 位于 app.asar 内)
@@ -111,37 +112,19 @@ function isDirWritable(dir) {
 
 // 用隐藏的 PowerShell 脚本：等旧进程退出 → robocopy 覆盖 → 启动新版 → 清理
 function scheduleInPlaceUpdate(newRoot, targetDir, exeName, versionText) {
-  const psPath = path.join(app.getPath('temp'), `yywl-apply-${Date.now()}.ps1`);
-  const logPath = path.join(app.getPath('temp'), 'yywl-update-apply.log');
-  const pid = process.pid;
-  const q = (s) => String(s).replace(/'/g, "''");
-  const ps = [
-    "$ErrorActionPreference = 'Stop'",
-    `$log = '${q(logPath)}'`,
-    "function L($m){ try { \"$([DateTime]::Now.ToString('HH:mm:ss')) $m\" | Out-File -FilePath $log -Append -Encoding utf8 } catch {} }",
-    `L '等待旧进程(PID ${pid})退出...'`,
-    "for ($i=0; $i -lt 300; $i++) { if (-not (Get-Process -Id " + pid + " -ErrorAction SilentlyContinue)) { break }; Start-Sleep -Milliseconds 300 }",
-    "Start-Sleep -Milliseconds 400",
-    `L '开始覆盖: ${q(newRoot)} -> ${q(targetDir)}'`,
-    `$rc = (Start-Process -FilePath 'robocopy.exe' -ArgumentList '${q(newRoot)}','${q(targetDir)}','/E','/R:2','/W:1','/NFL','/NDL','/NJH','/NJS' -Wait -PassThru).ExitCode`,
-    'L "robocopy 退出码: $rc"',
-    "Start-Sleep -Milliseconds 400",
-    `$exe = '${q(path.join(targetDir, exeName))}'`,
-    "if (Test-Path -LiteralPath $exe) { L '启动新版本...'; Start-Process -FilePath $exe } else { L '找不到新版本 exe' }",
-    `Remove-Item -LiteralPath '${q(newRoot)}' -Recurse -Force -ErrorAction SilentlyContinue`,
-    `Remove-Item -LiteralPath '${q(psPath)}' -Force -ErrorAction SilentlyContinue`,
-  ].join('\n');
-
-  fs.writeFileSync(psPath, '\ufeff' + ps, 'utf8');
-  const child = spawn('powershell', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-WindowStyle', 'Hidden', '-File', psPath], {
-    detached: true,
-    stdio: 'ignore',
-    windowsHide: true,
+  // 具体脚本见 desktop-update-apply.cjs（可单测）：
+  //   等旧进程退出 → 超时强杀 → robocopy 重试 3 轮 → 校验 exe → 启动新版 → 写日志
+  const { scriptPath, logPath } = updateApply.applyInBackground({
+    newRoot,
+    targetDir,
+    exeName,
+    versionText,
+    pid: process.pid,
+    tempDir: app.getPath('temp'),
   });
-  child.unref();
-  console.log('[update] 已安排原地更新脚本:', psPath, '目标目录:', targetDir, '版本:', versionText);
+  console.log('[update] 已安排原地更新脚本:', scriptPath, '目标目录:', targetDir, '版本:', versionText, '日志:', logPath);
+  return logPath;
 }
-
 // ---------- 程序自身更新（安装包级别）----------
 // 网页内容能热更新，但主进程/Electron 本身换不了 —— 那些新功能（宏录制、托盘、
 // 窗口关闭保护）都在安装包里。这里做"下载 → 解压 → 启动新版"，
@@ -370,7 +353,9 @@ async function checkPackageUpdate({ manual = false } = {}) {
     setTimeout(() => {
       try { closeUpdWindow(); } catch { /* 忽略 */ }
       app.isQuitting = true;
-      app.quit();
+      // app.quit() 在有窗口/托盘/close 拦截时可能退不干净，
+      // 旧进程不退 → 更新脚本复制旧 exe 被占用 → 客户看到的还是旧版本
+      try { app.exit(0); } catch { app.quit(); }
     }, 800);
     return;
   }
