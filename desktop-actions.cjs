@@ -22,6 +22,17 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 
+// 常驻 PowerShell 代理（Windows 输入事件用）
+// 说明：这里必须显式 require，否则 getPsWorker() 里的 new PowerShellWorker() 会抛
+//       "PowerShellWorker is not defined"（扩展动作测试报的就是这个）。
+//       非 Windows 或文件缺失时降级为 null，后续自动退回"单次 spawn powershell"。
+let PowerShellWorker = null;
+try {
+  ({ PowerShellWorker } = require('./ps-worker.cjs'));
+} catch (err) {
+  console.warn('[actions] ps-worker.cjs 未加载，将退回单次 spawn 模式:', err.message);
+}
+
 const PLATFORM = process.platform; // win32 / darwin / linux
 
 // ---------- 平台工具: 发送按键 ----------
@@ -139,6 +150,7 @@ function createExecutor(deps, opts = {}) {
   let psWorker = null;
   const getPsWorker = () => {
     if (platform !== 'win32') return null;
+    if (!PowerShellWorker) return null;          // ps-worker 未加载 → 走单次 spawn 兜底
     if (!psWorker) psWorker = new PowerShellWorker();
     return psWorker;
   };
