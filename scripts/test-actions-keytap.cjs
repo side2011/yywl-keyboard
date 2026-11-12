@@ -15,7 +15,7 @@ const src = fs.readFileSync('desktop-actions.cjs', 'utf8');
 check('显式 require ./ps-worker.cjs', src.includes("require('./ps-worker.cjs')"));
 check('未加载时置 null（不抛异常）', src.includes('let PowerShellWorker = null;'));
 check('getPsWorker 有 !PowerShellWorker 兜底', src.includes('if (!PowerShellWorker) return null;'));
-check('仍有单次 spawn 兜底路径（且带上 Add-Type 类型定义）', src.includes("run('powershell', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', fallback])") && src.includes('const fallback = ADD_TYPE_PS'));
+check('仍有单次 spawn 兜底路径（且带上 Add-Type 类型定义）', src.includes("run('powershell', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', fallback])") && src.includes('const preamble = ADD_TYPE_PS || INLINE_ADD_TYPE_PS'));
 
 // 2) 模块层面：ps-worker 能正常导出类
 const { PowerShellWorker } = require(path.resolve('ps-worker.cjs'));
