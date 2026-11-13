@@ -1,5 +1,6 @@
 // src/components/KeyboardConfigurator.jsx
 import React, { useState, useEffect, useRef } from 'react';
+import { useKeyDragSwap, swapItems } from '../services/key-drag-swap.js';
 import { isDesktopApp } from '../services/env';
 import { useNavigate } from 'react-router-dom';
 import { useDevice } from '../context/DeviceContext.jsx';
@@ -217,13 +218,31 @@ const KeyboardConfigurator = () => {
   const currentConfig = keyConfigs[selectedKey] || { mode: 0 };
   const getKeyDisplay = (idx) => configToDisplay(keyConfigs[idx], keyCodeToLabel, t);
 
+  // 拖拽互换：两个按键的功能整体对调（有"整键延时"的型号连延时一起换）
+  const handleSwapKeys = (a, b) => {
+    if (a === b) return;
+    setKeyConfigs(prev => swapItems(prev, a, b));
+    if (Array.isArray(delays) && delays.length) {
+      setDelays(prev => (Array.isArray(prev) ? swapItems(prev, a, b) : prev));
+    }
+    setSelectedKey(b);
+    console.log('[OldProto] 拖拽互换 K' + (a + 1) + ' ↔ K' + (b + 1));
+    toast.success(t('已交换 K{n1} 与 K{n2} 的功能，记得点「保存到键盘」写入', { n1: a + 1, n2: b + 1 }));
+  };
+
+  const { dragIndex, overIndex, dragProps } = useKeyDragSwap({ onSwap: handleSwapKeys });
+
   const renderKeyButton = (i, compact = false) => {
     const isSel = selectedKey === i;
     const display = getKeyDisplay(i);
     return (
       <button key={i}
+        {...dragProps(i)}
+        title={t('可拖动到另一个按键上互换功能')}
         className={`relative ${compact ? 'p-2.5' : 'p-4'} rounded-xl border-2 transition-all text-left cursor-pointer ${
           isSel ? 'border-indigo-500 bg-indigo-50 shadow-md shadow-indigo-100' : 'border-gray-200 bg-white hover:border-indigo-300 hover:shadow-sm'
+        } ${dragIndex === i ? 'opacity-40' : ''} ${
+          overIndex === i && dragIndex !== null && dragIndex !== i ? 'ring-2 ring-indigo-400 ring-offset-1' : ''
         }`}
         onClick={() => setSelectedKey(i)}>
         <div className={`flex items-center justify-between ${compact ? 'mb-1' : 'mb-2'}`}>
@@ -285,9 +304,12 @@ const KeyboardConfigurator = () => {
         const display = getKeyDisplay(i);
         if (isCircle) {
           return (
-            <button key={i}
+            <button key={i} {...dragProps(i)}
+              title={t('可拖动到另一个按键上互换功能')}
               className={`w-16 h-16 rounded-full border-2 transition-all flex items-center justify-center cursor-pointer ${
                 isSel ? 'border-indigo-500 bg-indigo-50 shadow-md shadow-indigo-100' : 'border-gray-200 bg-white hover:border-indigo-300 hover:shadow-sm'
+              } ${dragIndex === i ? 'opacity-40' : ''} ${
+                overIndex === i && dragIndex !== null && dragIndex !== i ? 'ring-2 ring-indigo-400' : ''
               }`}
               onClick={() => setSelectedKey(i)}>
               <span className={`text-xs font-semibold text-center leading-tight px-1 line-clamp-2 ${isSel ? 'text-indigo-700' : 'text-gray-600'}`} title={display}>{display}</span>
@@ -295,9 +317,12 @@ const KeyboardConfigurator = () => {
           );
         }
         return (
-          <button key={i}
+          <button key={i} {...dragProps(i)}
+            title={t('可拖动到另一个按键上互换功能')}
             className={`p-4 rounded-xl border-2 transition-all flex items-center justify-center cursor-pointer min-h-[4.5rem] ${
               isSel ? 'border-indigo-500 bg-indigo-50 shadow-md shadow-indigo-100' : 'border-gray-200 bg-white hover:border-indigo-300 hover:shadow-sm'
+            } ${dragIndex === i ? 'opacity-40' : ''} ${
+              overIndex === i && dragIndex !== null && dragIndex !== i ? 'ring-2 ring-indigo-400' : ''
             }`}
             onClick={() => setSelectedKey(i)}>
             <span className={`text-sm font-semibold text-center leading-tight line-clamp-2 ${isSel ? 'text-indigo-700' : 'text-gray-700'}`} title={display}>{display}</span>
