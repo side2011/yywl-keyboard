@@ -20,6 +20,7 @@ import { textToKeyRows } from '../services/char-to-hid';
 import ConfigListPanel from './ConfigListPanel';
 import toast from 'react-hot-toast';
 import { defaultKnobSwap, mapKnobSlot } from '../services/knob-order';
+import { useKeyDragSwap, swapItems } from '../services/key-drag-swap.js';
 
 // 模式: 0=未设置 1=键盘 2=多媒体 3=鼠标 5=延时
 const MODE = { NONE: 0, KEY: 1, MEDIA: 2, MOUSE: 3, MULTI: 4, DELAY: 5 };
@@ -160,6 +161,22 @@ export default function BtConfigurator() {
   // UI 槽位 ↔ 设备槽位（对调时把该旋钮的三个位置倒过来：左↔右，中不变）
   // UI 槽位 ↔ 设备槽位（对调时把该旋钮的三个位置倒过来：左↔右，中不变）
   const mapSlot = (i) => mapKnobSlot(i, keyCount, knobCount, knobSwap);
+
+  // 拖拽互换：把槽位 a 的功能和槽位 b 整体对调（当前层，含按键/旋钮槽位）
+  const handleSwapSlots = (a, b) => {
+    if (a === b) return;
+    const next = swapItems(keyConfigs, a, b);
+    setKeyConfigs(next);
+    const cached = [...layerConfigsRef.current];
+    cached[currentLayer] = next;
+    layerConfigsRef.current = cached;
+    setSelectedKey(b);
+    const label = (i) => (i < keyCount ? 'K' + (i + 1) : '旋钮槽位' + (i - keyCount + 1));
+    console.log('[BtKnob] 拖拽互换 ' + label(a) + ' ↔ ' + label(b));
+    toast.success(t('已交换 {a} 与 {b} 的功能，记得点「保存到键盘」写入', { a: label(a), b: label(b) }));
+  };
+
+  const { dragIndex, overIndex, dragProps } = useKeyDragSwap({ onSwap: handleSwapSlots });
 
   const [currentLayer, setCurrentLayer] = useState(0); // 0..2
   const [keyConfigs, setKeyConfigs] = useState(() => Array.from({ length: totalSlots }, createDefaultConfig));
@@ -1068,9 +1085,12 @@ export default function BtConfigurator() {
                 const isSel = selectedKey === i;
                 const display = getConfigDisplay(keyConfigs[i]);
                 return (
-                  <button key={i} onClick={() => handleSelectKey(i)}
+                  <button key={i} {...dragProps(i)} onClick={() => handleSelectKey(i)}
+                    title={t('可拖动到另一个按键/旋钮槽位上互换功能')}
                     className={`p-2.5 rounded-xl border-2 transition-all text-left ${extraCls} ${
                       isSel ? 'border-indigo-500 bg-indigo-50 shadow-sm' : 'border-gray-200 bg-white hover:border-indigo-300'
+                    } ${dragIndex === i ? 'opacity-40' : ''} ${
+                      overIndex === i && dragIndex !== null && dragIndex !== i ? 'ring-2 ring-indigo-400 ring-offset-1' : ''
                     }`}>
                     <div className={`text-sm font-bold px-2 py-0.5 rounded-full inline-block mb-1 ${isSel ? 'bg-indigo-500 text-white' : 'bg-gray-100 text-gray-500'}`}>
                       {slotLabel(i)}
@@ -1097,11 +1117,14 @@ export default function BtConfigurator() {
                           const idx = base + k;
                           const isSel = selectedKey === idx;
                           return (
-                            <button key={k} onClick={() => handleSelectKey(idx)}
+                            <button key={k} {...dragProps(idx)} onClick={() => handleSelectKey(idx)}
+                              title={t('可拖动到另一个按键/旋钮槽位上互换功能')}
                               className={`rounded-lg border-2 px-0.5 py-1 transition-all cursor-pointer ${
                                 isSel
                                   ? 'border-indigo-500 bg-indigo-500 text-white shadow-sm'
                                   : 'border-gray-200 bg-white text-gray-600 hover:border-indigo-300'
+                              } ${dragIndex === idx ? 'opacity-40' : ''} ${
+                                overIndex === idx && dragIndex !== null && dragIndex !== idx ? 'ring-2 ring-indigo-400' : ''
                               }`}>
                               <div className="text-[10px] font-bold leading-none mb-0.5">{pos}</div>
                               <div className="text-[9px] leading-tight line-clamp-2 break-all opacity-80 min-h-[1.4rem]">
@@ -1134,11 +1157,14 @@ export default function BtConfigurator() {
                                 const idx = base + k;
                                 const isSel = selectedKey === idx;
                                 return (
-                                  <button key={k} onClick={() => handleSelectKey(idx)}
+                                  <button key={k} {...dragProps(idx)} onClick={() => handleSelectKey(idx)}
+                                    title={t('可拖动到另一个按键/旋钮槽位上互换功能')}
                                     className={`rounded-lg border-2 px-1 py-1.5 transition-all cursor-pointer ${
                                       isSel
                                         ? 'border-indigo-500 bg-indigo-500 text-white shadow-sm'
                                         : 'border-gray-200 bg-white text-gray-600 hover:border-indigo-300'
+                                    } ${dragIndex === idx ? 'opacity-40' : ''} ${
+                                      overIndex === idx && dragIndex !== null && dragIndex !== idx ? 'ring-2 ring-indigo-400' : ''
                                     }`}>
                                     <div className="text-[11px] font-bold leading-none mb-1">{pos}</div>
                                     <div className="text-[10px] leading-tight line-clamp-2 break-all opacity-80 min-h-[1.6rem]">
