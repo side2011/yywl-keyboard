@@ -5,6 +5,7 @@ import { isDesktopApp, openActionsWindow, guideUrl } from '../services/env';
 import { fetchActionSummary, toSlotMap } from '../services/action-slots';
 import { useNavigate } from 'react-router-dom';
 import { useDevice } from '../context/DeviceContext.jsx';
+import { useKeyDragSwap, swapItems } from '../services/key-drag-swap.js';
 import { useLang } from '../context/LanguageContext.jsx';
 import {
   KEY_MODE, KEYCODE_LABELS, MODIFIERS,
@@ -430,6 +431,22 @@ export default function NewProtoConfigurator() {
       isReadingRef.current = false;
     }
   };
+
+  // 拖拽互换：把 K(a+1) 的功能和 K(b+1) 整体对调（当前层）
+  const handleSwapKeys = (a, b) => {
+    if (loading || a === b) return;
+    const next = swapItems(keyConfigs, a, b);
+    setKeyConfigs(next);
+    const cached = [...allLayerConfigsRef.current];
+    cached[currentLayer] = next;
+    allLayerConfigsRef.current = cached;
+    setSelectedKey(b);
+    console.log('[NewProto] 拖拽互换 K' + (a + 1) + ' ↔ K' + (b + 1));
+    toast.success(t('已交换 K{n1} 与 K{n2} 的功能，记得点「保存到键盘」写入', { n1: a + 1, n2: b + 1 }));
+  };
+
+  // 拖动状态：禁用时（读取/保存中）不可拖
+  const { dragIndex, overIndex, dragProps } = useKeyDragSwap({ onSwap: handleSwapKeys, disabled: loading });
 
   const handleSaveToDevice = async () => {
     if (isSavingRef.current) {
@@ -1002,11 +1019,17 @@ export default function NewProtoConfigurator() {
                 const display = getConfigDisplay(keyConfigs[i]);
                 return (
                   <button key={i}
+                    {...dragProps(i)}
                     disabled={loading}
+                    title={t('可拖动到另一个按键上互换功能')}
                     className={`relative ${compact ? 'p-2.5' : 'p-5'} rounded-xl border-2 transition-all text-left ${extraCls} ${
                       loading ? 'cursor-not-allowed opacity-60 border-gray-200 bg-gray-50' : 'cursor-pointer'
                     } ${
                       !loading && isSel ? 'border-indigo-500 bg-indigo-50 shadow-md shadow-indigo-100' : !loading ? 'border-gray-200 bg-white hover:border-indigo-300 hover:shadow-sm' : ''
+                    } ${
+                      dragIndex === i ? 'opacity-40' : ''
+                    } ${
+                      overIndex === i && dragIndex !== null && dragIndex !== i ? 'ring-2 ring-indigo-400 ring-offset-1' : ''
                     }`}
                     onClick={() => !loading && setSelectedKey(i)}>
                     <div className={`flex items-center justify-between ${compact ? 'mb-1' : 'mb-2'}`}>
