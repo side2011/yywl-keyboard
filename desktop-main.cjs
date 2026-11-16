@@ -395,6 +395,69 @@ function saveConfig(patch) {
   }
 }
 
+// 主进程/原生菜单的文案（网页里的 i18n 管不到托盘、应用菜单）
+const MAIN_I18N = {
+  zh: {
+    openApp: '打开配置工具',
+    actions: '扩展动作…',
+    autostartOn: '✓ 开机自动启动',
+    autostartOff: '　开机自动启动',
+    quit: '退出',
+    tooltip: 'YYWL 键盘配置工具（扩展动作运行中）',
+    windowTitle: 'YYWL 键盘配置工具',
+    menuFile: '文件',
+    menuView: '视图',
+    menuHelp: '帮助',
+    menuActionsItem: '扩展动作…',
+    menuQuit: '退出',
+    menuCloseWindow: '关闭窗口',
+    menuImportOffline: '导入离线更新包…',
+    menuReload: '重新加载',
+    menuDevTools: '开发者工具',
+    menuZoomIn: '放大',
+    menuZoomOut: '缩小',
+    menuZoomReset: '实际大小',
+    menuFullscreen: '全屏',
+    menuCheckUpdate: '检查更新…',
+    menuAutoUpdate: '启动时自动检查更新',
+    menuOpenLog: '打开动作日志（排查扩展动作）',
+    menuOpenData: '打开数据目录（配置/动作/日志）',
+    menuAbout: '版本信息',
+  },
+  en: {
+    openApp: 'Open configurator',
+    actions: 'Extended actions…',
+    autostartOn: '✓ Start with system',
+    autostartOff: '　Start with system',
+    quit: 'Quit',
+    tooltip: 'YYWL Keypad Config Tool (extended actions running)',
+    windowTitle: 'YYWL Keypad Config Tool',
+    menuFile: 'File',
+    menuView: 'View',
+    menuHelp: 'Help',
+    menuActionsItem: 'Extended actions…',
+    menuQuit: 'Quit',
+    menuCloseWindow: 'Close window',
+    menuImportOffline: 'Import offline update…',
+    menuReload: 'Reload',
+    menuDevTools: 'Developer tools',
+    menuZoomIn: 'Zoom in',
+    menuZoomOut: 'Zoom out',
+    menuZoomReset: 'Actual size',
+    menuFullscreen: 'Full screen',
+    menuCheckUpdate: 'Check for updates…',
+    menuAutoUpdate: 'Check for updates on startup',
+    menuOpenLog: 'Open action log (troubleshooting)',
+    menuOpenData: 'Open data folder (config / actions / logs)',
+    menuAbout: 'About',
+  },
+};
+
+function mt(key) {
+  const lang = appConfig && appConfig.lang === 'en' ? 'en' : 'zh';
+  return (MAIN_I18N[lang] && MAIN_I18N[lang][key]) || MAIN_I18N.zh[key] || key;
+}
+
 // ---------- 内置静态服务器 ----------
 
 function createLocalServer() {
@@ -418,6 +481,25 @@ function createLocalServer() {
           };
           res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
           res.end(JSON.stringify(payload));
+          return;
+        }
+
+        // 配置页切换语言 → 让主进程把托盘/应用菜单一起切（原生菜单网页改不了）
+        if (urlPath === '/__lang/set') {
+          try {
+            const q = new URL(req.url, 'http://127.0.0.1').searchParams;
+            const lang = q.get('lang') === 'en' ? 'en' : 'zh';
+            saveConfig({ lang });
+            try { refreshTrayMenu(); } catch (e) { /* 忽略 */ }
+            try { buildMenu(); } catch (e) { /* 忽略 */ }
+            if (mainWindow) { try { mainWindow.setTitle(mt('windowTitle')); } catch (e) { /* 忽略 */ } }
+            console.log('[lang] 主进程语言已切换为', lang);
+            res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
+            res.end(JSON.stringify({ ok: true, lang }));
+          } catch (e) {
+            res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
+            res.end(JSON.stringify({ ok: false, error: e.message }));
+          }
           return;
         }
 
@@ -462,7 +544,7 @@ function createWindow() {
     height: 820,
     minWidth: 900,
     minHeight: 620,
-    title: 'YYWL 键盘配置工具',
+    title: (appConfig && appConfig.lang === 'en') ? MAIN_I18N.en.windowTitle : 'YYWL 键盘配置工具',
     autoHideMenuBar: false,
     backgroundColor: '#f8fafc',
     webPreferences: {
@@ -816,40 +898,40 @@ function buildMenu() {
   const template = [
     ...(isMac ? [{ role: 'appMenu' }] : []),
     {
-      label: '文件',
+      label: mt('menuFile'),
       submenu: [
-        { label: '扩展动作…', click: openActionsWindow },
-        { label: '导入离线更新包…', click: importOfflinePackage },
+        { label: mt('actions'), click: openActionsWindow },
+        { label: mt('menuImportOffline') || '导入离线更新包…', click: importOfflinePackage },
         { type: 'separator' },
-        isMac ? { role: 'close', label: '关闭窗口' } : { role: 'quit', label: '退出' },
+        isMac ? { role: 'close', label: mt('menuCloseWindow') || '关闭窗口' } : { role: 'quit', label: mt('menuQuit') },
       ],
     },
     {
-      label: '视图',
+      label: mt('menuView'),
       submenu: [
-        { role: 'reload', label: '重新加载' },
-        { role: 'toggleDevTools', label: '开发者工具' },
+        { role: 'reload', label: mt('menuReload') },
+        { role: 'toggleDevTools', label: mt('menuDevTools') },
         { type: 'separator' },
-        { role: 'resetZoom', label: '实际大小' },
-        { role: 'zoomIn', label: '放大' },
-        { role: 'zoomOut', label: '缩小' },
+        { role: 'resetZoom', label: mt('menuZoomReset') },
+        { role: 'zoomIn', label: mt('menuZoomIn') },
+        { role: 'zoomOut', label: mt('menuZoomOut') },
         { type: 'separator' },
-        { role: 'togglefullscreen', label: '全屏' },
+        { role: 'togglefullscreen', label: mt('menuFullscreen') },
       ],
     },
     {
-      label: '帮助',
+      label: mt('menuHelp'),
       submenu: [
-        { label: '检查更新…', click: () => checkAllUpdates({ manual: true }) },
+        { label: mt('menuCheckUpdate'), click: () => checkAllUpdates({ manual: true }) },
         {
           id: 'autoUpdate',
-          label: '启动时自动检查更新',
+          label: mt('menuAutoUpdate'),
           type: 'checkbox',
           checked: appConfig.autoUpdate !== false,
           click: (item) => saveConfig({ autoUpdate: item.checked }),
         },
         {
-          label: '打开动作日志（排查扩展动作）',
+          label: mt('menuOpenLog'),
           click: () => {
             try {
               const file = actionLogFile_();
@@ -862,10 +944,10 @@ function buildMenu() {
           },
         },
         {
-          label: '打开数据目录（配置/动作/日志）',
+          label: mt('menuOpenData'),
           click: () => { try { shell.openPath(app.getPath('userData')); } catch { /* 忽略 */ } },
         },
-        { label: '版本信息', click: showAbout },
+        { label: mt('menuAbout'), click: showAbout },
       ],
     },
   ];
@@ -1282,19 +1364,19 @@ function openActionsWindow() {
 function buildTrayMenu() {
   const auto = isAutoStartEnabled();
   return Menu.buildFromTemplate([
-    { label: '打开配置工具', click: () => { if (mainWindow) { mainWindow.show(); mainWindow.focus(); } else startApp(); } },
-    { label: '扩展动作…', click: openActionsWindow },
+    { label: mt('openApp'), click: () => { if (mainWindow) { mainWindow.show(); mainWindow.focus(); } else startApp(); } },
+    { label: mt('actions'), click: openActionsWindow },
     { type: 'separator' },
     {
       id: 'autostart',
-      label: (auto ? '✓ 开机自动启动' : '　开机自动启动'),
+      label: mt(auto ? 'autostartOn' : 'autostartOff'),
       click: () => {
         setAutoStart(!isAutoStartEnabled());
         refreshTrayMenu();
       },
     },
     { type: 'separator' },
-    { label: '退出', click: () => { app.isQuitting = true; app.quit(); } },
+    { label: mt('quit'), click: () => { app.isQuitting = true; app.quit(); } },
   ]);
 }
 
@@ -1313,7 +1395,7 @@ function setupTray() {
     const iconPath = path.join(webRoot, 'favicon-32.png');
     const icon = fs.existsSync(iconPath) ? nativeImage.createFromPath(iconPath) : nativeImage.createEmpty();
     tray = new Tray(icon);
-    tray.setToolTip('YYWL 键盘配置工具（扩展动作运行中）');
+    tray.setToolTip(mt('tooltip'));
     trayMenu = buildTrayMenu();
     tray.setContextMenu(trayMenu);
     tray.on('double-click', () => { if (mainWindow) { mainWindow.show(); mainWindow.focus(); } });
