@@ -220,7 +220,7 @@ jobs:
           shopt -s nullglob
           for f in release/download/*; do
             name=$(basename "$f")
-            local_size=$(stat -c%s "$f")
+            local_size=$(wc -c < "$f" | tr -d " ")
             echo "上传 $name ($(du -h "$f" | cut -f1))"
             ok=0
             for attempt in 1 2 3; do
