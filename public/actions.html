@@ -410,7 +410,12 @@
     [/^需要 1\.3\.6 及以上安装包（当前 v/, 'Requires installer 1.3.6 or newer (current v'],
     [/^(\d+) 秒后记录鼠标位置…$/, 'Capturing mouse position in $1 s…'],
     [/^已记录鼠标位置：/, 'Mouse position captured: '],
-  ];
+    [/^请在对应槽位右边把热键换成不冲突的组合（例如 (.*)），然后点「保存并生效」。$/, 'Change the hotkey on the right of that slot to a free combination (e.g. $1), then click “Save & apply”.'],
+    [/^这个槽位已经有 (\d+) 个步骤，录制会全部替换，继续吗？$/, 'This slot already has $1 steps; recording will replace them all. Continue?'],
+    [/^槽位 (\d+)（(.*)）$/, 'Slot $1 ($2)'],
+    [/^已保存，热键：(.*)$/, 'Saved. Hotkeys: $1'],
+      [/^(.*) · 已注册 (\d+) 个热键$/, '$1 · $2 hotkeys registered'],
+];
 
   function applyRules(text) {
     if (LANG !== 'en' || !text) return text;
@@ -425,11 +430,14 @@
   // 精确匹配替换文本节点；保留前后空白
   function translateNode(node) {
     if (node.nodeType === 3) {
-      var t = node.nodeValue;
-      var s = t.trim();
+      var raw = node.nodeValue;
+      if (!raw) return;
+      // 先按"原始文本"查（很多片段自带前后空格，如 " 自动循环"、"已记录 "）
+      if (EN_DICT[raw] !== undefined) { node.nodeValue = EN_DICT[raw]; return; }
+      var s = raw.trim();
       if (!s) return;
-      var en = EN_DICT[s] || applyRules(s);
-      if (en) node.nodeValue = t.replace(s, en);
+      var en = EN_DICT[s] !== undefined ? EN_DICT[s] : applyRules(s);
+      if (en) node.nodeValue = raw.replace(s, en);
       return;
     }
     if (node.nodeType === 1) {
@@ -454,6 +462,8 @@
     btn.addEventListener('click', function () {
       var next = LANG === 'en' ? 'zh' : 'en';
       try { localStorage.setItem('yywl-lang', next); } catch (e) { /* 忽略 */ }
+      // 原生菜单（托盘/顶部菜单）由主进程画，通知它一起切
+      try { fetch('__lang/set?lang=' + next, { cache: 'no-store' }); } catch (e) { /* 忽略 */ }
       location.reload();
     });
   }
@@ -479,11 +489,12 @@
     try {
       var __mo = new MutationObserver(function (muts) {
         muts.forEach(function (m) {
+          if (m.type === 'attributes' && m.target) { translateNode(m.target); return; }
           if (!m.addedNodes) return;
           for (var i = 0; i < m.addedNodes.length; i += 1) translateNode(m.addedNodes[i]);
         });
       });
-      __mo.observe(document.body, { childList: true, subtree: true });
+      __mo.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['title', 'placeholder'] });
     } catch (e) { /* 忽略 */ }
   }
 
