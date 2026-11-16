@@ -40,5 +40,16 @@ let ok = false;
 try { new Function(script[1].replace(/^<script>/, '').replace(/<\/script>$/, '')); ok = true; } catch { ok = false; }
 check('actions.html 内联脚本语法正确', ok);
 
+// ---- 4) 扩展动作窗口：整窗英文覆盖 ----
+check('词典 >= 200 条（覆盖整个窗口）', /var EN_DICT = \{[\s\S]*?\};/.test(html) && (html.match(/^    '[^']+': /gm) || []).length >= 200,
+  String((html.match(/^    '[^']+': /gm) || []).length));
+check('动态文案有正则规则 EN_RULES', html.includes('var EN_RULES') && html.includes('function applyRules'));
+check('使用说明按语言打开对应 guide', html.includes("LANG === 'en' ? 'actions-guide-en.html' : 'actions-guide.html'"));
+const guideEn = readFileSync('public/actions-guide-en.html', 'utf8');
+check('英文 guide 存在且章节数与中文一致',
+  (guideEn.match(/<h2/g) || []).length === (readFileSync('public/actions-guide.html', 'utf8').match(/<h2/g) || []).length);
+check('英文 guide 基本无中文（<=5 行）',
+  (guideEn.split('\n').filter((l) => /[\u4e00-\u9fa5]/.test(l)).length) <= 5);
+
 console.log(`\n结果: ${pass} 通过 / ${fail} 失败`);
 process.exit(fail ? 1 : 0);
