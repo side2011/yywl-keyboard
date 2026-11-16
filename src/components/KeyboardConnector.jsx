@@ -104,11 +104,13 @@ function KeyboardConnector() {
   //   其它 Electron 宿主       → window.open 只会在应用内再开一个窗口, 给按钮等于骗人,
   //                              网页也无权调起系统浏览器, 所以只能给"可复制地址"并拦住连接。
   //                              注意: 自家 Electron 桌面版靠 UA 里的 YYWLDesktop 标识豁免。
+  // 自家桌面版（UA 带 YYWLDesktop）：设备选择由主进程处理，不存在浏览器的"选择设备"窗口
+  const isOwnDesktopHost = /YYWLDesktop/i.test((typeof navigator !== 'undefined' && navigator.userAgent) || '');
+
   const [embedContext, setEmbedContext] = useState(null); // null | 'iframe' | 'electron'
   useEffect(() => {
     const ua = navigator.userAgent || '';
-    const isOwnDesktop = /YYWLDesktop/i.test(ua); // 自家桌面版: 主进程已实现 select-hid-device
-    const isOtherElectron = /Electron\//i.test(ua) && !isOwnDesktop;
+    const isOtherElectron = /Electron\//i.test(ua) && !isOwnDesktopHost;
     let inFrame = false;
     try {
       inFrame = window.self !== window.top;
@@ -172,6 +174,9 @@ function KeyboardConnector() {
   // 点击「连接键盘」：先讲清楚"要在弹框里选设备"，再真正打开系统选择器
   const handleConnectClick = () => {
     if (connecting) return;
+    // 桌面版：主进程自己处理设备选择（必要时弹原生选择器），不存在浏览器的
+    // 「选择设备」窗口 → 不要弹这段网页引导，直接连
+    if (isOwnDesktopHost) { connectToKeyboard(); return; }
     if (!guideSkipped && hidSupported) { setGuideOpen(true); return; }
     connectToKeyboard();
   };
@@ -633,7 +638,7 @@ function KeyboardConnector() {
         </div>
       )}
       <ConnectGuideModal
-        open={guideOpen}
+        open={guideOpen && !isOwnDesktopHost}
         lang={lang}
         onCancel={() => setGuideOpen(false)}
         onHideForever={() => { try { localStorage.setItem('yywl-hide-picker-guide', '1'); } catch { /* 忽略 */ } setGuideSkipped(true); }}
@@ -821,7 +826,7 @@ function KeyboardConnector() {
                     }`}>
                     {wideMode ? t('恢复只显示小键盘设备') : t('找不到设备？列出全部同厂设备')}
                   </button>
-                    {guideSkipped && (
+                    {guideSkipped && !isOwnDesktopHost && (
                       <button type="button"
                         onClick={() => {
                           try { localStorage.removeItem('yywl-hide-picker-guide'); } catch { /* 忽略 */ }
