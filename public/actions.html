@@ -99,6 +99,7 @@
   <h1>扩展动作</h1>
   <span class="badge" id="platform">—</span>
   <span class="spacer"></span>
+  <button class="btn" id="langBtn" title="切换语言 / Switch language">EN</button>
   <button class="btn" id="helpBtn" title="打开图文使用说明（含常见问题）">📖 使用说明</button>
   <label class="switch" id="autostartWrap" title="随系统登录自动运行，热键一直可用"><input type="checkbox" id="autostart"> 开机自启动</label>
   <label class="switch"><input type="checkbox" id="enabled" checked> 启用</label>
@@ -156,6 +157,86 @@
     return;
   }
 
+  // ---- 语言切换（右上角 EN / 中文）----
+  // 只翻译主界面文案；帮助弹窗里的长说明暂保持中文（英文图文说明见 actions-guide-en.html）
+  var EN_DICT = {
+    '扩展动作': 'Extended actions',
+    '使用说明': 'Guide',
+    '开机自启动': 'Start with system',
+    '启用': 'Enabled',
+    '导出': 'Export',
+    '导入': 'Import',
+    '检测占用': 'Check conflicts',
+    '保存并生效': 'Save & apply',
+    '就绪': 'Ready',
+    '未设置': 'Not set',
+    '保存': 'Save',
+    '取消': 'Cancel',
+    '删除': 'Delete',
+    '添加': 'Add',
+    '动作': 'Action',
+    '槽位': 'Slot',
+    '录制': 'Record',
+    '停止': 'Stop',
+    '测试': 'Test',
+    '等待': 'Delay',
+    '打开文件夹/文件': 'Open file / folder',
+    '打开网址': 'Open URL',
+    '启动程序': 'Launch app',
+    '粘贴文字': 'Paste text',
+    '粘贴图片': 'Paste image',
+    '发送组合键': 'Send key combo',
+    '发送按键（单个键）': 'Send key (single)',
+    '按下按键（按住不放）': 'Key down (hold)',
+    '松开按键': 'Key up',
+    '鼠标点击': 'Mouse click',
+    '编辑': 'Edit',
+    '清空': 'Clear',
+    '导入成功': 'Imported',
+    '已保存': 'Saved',
+  };
+
+  var LANG = 'zh';
+  try { LANG = (localStorage.getItem('yywl-lang') || 'zh') === 'en' ? 'en' : 'zh'; } catch (e) { /* 忽略 */ }
+
+  function T(s) { return LANG === 'en' ? (EN_DICT[s] || s) : s; }
+
+  // 精确匹配替换文本节点；保留前后空白
+  function translateNode(node) {
+    if (node.nodeType === 3) {
+      var t = node.nodeValue;
+      var s = t.trim();
+      if (!s) return;
+      var en = EN_DICT[s];
+      if (en) node.nodeValue = t.replace(s, en);
+      return;
+    }
+    if (node.nodeType === 1) {
+      ['title', 'placeholder'].forEach(function (attr) {
+        var v = node.getAttribute(attr);
+        if (v && EN_DICT[v.trim()]) node.setAttribute(attr, EN_DICT[v.trim()]);
+      });
+      for (var i = 0; i < node.childNodes.length; i += 1) translateNode(node.childNodes[i]);
+    }
+  }
+
+  function applyLangToStatic() {
+    if (LANG !== 'en') return;
+    try { translateNode(document.body); } catch (e) { /* 忽略 */ }
+  }
+
+  function setupLangButton() {
+    var btn = document.getElementById('langBtn');
+    if (!btn) return;
+    btn.textContent = LANG === 'en' ? '中文' : 'EN';
+    btn.title = LANG === 'en' ? '切换到中文 / Switch to Chinese' : 'Switch to English / 切换到英文';
+    btn.addEventListener('click', function () {
+      var next = LANG === 'en' ? 'zh' : 'en';
+      try { localStorage.setItem('yywl-lang', next); } catch (e) { /* 忽略 */ }
+      location.reload();
+    });
+  }
+
   var TYPES = [
     { v: 'openPath', label: '打开文件夹/文件' },
     { v: 'openUrl', label: '打开网址' },
@@ -169,6 +250,21 @@
     { v: 'mouseClick', label: '鼠标点击' },
     { v: 'delay', label: '等待' }
   ];
+
+  setupLangButton();
+  applyLangToStatic();
+  // 动态渲染的节点（槽位卡片/状态）也要翻译：监听新增节点再翻一次
+  if (LANG === 'en' && typeof MutationObserver !== 'undefined') {
+    try {
+      var __mo = new MutationObserver(function (muts) {
+        muts.forEach(function (m) {
+          if (!m.addedNodes) return;
+          for (var i = 0; i < m.addedNodes.length; i += 1) translateNode(m.addedNodes[i]);
+        });
+      });
+      __mo.observe(document.body, { childList: true, subtree: true });
+    } catch (e) { /* 忽略 */ }
+  }
 
   // 常用模板：点一下就填好一步，客户只需要改路径/文字
   var PRESETS = [
