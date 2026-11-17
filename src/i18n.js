@@ -575,6 +575,11 @@ const en = {
   '重新选择设备': 'Choose another device',
   '重新选择系统': 'Choose another system',
   '自定义键盘麦克风配置引导': 'Custom keypad microphone setup guide',
+  '转左边却执行右转的动作？打开这个开关即可对调': 'Turning left but it acts like right? Flip this switch to swap.',
+  '旋钮左右对调': 'Swap knob left/right',
+  '按型号记住，换电脑需重新设置': 'Remembered per model; set again on another computer',
+  '旋钮 {n} 已恢复默认顺序（未对调）': 'Knob {n} restored to default order (not swapped)',
+
 };
 
 /**
