@@ -28,6 +28,8 @@ const SLOTS = [
   { id: 'mac-x64', platform: 'macos', arch: 'x64', file: `yywlkey-config-${VERSION}-mac-x64.zip`, label: 'macOS · Intel 芯片', note: '首次打开：右键 → 打开；或双击包内「首次打开请双击我.command」' },
   { id: 'mac-arm64', platform: 'macos', arch: 'arm64', file: `yywlkey-config-${VERSION}-mac-arm64.zip`, label: 'macOS · Apple 芯片（M 系列）', note: '首次打开：右键 → 打开；或双击包内「首次打开请双击我.command」' },
   { id: 'linux-x64', platform: 'linux', arch: 'x64', file: `yywlkey-config-${VERSION}-linux-x64.AppImage`, label: 'Linux（AppImage）', note: 'chmod +x 后运行' },
+  { id: 'linux-x64-deb', platform: 'linux', arch: 'x64', file: `yywlkey-config-${VERSION}-linux-x64.deb`, label: 'Linux（deb 安装包）', note: '双击安装即自动写好 udev 规则' },
+  { id: 'linux-arm64-deb', platform: 'linux', arch: 'arm64', file: `yywlkey-config-${VERSION}-domestic-arm64.deb`, label: '国产系统 · ARM64（飞腾 / 鲲鹏）deb', note: '双击安装即自动写好 udev 规则' },
   { id: 'linux-x64-domestic', platform: 'linux', arch: 'x64', file: `yywlkey-config-${VERSION}-linux-x64-domestic.tar.gz`, label: '国产系统 · x86_64（麒麟 / UOS 便携版）', note: '解压即用，无需安装' },
   { id: 'linux-arm64-domestic', platform: 'linux', arch: 'arm64', file: `yywlkey-config-${VERSION}-linux-arm64-domestic.tar.gz`, label: '国产系统 · ARM64（飞腾 / 鲲鹏）', note: '解压即用，无需安装' },
 ]
@@ -37,6 +39,13 @@ const CACHE = path.join(ROOT, '.manifest-cache')
 function downloadAndHash(url, onProgress) {
   return new Promise((resolve, reject) => {
     const req = https.get(url, { timeout: 120000 }, (res) => {
+      // 服务器对不存在的文件会返回 SPA 兜底页（HTTP 200 + text/html）→ 必须当成"不可用"
+      const ct = String(res.headers['content-type'] || '');
+      if (ct.includes('text/html')) {
+        res.resume();
+        reject(new Error('服务器返回 HTML 兜底页（文件不存在）'));
+        return;
+      }
       if (res.statusCode === 301 || res.statusCode === 302) {
         res.resume()
         return resolve(downloadAndHash(res.headers.location, onProgress))
