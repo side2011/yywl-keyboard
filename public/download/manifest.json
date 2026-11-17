@@ -10,8 +10,8 @@
       "label": "Windows 10 / 11（64 位）",
       "file": "yywlkey-config-1.4.26-win-x64.zip",
       "available": true,
-      "size": 121694908,
-      "sha256": "50F3C33DFE89D876C70079E95E866645108434817A9047E7703C02BEAFC186E0",
+      "size": 121695000,
+      "sha256": "A99B5818BD74C2C7E237A9F1F5C5C34C9AC891D80E950606947B2AD5C263209E",
       "note": "免安装绿色版，解压即用"
     },
     {
@@ -21,8 +21,8 @@
       "label": "macOS · Intel 芯片",
       "file": "yywlkey-config-1.4.26-mac-x64.zip",
       "available": true,
-      "size": 115061238,
-      "sha256": "B4362F83D326E45644040D42A7BE0BD0765E0745F1A95BBF3AE8CAA95FF995CB",
+      "size": 115061379,
+      "sha256": "1CD0A41404FA683A4479C4CFD36D1A2B942AACD63B20F400A1A6328E9B9C61FB",
       "note": "首次打开：右键 → 打开；或双击包内「首次打开请双击我.command」"
     },
     {
@@ -32,8 +32,8 @@
       "label": "macOS · Apple 芯片（M 系列）",
       "file": "yywlkey-config-1.4.26-mac-arm64.zip",
       "available": true,
-      "size": 108087107,
-      "sha256": "F770297D921D14D95BE242FE3091370EF15F268CE588652529F30F70A05C22DD",
+      "size": 108087247,
+      "sha256": "FF5BD810A693AF934E696EDE6A852BF0CBB35E4FCB00A308767EC2DB1BEE50F4",
       "note": "首次打开：右键 → 打开；或双击包内「首次打开请双击我.command」"
     },
     {
@@ -64,9 +64,9 @@
       "arch": "arm64",
       "label": "国产系统 · ARM64（飞腾 / 鲲鹏）deb",
       "file": "yywlkey-config-1.4.26-domestic-arm64.deb",
-      "available": false,
-      "size": 0,
-      "sha256": "",
+      "available": true,
+      "size": 85107062,
+      "sha256": "BBE950130204D1FD33259713B48E0BA76FFC145ED1D242D82A7C965374263859",
       "note": "双击安装即自动写好 udev 规则"
     },
     {
