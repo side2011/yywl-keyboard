@@ -204,6 +204,17 @@ jobs:
           esac
           ls -lh release/download/
 
+      # ---- 上传构建产物（备用通道）: FTP 到国内服务器极慢且会失败,
+      #      把包同时挂到 Actions artifacts, 国内机器可以直接下载后自己传 ----
+      - name: 上传构建产物（备用通道）
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pkg-${{ matrix.artifact }}
+          path: release/download/*
+          retention-days: 3
+          if-no-files-found: warn
+
       # ---- 直接上传到下载服务器 (省掉从国内拉 100+ MB 的过程) ----
       - name: 上传到下载服务器
         shell: bash
