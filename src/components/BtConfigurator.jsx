@@ -120,7 +120,7 @@ export default function BtConfigurator() {
   // 旋钮左右对调：个别固件把「左/右转」的存储顺序装反了，给客户一个一键纠正的开关。
   // 映射是自逆的（再调一次就还原），读写两侧用同一个函数即可。
   // v2: 6+2 改为默认对调。键名升版，避免老版本里存下的「全部取消勾选」把新默认盖掉。
-    const knobSwapKey = `bt-knob-swap6:${modelId || 'bt'}-${keyCount}k${knobCount}r`;
+    const knobSwapKey = `bt-knob-swap7:${modelId || 'bt'}-${keyCount}k${knobCount}r`;
   // 每个旋钮单独一个"左右对调"标记：不同固件/不同款式的装反情况不一定相同
   const [knobSwap, setKnobSwap] = useState(() => {
     try {
@@ -144,7 +144,7 @@ export default function BtConfigurator() {
       setKnobSwap(Array.isArray(arr) ? arr.map(Boolean) : defaultKnobSwap(keyCount, knobCount));
     } catch { setKnobSwap([]); }
   }, [knobSwapKey]);
-  const knobManualKey = `bt-knob-manual5:${modelId || 'bt'}-${keyCount}k${knobCount}r`;
+  const knobManualKey = `bt-knob-manual6:${modelId || 'bt'}-${keyCount}k${knobCount}r`;
   const isKnobSwapManual = () => { try { return localStorage.getItem(knobManualKey) === '1'; } catch { return false; } };
 
   const toggleKnobSwap = (n, next) => {
@@ -154,7 +154,7 @@ export default function BtConfigurator() {
     arr[n] = next;
     setKnobSwap(arr);
     try { localStorage.setItem(knobSwapKey, JSON.stringify(arr)); } catch { /* 忽略 */ }
-    toast.success(next ? t('已把旋钮 {n} 左右对调，请点「保存到键盘」后重新读取确认', { n: n + 1 }) : t('旋钮 {n} 已恢复默认顺序', { n: n + 1 }), { id: 'knob-swap' });
+    toast.success(next ? t('已把旋钮 {n} 左右对调，请点「保存到键盘」后重新读取确认', { n: n + 1 }) : t('旋钮 {n} 已恢复默认顺序（未对调）', { n: n + 1 }), { id: 'knob-swap' });
   }
 
 ;
@@ -1211,6 +1211,31 @@ export default function BtConfigurator() {
                 </div>
               );
             })()}
+
+            {/* 旋钮方向开关：不同批次固件把「左转/右转」的存储顺序装反的不一样，
+                这里直接给用户一个显眼的开关，按型号记住选择（不必进「固件信息」） */}
+            {knobCount > 0 && (
+              <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between gap-3 flex-wrap">
+                <div className="text-[11px] text-gray-500 leading-snug">
+                  {t('转左边却执行右转的动作？打开这个开关即可对调')}
+                </div>
+                <div className="flex items-center gap-3">
+                  {Array.from({ length: knobCount }, (_, n) => (
+                    <label key={n} className="flex items-center gap-1.5 cursor-pointer select-none" title={t('按型号记住，换电脑需重新设置')}>
+                      <input
+                        type="checkbox"
+                        checked={!!knobSwap[n]}
+                        onChange={(e) => toggleKnobSwap(n, e.target.checked)}
+                        className="w-4 h-4 cursor-pointer accent-indigo-600"
+                      />
+                      <span className="text-xs font-semibold text-gray-600">
+                        {knobCount > 1 ? `${t('旋钮')} ${n + 1} ${t('左右对调')}` : t('旋钮左右对调')}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* 操作 */}
