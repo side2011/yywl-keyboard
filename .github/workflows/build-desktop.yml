@@ -30,7 +30,7 @@ jobs:
   build:
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 120
+    timeout-minutes: 240
     strategy:
       fail-fast: false
       matrix:
@@ -226,7 +226,7 @@ jobs:
             for attempt in 1 2 3; do
               # --max-time 900: 单文件最多 15 分钟（原来 3600 秒，卡住要等一小时）
               # --speed-time 60 --speed-limit 10240: 60 秒内低于 10KB/s 判为卡死，立即重试
-              if curl -sS --fail --max-time 900 --connect-timeout 30 \
+              if curl -sS --fail --max-time 1200 --connect-timeout 30 \
                    --speed-time 60 --speed-limit 10240 \
                    --retry 2 --retry-delay 10 --retry-all-errors --ftp-create-dirs \
                    -T "$f" "ftp://$FTP_HOST/download/$name" \
