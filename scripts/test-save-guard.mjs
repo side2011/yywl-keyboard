@@ -44,6 +44,15 @@ check('新协议页有保存看门狗', np.includes('__saveWatchdog') && np.incl
 check('旧协议页有保存看门狗', kb.includes('__saveWatchdog') && kb.includes('保存超时：键盘没有响应'));
 check('看门狗在 finally 里被清除', bt.includes('clearTimeout(__saveWatchdog)') && np.includes('clearTimeout(__saveWatchdog)') && kb.includes('clearTimeout(__saveWatchdog)'));
 
+// ---------- 3.5) 保存中遮罩必须真的挡住后面的操作 ----------
+check('新协议页：遮罩是全屏（fixed inset-0）', np.includes('fixed inset-0 z-50') && !/pointer-events-none[\s\S]{0,80}保存中，请稍候/.test(np));
+check('新协议页：遮罩不再只盖右栏（无 absolute inset-0 z-10 版本）', !np.includes('absolute inset-0 z-10 bg-white/70'));
+check('蓝牙页：遮罩全屏且 z-50', bt.includes('fixed inset-0 z-50') && bt.includes('cursor-wait'));
+check('蓝牙页/新协议页：遮罩吞掉点击', bt.includes('onClick={(e) => e.stopPropagation()}') && np.includes('onClick={(e) => e.stopPropagation()}'));
+check('三页保存期间屏蔽键盘快捷键', [bt, np, kb].every((src) => src.includes("window.addEventListener('keydown', block, true)") && src.includes("window.addEventListener('keyup', block, true)")));
+check('旧协议页：保存时有全屏遮罩 + saving 状态', kb.includes('{saving && (') && kb.includes('setSaving(true)') && kb.includes('setSaving(false)'));
+check('旧协议页：遮罩文案为「保存中，请稍候...」', kb.includes("t('保存中，请稍候...')"));
+
 // ---------- 4) 文案有英文 ----------
 const i18n = readFileSync('src/i18n.js', 'utf8');
 check('英文：空配置提示', i18n.includes("'还没有设置任何按键，请先设置好再点「保存到键盘」':"));
