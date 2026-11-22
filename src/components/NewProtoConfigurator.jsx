@@ -204,6 +204,18 @@ export default function NewProtoConfigurator() {
   const [isConnected, setIsConnected] = useState(false);
   const [loading, setLoading] = useState(false);
   const [loadingAction, setLoadingAction] = useState(''); // 'read' | 'save' | ''
+
+  // 保存/读取期间连键盘快捷键一起拦掉（遮罩只挡鼠标，键盘事件仍会进组件）
+  useEffect(() => {
+    if (!loading) return undefined;
+    const block = (e) => { e.preventDefault(); e.stopPropagation(); };
+    window.addEventListener('keydown', block, true);
+    window.addEventListener('keyup', block, true);
+    return () => {
+      window.removeEventListener('keydown', block, true);
+      window.removeEventListener('keyup', block, true);
+    };
+  }, [loading]);
   const isReadingRef = useRef(false); // 防重入: React 19 Strict Mode 会双重调用 useEffect
   const isSavingRef = useRef(false); // 防重入: 防止保存被并发调用
   const allLayerConfigsRef = useRef([]); // 缓存所有层的配置，首次连接时一次性读取
@@ -1124,7 +1136,11 @@ export default function NewProtoConfigurator() {
         {/* ==== 右栏: 配置面板 ==== */}
         <div className="flex-1 min-w-0 space-y-4 relative">
           {loading && (
-            <div className="absolute inset-0 z-10 bg-white/70 backdrop-blur-sm rounded-xl flex items-center justify-center pointer-events-none">
+            // 保存/读取期间必须挡住后面的键盘区：原来只有 pointer-events-none + 只盖右栏，
+            // 客户还能点左边按键、切层、改配置 → 中途改状态会让保存结果错乱。
+            <div className="fixed inset-0 z-50 bg-white/70 backdrop-blur-sm flex items-center justify-center cursor-wait"
+              onClick={(e) => e.stopPropagation()}
+              onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}>
               <div className="flex items-center gap-3 bg-white px-6 py-3 rounded-full shadow-lg border border-gray-200">
                 <div className="w-5 h-5 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
                 <span className="text-base font-semibold text-gray-700">
