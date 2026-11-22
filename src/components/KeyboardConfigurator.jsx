@@ -7,6 +7,7 @@ import { useDevice } from '../context/DeviceContext.jsx';
 import { useLang } from '../context/LanguageContext.jsx';
 import { DEVICE_MODELS, MODEL_NAMES, KEYCODE_LABELS, KEY_MODE, KEY_MODE_LABELS, getRgbModesForModel, getRgbModes2ForModel } from '../services/hid-constants';
 import { readConfig, saveAllToDevice, parseReport, configToDisplay } from '../services/hid-service';
+import { allCfgEmpty } from '../services/config-empty.js';
 import NewProtoConfigurator from './NewProtoConfigurator';
 import KeyConfigPanel from './KeyConfigPanel';
 import ConfigListPanel from './ConfigListPanel';
@@ -166,6 +167,16 @@ const KeyboardConfigurator = () => {
 
   const handleSaveToDevice = async () => {
     if (!device || !modelId) { toast.error(t('设备未连接或型号未识别')); return; }
+    // 「全部清除」后什么都没设置就保存：没有按键可写，灯光也没选 → 直接拦住提示。
+    // （如果客户只是改灯光，rgbMode 不为 0，仍然允许保存，不影响只调灯光的用法。）
+    if (allCfgEmpty(keyConfigs) && !(hasRgb && rgbMode)) {
+      toast.error(t('还没有设置任何按键，请先设置好再点「保存到键盘」'), { id: 'save-empty', duration: 7000 });
+      return;
+    }
+    // 看门狗：设备不响应时不会一直停在"正在保存"
+    const __saveWatchdog = setTimeout(() => {
+      toast.error(t('保存超时：键盘没有响应，请拔插 USB 线后重试'), { id: 'save', duration: 9000 });
+    }, 60000);
     try {
       toast.loading(t('正在保存配置到键盘...'), { id: 'save' });
 
@@ -179,6 +190,7 @@ const KeyboardConfigurator = () => {
 
       toast.success(t('配置已成功保存到键盘！'), { id: 'save' });
     } catch (e) { toast.error(t('保存到键盘失败: {msg}', { msg: e.message }), { id: 'save' }); }
+    finally { clearTimeout(__saveWatchdog); }
   };
 
   const handleClearKey = () => {
