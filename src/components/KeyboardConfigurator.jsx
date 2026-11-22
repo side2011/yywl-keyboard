@@ -45,6 +45,20 @@ const KeyboardConfigurator = () => {
   const [customColor2, setCustomColor2] = useState({ r: 255, g: 255, b: 255 });
   const [delays, setDelays] = useState(() => Array(keyCount).fill(0));
   const [isConnected, setIsConnected] = useState(false);
+  // 保存中：挡住整页，避免客户在写设备过程中继续改配置
+  const [saving, setSaving] = useState(false);
+
+  // 保存期间连键盘快捷键也拦掉（有的组件用方向键/数字键切键位）
+  useEffect(() => {
+    if (!saving) return undefined;
+    const block = (e) => { e.preventDefault(); e.stopPropagation(); };
+    window.addEventListener('keydown', block, true);
+    window.addEventListener('keyup', block, true);
+    return () => {
+      window.removeEventListener('keydown', block, true);
+      window.removeEventListener('keyup', block, true);
+    };
+  }, [saving]);
 
   const rgbOptions = hasRgb ? getRgbModesForModel(modelId) : [];
   const isDualZone = model?.dualZone || false;
@@ -176,7 +190,9 @@ const KeyboardConfigurator = () => {
     // 看门狗：设备不响应时不会一直停在"正在保存"
     const __saveWatchdog = setTimeout(() => {
       toast.error(t('保存超时：键盘没有响应，请拔插 USB 线后重试'), { id: 'save', duration: 9000 });
+      setSaving(false);
     }, 60000);
+    setSaving(true);
     try {
       toast.loading(t('正在保存配置到键盘...'), { id: 'save' });
 
@@ -190,7 +206,7 @@ const KeyboardConfigurator = () => {
 
       toast.success(t('配置已成功保存到键盘！'), { id: 'save' });
     } catch (e) { toast.error(t('保存到键盘失败: {msg}', { msg: e.message }), { id: 'save' }); }
-    finally { clearTimeout(__saveWatchdog); }
+    finally { clearTimeout(__saveWatchdog); setSaving(false); }
   };
 
   const handleClearKey = () => {
@@ -520,6 +536,18 @@ const KeyboardConfigurator = () => {
           )}
         </div>
       </div>
+
+      {/* 保存期间挡住整页：否则客户能在保存过程中继续点按键/改灯光，写进去的就是混合状态 */}
+      {saving && (
+        <div className="fixed inset-0 z-50 bg-white/70 backdrop-blur-sm flex items-center justify-center cursor-wait"
+          onClick={(e) => e.stopPropagation()}
+          onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}>
+          <div className="flex items-center gap-3 bg-white px-6 py-3 rounded-full shadow-lg border border-gray-200">
+            <div className="w-5 h-5 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+            <span className="text-base font-semibold text-gray-700">{t('保存中，请稍候...')}</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
