@@ -580,6 +580,8 @@ const en = {
   '按型号记住，换电脑需重新设置': 'Remembered per model; set again on another computer',
   '旋钮 {n} 已恢复默认顺序（未对调）': 'Knob {n} restored to default order (not swapped)',
 
+  '还没有设置任何按键，请先设置好再点「保存到键盘」': 'No keys configured yet — set up at least one key before clicking "Save to keypad".',
+  '保存超时：键盘没有响应，请拔插 USB 线后重试': 'Save timed out: the keypad is not responding. Re-plug the USB cable and try again.',
 };
 
 /**
