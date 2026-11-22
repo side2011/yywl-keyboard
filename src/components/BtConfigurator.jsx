@@ -206,6 +206,18 @@ export default function BtConfigurator() {
     else setActiveTab(MODE.KEY);
   }, [selectedKey, currentLayer, selectedKeyMode]);
   const [loading, setLoading] = useState(false);
+
+  // 保存/读取期间连键盘快捷键一起拦掉（遮罩只挡鼠标，键盘事件仍会进组件）
+  useEffect(() => {
+    if (!loading) return undefined;
+    const block = (e) => { e.preventDefault(); e.stopPropagation(); };
+    window.addEventListener('keydown', block, true);
+    window.addEventListener('keyup', block, true);
+    return () => {
+      window.removeEventListener('keydown', block, true);
+      window.removeEventListener('keyup', block, true);
+    };
+  }, [loading]);
   const [ledUnsupported, setLedUnsupported] = useState(false); // 设备不响应灯光命令时置真
   const [ledReadable, setLedReadable] = useState(true);        // 旧固件不能回读灯光
   // 旧固件读不到灯光：如果客户没主动改过，保存时就不能写灯光，
@@ -1074,7 +1086,11 @@ export default function BtConfigurator() {
       )}
 
       {loading && (
-        <div className="fixed inset-0 z-30 bg-white/70 backdrop-blur-sm flex items-center justify-center">
+        // 保存/读取期间挡住整页：只盖视觉不挡操作时，客户会中途点按键、切层、改配置，
+        // 保存结果就对不上了（z-50 保证盖住吸顶工具条）
+        <div className="fixed inset-0 z-50 bg-white/70 backdrop-blur-sm flex items-center justify-center cursor-wait"
+          onClick={(e) => e.stopPropagation()}
+          onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}>
           <div className="flex items-center gap-3 bg-white px-6 py-3 rounded-full shadow-lg border border-gray-200">
             <div className="w-5 h-5 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
             <span className="text-base font-semibold text-gray-700">{t('处理中，请稍候...')}</span>
