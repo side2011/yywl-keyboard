@@ -1045,13 +1045,13 @@ export class NewProtocolHandler {
       throw new Error('Action data too long');
     }
     await this._sendPacket(CMD.WRITE_KEY, layer, actionIdx, Array.from(actionBytes));
-    await this._waitForAck(CMD.WRITE_KEY, layer, actionIdx, 20000);
+    await this._waitForAck(CMD.WRITE_KEY, layer, actionIdx, 8000);
   }
 
   // ---- 清除单个按键 ----
   async clearKey(layer, actionIdx) {
     await this._sendPacket(CMD.CLEAR_KEY, layer, actionIdx, []);
-    await this._waitForAck(CMD.CLEAR_KEY, layer, actionIdx, 20000);
+    await this._waitForAck(CMD.CLEAR_KEY, layer, actionIdx, 8000);
   }
 
   // ---- 写入宏数据 ----
@@ -1077,7 +1077,7 @@ export class NewProtocolHandler {
       const end = Math.min(start + MAX_MACRO_DATA, actionBytes.length);
       const chunk = actionBytes.slice(start, end);
       await this._sendMacroPacket(CMD.WRITE_MACRO, layer, actionIdx, pktIdx, totalPkts, chunk);
-      await this._waitForAck(CMD.WRITE_MACRO, layer, actionIdx, 20000);
+      await this._waitForAck(CMD.WRITE_MACRO, layer, actionIdx, 8000);
     }
   }
 
@@ -1141,32 +1141,56 @@ export class NewProtocolHandler {
     console.log(`[NewProto] saveAll 开始: layer=${layer}, keys=${keyConfigs.length}, currentLayer=${currentLayer}`);
     // 初始 drain: 清除之前操作可能遗留的过期响应
     await this._drain(200);
+    // 0. 先确认设备在线：设备睡眠/掉线时直接给出明确提示，别让客户白等 20 秒×N
+    await this._drain(150);
+    try {
+      await this._sendPacket(CMD.READ_DEVICE_INFO, 0, 0, []);
+      await this._waitFor((b) => b[0] === CMD.READ_DEVICE_INFO || b[0] === CMD.NAK, 1500);
+    } catch (e) {
+      throw new Error('键盘没有响应（可能在睡眠或已断开）：请拔插 USB 线后重试；若同时连着蓝牙，请先断开蓝牙');
+    }
+
+    // 写入重试：设备偶发不回包时（USB 抖动 / flash 忙），单次失败不代表真写不进去。
+    // 客户现象是"有时候能存，有时候报 Response timeout 键6/6 写入失败"，重试两三次基本都能过。
+    const writeWithRetry = async (fn, label, attempts = 3) => {
+      let lastErr = null;
+      for (let a = 1; a <= attempts; a += 1) {
+        try {
+          await this._drain(150);
+          return await fn();
+        } catch (e) {
+          lastErr = e;
+          console.warn(`[NewProto] ${label} 第 ${a}/${attempts} 次失败: ${e.message}`);
+          if (a < attempts) await new Promise((r) => setTimeout(r, 400));
+        }
+      }
+      throw lastErr;
+    };
+
     // 1. 逐个写入按键
     for (let i = 0; i < keyConfigs.length; i++) {
       const cfg = keyConfigs[i];
       const stepLabel = `键${i + 1}/${keyConfigs.length}`;
       try {
-        // 每次写入前 drain, 清除设备可能发送的多余响应
-        await this._drain(100);
         if (!cfg || cfg.mode === 0) {
           console.log(`[NewProto] saveAll ${stepLabel}: 清除`);
-          await this.clearKey(layer, i);
+          await writeWithRetry(() => this.clearKey(layer, i), stepLabel);
         } else if (cfg.mode === 5) {
           if (cfg.macroSteps && cfg.macroSteps.length > 0) {
             // 宏按键: 协议 Section 5.1 规定 Macro 类型仅可使用 0x02 宏分包命令
             console.log(`[NewProto] saveAll ${stepLabel}: 写入宏 (steps=${cfg.macroSteps.length}) via WRITE_MACRO`);
-            await this.writeMacro(layer, i, cfg.macroSteps);
+            await writeWithRetry(() => this.writeMacro(layer, i, cfg.macroSteps), stepLabel);
           } else {
             // mode=5 但 macroSteps 为空 → 视为清除 (避免通过 WRITE_KEY 发送空 MACRO 导致 NAK)
             console.log(`[NewProto] saveAll ${stepLabel}: mode=5 但 macroSteps 为空, 清除该键`);
-            await this.clearKey(layer, i);
+            await writeWithRetry(() => this.clearKey(layer, i), stepLabel);
           }
         } else {
           console.log(`[NewProto] saveAll ${stepLabel}: mode=${cfg.mode} keyCode=${cfg.keyCode || 0} modifier=${cfg.modifier || 0}`);
-          await this.writeKey(layer, i, cfg);
+          await writeWithRetry(() => this.writeKey(layer, i, cfg), stepLabel);
         }
       } catch (e) {
-        throw new Error(`${stepLabel} 写入失败: ${e.message}`);
+        throw new Error(`${stepLabel} 写入失败: ${e.message}（已重试 3 次）`);
       }
       // 键间延迟, 给设备 flash 写入处理时间 (4键设备实测需要 500ms+)
       if (i < keyConfigs.length - 1) {
