@@ -6,6 +6,7 @@ import { fetchActionSummary, toSlotMap } from '../services/action-slots';
 import { useNavigate } from 'react-router-dom';
 import { useDevice } from '../context/DeviceContext.jsx';
 import { useKeyDragSwap, swapItems } from '../services/key-drag-swap.js';
+import { allLayersEmpty } from '../services/config-empty.js';
 import { useLang } from '../context/LanguageContext.jsx';
 import {
   KEY_MODE, KEYCODE_LABELS, MODIFIERS,
@@ -453,7 +454,24 @@ export default function NewProtoConfigurator() {
       console.log('[NewProto] 保存已在进行中, 跳过重复调用');
       return;
     }
+    // 「全部清除」之后没重新设置就点保存：没有任何可写内容，写下去只会得到一堆空记录，
+    // 设备还可能不回包让界面一直停在保存中。先拦住并提示。
+    {
+      const snapshot = [...allLayerConfigsRef.current];
+      snapshot[currentLayer] = keyConfigs;
+      if (allLayersEmpty(snapshot)) {
+        toast.error(t('还没有设置任何按键，请先设置好再点「保存到键盘」'), { id: 'np-save-empty', duration: 7000 });
+        return;
+      }
+    }
     isSavingRef.current = true;
+    // 看门狗：设备中途不响应时不至于一直卡在"正在保存"
+    const __saveWatchdog = setTimeout(() => {
+      setLoading(false);
+      setLoadingAction('');
+      isSavingRef.current = false;
+      toast.error(t('保存超时：键盘没有响应，请拔插 USB 线后重试'), { id: 'save', duration: 9000 });
+    }, 120000);
     try {
       setLoading(true);
       setLoadingAction('save');
@@ -552,6 +570,7 @@ export default function NewProtoConfigurator() {
     } catch (e) {
       toast.error(t('保存到键盘失败: {msg}', { msg: e.message }), { id: 'save' });
     } finally {
+      clearTimeout(__saveWatchdog);
       setLoading(false);
       setLoadingAction('');
       isSavingRef.current = false;
