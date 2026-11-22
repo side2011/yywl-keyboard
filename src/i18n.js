@@ -582,6 +582,8 @@ const en = {
 
   '还没有设置任何按键，请先设置好再点「保存到键盘」': 'No keys configured yet — set up at least one key before clicking "Save to keypad".',
   '保存超时：键盘没有响应，请拔插 USB 线后重试': 'Save timed out: the keypad is not responding. Re-plug the USB cable and try again.',
+  '如果反复出现：换一个 USB 口 / 换数据线；关掉其它连接这个键盘的设备（蓝牙、其它浏览器页面）后重试。': 'If this keeps happening: try another USB port / cable, and close anything else connected to this keypad (Bluetooth, other browser tabs) before retrying.',
+  '键盘没有响应（可能在睡眠或已断开）：请拔插 USB 线后重试；若同时连着蓝牙，请先断开蓝牙': 'The keypad is not responding (it may be asleep or disconnected). Re-plug the USB cable and retry; if Bluetooth is also connected, disconnect it first.',
 };
 
 /**
