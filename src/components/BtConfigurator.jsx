@@ -20,6 +20,7 @@ import { textToKeyRows } from '../services/char-to-hid';
 import ConfigListPanel from './ConfigListPanel';
 import toast from 'react-hot-toast';
 import { defaultKnobSwap, mapKnobSlot } from '../services/knob-order';
+import { allLayersEmpty } from '../services/config-empty';
 import { useKeyDragSwap, swapItems } from '../services/key-drag-swap.js';
 
 // 模式: 0=未设置 1=键盘 2=多媒体 3=鼠标 5=延时
@@ -555,8 +556,24 @@ export default function BtConfigurator() {
   // ---- 保存到键盘 ----
   const handleSaveToDevice = async () => {
     if (!device) { toast.error(t('设备未连接')); return; }
+    // 「全部清除」之后没重新设置就点保存：没有任何可写内容，而且蓝牙设备对连续的清空指令
+    // 经常不回包 → 客户看到一直卡在"正在保存"甚至"保存失败"。这里直接拦住并提示。
+    // 例外：本次改过灯光（ledDirty）时仍然允许保存，因为灯光本身就是要写进设备的。
+    {
+      const snapshot = [...layerConfigsRef.current];
+      snapshot[currentLayer] = keyConfigs;
+      if (allLayersEmpty(snapshot) && !ledDirty) {
+        toast.error(t('还没有设置任何按键，请先设置好再点「保存到键盘」'), { id: 'bt-save-empty', duration: 7000 });
+        return;
+      }
+    }
     setLoading(true);
     toast.loading(t('正在保存配置到键盘...'), { id: 'bt-save' });
+    // 看门狗：设备中途不响应时，界面不会一直停在"正在保存"
+    const __saveWatchdog = setTimeout(() => {
+      setLoading(false);
+      toast.error(t('保存超时：键盘没有响应，请拔插 USB 线后重试'), { id: 'bt-save', duration: 9000 });
+    }, 90000);
     try {
       const handler = getNewHandler();
       if (!handler) throw new Error('Protocol handler not available');
@@ -797,6 +814,7 @@ export default function BtConfigurator() {
       console.error('[BtConfigurator] 保存失败:', e);
       toast.error(t('保存到键盘失败: {msg}', { msg: e.message }), { id: 'bt-save' });
     } finally {
+      clearTimeout(__saveWatchdog);
       setLoading(false);
     }
   };
