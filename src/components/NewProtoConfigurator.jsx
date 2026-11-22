@@ -483,7 +483,7 @@ export default function NewProtoConfigurator() {
       setLoadingAction('');
       isSavingRef.current = false;
       toast.error(t('保存超时：键盘没有响应，请拔插 USB 线后重试'), { id: 'save', duration: 9000 });
-    }, 120000);
+    }, 300000);
     try {
       setLoading(true);
       setLoadingAction('save');
@@ -580,7 +580,16 @@ export default function NewProtoConfigurator() {
         toast.success(t('配置已成功保存到键盘！'), { id: 'save' });
       }
     } catch (e) {
-      toast.error(t('保存到键盘失败: {msg}', { msg: e.message }), { id: 'save' });
+      // 写入超时类错误：给出可操作的排查提示（客户看到"Response timeout"不知道怎么办）
+      const hint = t('如果反复出现：换一个 USB 口 / 换数据线；关掉其它连接这个键盘的设备（蓝牙、其它浏览器页面）后重试。');
+      const msg = String(e.message || '');
+      const isTimeout = /timeout|没有响应|未响应/i.test(msg);
+      toast.error(
+        isTimeout
+          ? t('保存到键盘失败: {msg}', { msg }) + '\n' + hint
+          : t('保存到键盘失败: {msg}', { msg }),
+        { id: 'save', duration: isTimeout ? 14000 : 7000 },
+      );
     } finally {
       clearTimeout(__saveWatchdog);
       setLoading(false);
