@@ -317,7 +317,7 @@ function KeyTestPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50/30">
+    <div className="min-h-screen bg-slate-50 bg-gradient-to-br from-slate-50 via-white to-indigo-50/30">
       <div className="bg-white/80 backdrop-blur-sm border-b border-gray-200 px-6 py-3 flex items-center justify-between sticky top-0 z-20">
         <div className="flex items-center gap-4">
           <button className="text-base text-gray-400 hover:text-indigo-600 transition-colors cursor-pointer font-medium" onClick={() => navigate('/')}>{t('← 返回')}</button>
