@@ -445,7 +445,7 @@ const KeyboardConfigurator = () => {
               <button className="py-3 text-sm font-bold border-2 border-gray-300 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer" onClick={handleReadConfig}>{t('读取键盘配置')}</button>
               <button className="py-3 text-sm font-bold border-2 border-gray-300 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer" onClick={handleClearKey}>{t('清除当前键')}</button>
               <button className="py-3 text-sm font-bold border-2 border-gray-300 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer" onClick={handleClearAll}>{t('全部清除')}</button>
-              <button className="py-3 text-base font-extrabold bg-gradient-to-r from-indigo-600 to-violet-600 text-white hover:from-indigo-500 hover:to-violet-500 rounded-lg transition-all cursor-pointer shadow-md active:scale-[0.97] tracking-wide" onClick={handleSaveToDevice}>{t('保存到键盘')}</button>
+              <button className="py-3 text-base font-extrabold bg-indigo-600 bg-gradient-to-r from-indigo-600 to-violet-600 text-white hover:from-indigo-500 hover:to-violet-500 rounded-lg transition-all cursor-pointer shadow-md active:scale-[0.97] tracking-wide" onClick={handleSaveToDevice}>{t('保存到键盘')}</button>
             </div>
           </div>
 
@@ -478,7 +478,7 @@ const KeyboardConfigurator = () => {
         <div className="lg:w-[72%] xl:w-[76%] space-y-3">
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
             <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-indigo-50 to-violet-50 border-2 border-indigo-200 flex items-center justify-center flex-shrink-0">
+              <div className="w-16 h-16 rounded-xl bg-indigo-50 bg-gradient-to-br from-indigo-50 to-violet-50 border-2 border-indigo-200 flex items-center justify-center flex-shrink-0">
                 <span className="text-lg font-bold text-indigo-600">K{selectedKey + 1}</span>
               </div>
               <div className="flex-1 min-w-0">
