@@ -24,7 +24,7 @@ function MicGuidePage() {
   const isZh = lang === 'zh';
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-indigo-50/60 to-white">
+    <div className="min-h-screen bg-indigo-50 bg-gradient-to-b from-indigo-50/60 to-white">
       {/* 顶部导航 */}
       <div className="max-w-3xl mx-auto px-4 pt-6 pb-2 flex items-center justify-between">
         <button
@@ -52,7 +52,7 @@ function MicGuidePage() {
       <div className="max-w-3xl mx-auto px-4 pb-12">
         {/* 标题 */}
         <div className="text-center mb-8">
-          <div className="mx-auto mb-4 w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-200">
+          <div className="mx-auto mb-4 w-16 h-16 rounded-2xl bg-indigo-500 bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-200">
             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
               <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
@@ -136,7 +136,7 @@ function MicGuidePage() {
                     : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50'
                 }`}
               >
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center flex-shrink-0">
+                <div className="w-12 h-12 rounded-xl bg-blue-500 bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center flex-shrink-0">
                   <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                   </svg>
@@ -164,7 +164,7 @@ function MicGuidePage() {
                     : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50'
                 }`}
               >
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center flex-shrink-0">
+                <div className="w-12 h-12 rounded-xl bg-gray-700 bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center flex-shrink-0">
                   <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                   </svg>
