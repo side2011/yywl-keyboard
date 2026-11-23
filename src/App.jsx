@@ -8,6 +8,7 @@ import BtConfigurator from './components/BtConfigurator';
 import KeyTestPage from './components/KeyTestPage';
 import MicGuidePage from './components/MicGuidePage';
 import DownloadBadge from './components/DownloadBadge';
+import BrowserCompatBanner from './components/BrowserCompatBanner';
 import { Toaster } from 'react-hot-toast';
 
 function App() {
@@ -16,6 +17,7 @@ function App() {
       <LanguageProvider>
         <DeviceProvider>
           <div className="min-h-screen">
+            <BrowserCompatBanner />
             <DownloadBadge />
             <Routes>
               <Route path="/" element={<KeyboardConnector />} />
