@@ -977,7 +977,7 @@ export default function NewProtoConfigurator() {
   // RENDER
   // ============================================================
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-indigo-50/30">
+    <div className="min-h-screen bg-gray-50 bg-gradient-to-br from-gray-50 to-indigo-50/30">
       <ConfirmDialog
         open={copyAllOpen}
         title={t('把当前层复制到全部层？')}
@@ -1125,7 +1125,7 @@ export default function NewProtoConfigurator() {
               <button disabled={loading} className={`py-3.5 text-base font-bold border-2 rounded-lg transition-colors ${loading ? 'cursor-not-allowed opacity-50 border-gray-200 text-gray-400' : 'border-gray-300 text-gray-700 hover:bg-gray-50 cursor-pointer'}`} onClick={() => !loading && handleReadConfig()}>{t('读取键盘配置')}</button>
               <button disabled={loading} className={`py-3.5 text-base font-bold border-2 rounded-lg transition-colors ${loading ? 'cursor-not-allowed opacity-50 border-gray-200 text-gray-400' : 'border-gray-300 text-gray-700 hover:bg-gray-50 cursor-pointer'}`} onClick={() => !loading && handleClearKey()}>{t('清除当前键')}</button>
               <button disabled={loading} className={`py-3.5 text-base font-bold border-2 rounded-lg transition-colors ${loading ? 'cursor-not-allowed opacity-50 border-gray-200 text-gray-400' : 'border-gray-300 text-gray-700 hover:bg-gray-50 cursor-pointer'}`} onClick={() => !loading && handleClearAll()}>{t('全部清除')}</button>
-              <button disabled={loading} className={`py-3.5 text-lg font-extrabold rounded-lg transition-all shadow-md ${loading ? 'cursor-not-allowed opacity-50' : 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white hover:from-indigo-500 hover:to-violet-500 cursor-pointer active:scale-[0.97]'}`} onClick={() => !loading && handleSaveToDevice()}>{t('保存到键盘')}</button>
+              <button disabled={loading} className={`py-3.5 text-lg font-extrabold rounded-lg transition-all shadow-md ${loading ? 'cursor-not-allowed opacity-50' : 'bg-indigo-600 bg-gradient-to-r from-indigo-600 to-violet-600 text-white hover:from-indigo-500 hover:to-violet-500 cursor-pointer active:scale-[0.97]'}`} onClick={() => !loading && handleSaveToDevice()}>{t('保存到键盘')}</button>
             </div>
           </div>
 
@@ -1161,7 +1161,7 @@ export default function NewProtoConfigurator() {
           {/* 当前选中键信息 */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
             <div className="flex items-center gap-5">
-              <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-indigo-50 to-violet-50 border-2 border-indigo-200 flex items-center justify-center flex-shrink-0">
+              <div className="w-16 h-16 rounded-xl bg-indigo-50 bg-gradient-to-br from-indigo-50 to-violet-50 border-2 border-indigo-200 flex items-center justify-center flex-shrink-0">
                 <span className="text-xl font-bold text-indigo-600">K{selectedKey + 1}</span>
               </div>
               <div className="flex-1 min-w-0">
@@ -1520,7 +1520,7 @@ export default function NewProtoConfigurator() {
                 <div className="flex items-center gap-3 mb-5 p-4 bg-gray-50 rounded-xl border border-gray-200">
                   <button className="px-5 py-2.5 text-base font-bold border-2 border-indigo-300 text-indigo-700 rounded-lg hover:bg-indigo-50 transition-colors cursor-pointer"
                     onClick={handleReadLed} disabled={ledLoading}>{t('读取灯光')}</button>
-                  <button className="px-6 py-2.5 text-base font-bold bg-gradient-to-r from-indigo-600 to-violet-600 text-white rounded-lg hover:from-indigo-500 hover:to-violet-500 transition-all cursor-pointer shadow-md"
+                  <button className="px-6 py-2.5 text-base font-bold bg-indigo-600 bg-gradient-to-r from-indigo-600 to-violet-600 text-white rounded-lg hover:from-indigo-500 hover:to-violet-500 transition-all cursor-pointer shadow-md"
                     onClick={handleSaveLed} disabled={ledLoading}>{t('保存灯光')}</button>
                   
                 </div>
