@@ -648,7 +648,7 @@ function KeyboardConnector() {
         {(() => {
           if (!hidSupported) return (
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 text-center">
-              <div className="mx-auto mb-5 w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-lg shadow-amber-200">
+              <div className="mx-auto mb-5 w-16 h-16 rounded-2xl bg-amber-400 bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-lg shadow-amber-200">
                 <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
                   <line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" />
@@ -661,7 +661,7 @@ function KeyboardConnector() {
               <div className="space-y-3 mb-6">
                 <a href="https://www.google.cn/chrome/" target="_blank" rel="noopener noreferrer"
                   className="flex items-center gap-3 p-4 rounded-xl border-2 border-gray-200 hover:border-indigo-400 hover:bg-indigo-50 transition-all cursor-pointer">
-                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-red-500 via-yellow-500 to-green-500 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">C</div>
+                  <div className="w-10 h-10 rounded-lg bg-red-500 bg-gradient-to-br from-red-500 via-yellow-500 to-green-500 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">C</div>
                   <div className="text-left">
                     <div className="text-sm font-bold text-gray-800">Google Chrome</div>
                     <div className="text-xs text-gray-400">{t('推荐 · 支持 Windows / macOS / Linux')}</div>
@@ -670,7 +670,7 @@ function KeyboardConnector() {
                 </a>
                 <a href="https://www.microsoft.com/edge" target="_blank" rel="noopener noreferrer"
                   className="flex items-center gap-3 p-4 rounded-xl border-2 border-gray-200 hover:border-indigo-400 hover:bg-indigo-50 transition-all cursor-pointer">
-                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-teal-400 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">E</div>
+                  <div className="w-10 h-10 rounded-lg bg-blue-500 bg-gradient-to-br from-blue-500 to-teal-400 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">E</div>
                   <div className="text-left">
                     <div className="text-sm font-bold text-gray-800">Microsoft Edge</div>
                     <div className="text-xs text-gray-400">{t('Windows 自带 · 也支持 macOS / Linux')}</div>
@@ -693,7 +693,7 @@ function KeyboardConnector() {
           return (
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
               <div className="text-center mb-8">
-                <div className="mx-auto mb-4 w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-200">
+                <div className="mx-auto mb-4 w-16 h-16 rounded-2xl bg-indigo-500 bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-200">
                   <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                     <rect x="2" y="6" width="20" height="14" rx="2" />
                     <line x1="6" y1="10" x2="6.01" y2="10" /><line x1="10" y1="10" x2="10.01" y2="10" />
@@ -794,7 +794,7 @@ function KeyboardConnector() {
                   className={`w-full py-3.5 rounded-xl text-base font-semibold text-white transition-all cursor-pointer ${
                     awaitingPick
                       ? 'bg-amber-500 animate-pulse cursor-wait'
-                      : (connecting ? 'bg-indigo-300 cursor-wait' : 'bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 shadow-lg shadow-indigo-200/50 active:scale-[0.98]')
+                      : (connecting ? 'bg-indigo-300 cursor-wait' : 'bg-indigo-600 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 shadow-lg shadow-indigo-200/50 active:scale-[0.98]')
                   }`}>
                   {awaitingPick
                     ? t('请在弹窗里选中设备，再点【连接】')
