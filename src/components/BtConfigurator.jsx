@@ -1288,7 +1288,7 @@ export default function BtConfigurator() {
                 {t('全部清除')}
               </button>
               <button onClick={handleSaveToDevice}
-                className="py-3 text-lg font-extrabold rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 text-white hover:from-indigo-500 hover:to-violet-500 transition-all cursor-pointer shadow-md">
+                className="py-3 text-lg font-extrabold rounded-lg bg-indigo-600 bg-gradient-to-r from-indigo-600 to-violet-600 text-white hover:from-indigo-500 hover:to-violet-500 transition-all cursor-pointer shadow-md">
                 {t('保存到键盘')}
               </button>
             </div>
