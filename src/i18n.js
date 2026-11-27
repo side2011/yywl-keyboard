@@ -586,6 +586,11 @@ const en = {
   '键盘没有响应（可能在睡眠或已断开）：请拔插 USB 线后重试；若同时连着蓝牙，请先断开蓝牙': 'The keypad is not responding (it may be asleep or disconnected). Re-plug the USB cable and retry; if Bluetooth is also connected, disconnect it first.',
   '检测到浏览器版本较旧，部分按钮/配色可能显示异常。建议升级到 Chrome / Edge 111 以上（或最新版），显示与保存功能会更稳。': 'Your browser looks outdated — some buttons/colors may not display correctly. Please upgrade to Chrome / Edge 111+ (or the latest version) for reliable display and saving.',
   '知道了': 'Got it',
+  '宏数据较大，可能存不进设备': 'Macro data is large and may not fit on the device',
+  '本层宏数据约 {total} 字节（{n} 个宏键，单个最大 {max} 字节）。设备 Flash 容量有限，宏太大时可能只写进内存，拔掉线后配置会丢失。\n\n建议先减少宏步骤，或删掉部分宏。仍要保存吗？': 'This layer holds about {total} bytes of macro data ({n} macro keys, largest {max} bytes). Device flash is limited — with very large macros the data may only live in RAM and be lost after unplugging.\n\nConsider reducing the macro steps first. Save anyway?',
+  '仍然保存': 'Save anyway',
+  '本层宏数据较大（约 {n} 字节）。建议拔掉键盘再插上，然后点「读取键盘配置」确认宏是否真的保存住了（没保存住请减少宏步骤）。': 'This layer has a large amount of macro data (~{n} bytes). Please unplug and re-plug the keypad, then click "Read keypad config" to confirm the macros were actually stored (if not, reduce the macro steps).',
+  '这是设备存储空间不足：宏数据太大，没能写进 Flash（拔掉线后会丢失）。请减少宏步骤、或删掉部分宏后再保存。': 'The device ran out of storage: the macro data is too large to be written to flash (it will be lost after unplugging). Reduce the macro steps or remove some macros, then save again.',
 };
 
 /**
