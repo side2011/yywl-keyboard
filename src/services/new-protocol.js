@@ -130,6 +130,31 @@ export const MACRO_STEP_LABELS = { 0x01: '按下', 0x02: '长按', 0x03: '松开
 const PROTO_ACT = { PRESS: 0x00, RELEASE: 0x01 };
 const PRESS_HOLD_MS = 50; // PRESS 展开时 press→release 之间的保持时间
 
+/**
+ * 估算一层的宏数据占用（字节）。
+ * 每个宏键：ActionHeader 9 字节 + step_count 1 字节 + 每步 4 字节。
+ * 用途：保存前提示"宏太大"，以及保存失败时给出量化的建议。
+ */
+export function estimateMacroUsage(keyConfigs) {
+  const keys = Array.isArray(keyConfigs) ? keyConfigs : [];
+  let totalBytes = 0;
+  let macroKeys = 0;
+  let maxKeyBytes = 0;
+  let maxKeyIdx = -1;
+  const perKey = [];
+  keys.forEach((cfg, i) => {
+    if (!cfg || cfg.mode !== 5) return;
+    const steps = Array.isArray(cfg.macroSteps) ? cfg.macroSteps.filter((s) => s) : [];
+    if (!steps.length) return;
+    const bytes = 9 + 1 + steps.length * 4;
+    perKey.push({ index: i, steps: steps.length, bytes });
+    totalBytes += bytes;
+    macroKeys += 1;
+    if (bytes > maxKeyBytes) { maxKeyBytes = bytes; maxKeyIdx = i; }
+  });
+  return { perKey, macroKeys, totalBytes, maxKeyBytes, maxKeyIdx };
+}
+
 export function serializeMacro(steps) {
   // 第一遍: 将 UI 步骤转换为协议步骤 (展开 PRESS, 吸收 DELAY)
   const protoSteps = [];
@@ -586,8 +611,12 @@ export class NewProtocolHandler {
           status = body[3];
         }
         const statusNames = {
-          0x01: '校验错误', 0x02: '参数不合法', 0x03: 'Flash读写失败',
-          0x04: '容量不足', 0x05: '设备忙', 0x06: '层数据校验失败',
+          0x01: '校验错误',
+          0x02: '参数不合法',
+          0x03: '设备 Flash 写入失败（数据可能太大，只留在了内存里）',
+          0x04: '设备存储空间不足（宏数据太大，没能写进 Flash）',
+          0x05: '设备忙，请稍后重试',
+          0x06: '层数据校验失败（写进去的内容校验不一致）',
         };
         throw new Error(statusNames[status] || `NAK status 0x${status.toString(16)}`);
       }
@@ -1197,13 +1226,16 @@ export class NewProtocolHandler {
         await new Promise(r => setTimeout(r, 500));
       }
     }
-    // 2. 保存层到 VM
-    console.log('[NewProto] saveAll: 保存层到 VM...');
+    // 2. 保存层到 Flash（0x12 SAVE_LAYER）
+    //    注意：设备可能先把配置放内存里（能用），但 Flash 写不进去（拔插后丢失）。
+    //    所以这里一旦 NAK 必须把"没写进 Flash"明确抛给界面，不能静默跳过。
+    console.log('[NewProto] saveAll: 保存层到 Flash...');
     await this._drain(200);
     try {
       await this.saveLayer(layer);
+      console.log('[NewProto] saveAll: SAVE_LAYER ACK（设备已确认写入）');
     } catch (e) {
-      throw new Error(`保存层失败: ${e.message}`);
+      throw new Error(`保存到 Flash 失败（拔掉线后会丢失）：${e.message}`);
     }
     // 3. 设置活动层
     if (currentLayer !== undefined) {
