@@ -25,11 +25,17 @@ function loadEnv() {
   return map;
 }
 
-// 1) 确保有 win-unpacked（没有就构建）
-if (!fs.existsSync(path.join(UNPACKED, 'YYWL快速配置.exe'))) {
-  console.log('未找到 win-unpacked，开始构建…');
+// 1) 始终重新构建（除非显式传 --reuse）
+// ⚠ 以前只在 exe 不存在时才构建 → 会直接把几周前的旧代码打进 zip
+//    （5 键触摸款"灯光模式读成关闭"的修复就是这么没带进包的）
+const reuse = process.argv.includes('--reuse');
+if (!reuse) {
+  console.log('构建 quick-config：vite build → electron-builder --win dir …');
+  execFileSync('node', [path.join(QC, 'node_modules', 'vite', 'bin', 'vite.js'), 'build'], { cwd: QC, stdio: 'inherit' });
   execFileSync('node', [path.join(QC, 'node_modules', 'electron-builder', 'out', 'cli', 'cli.js'),
     '--win', 'dir', '--config.win.signAndEditExecutable=false'], { cwd: QC, stdio: 'inherit' });
+} else if (!fs.existsSync(path.join(UNPACKED, 'YYWL快速配置.exe'))) {
+  throw new Error('--reuse 需要先有 win-unpacked');
 }
 
 // 2) 精简 locales
