@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { useDevice } from '../context/DeviceContext.jsx';
 import { useKeyDragSwap, swapItems } from '../services/key-drag-swap.js';
 import { allLayersEmpty } from '../services/config-empty.js';
+import { estimateMacroUsage } from '../services/new-protocol.js';
 import { useLang } from '../context/LanguageContext.jsx';
 import {
   KEY_MODE, KEYCODE_LABELS, MODIFIERS,
@@ -203,6 +204,11 @@ export default function NewProtoConfigurator() {
   const [currentLayer, setCurrentLayer] = useState(0);
   const [isConnected, setIsConnected] = useState(false);
   const [loading, setLoading] = useState(false);
+  // 宏体积提示：设备 Flash 有限，宏太大时可能只进了内存、拔插后丢失
+  // （实测 6 键新协议：宏录入很大 → 当场能用，拔插后配置全没）
+  const [macroWarn, setMacroWarn] = useState(null);
+  const MACRO_WARN_TOTAL = 2048;   // 一层所有宏合计超过这个字节数就提示
+  const MACRO_WARN_PER_KEY = 512;  // 单个宏超过这个字节数也提示
   const [loadingAction, setLoadingAction] = useState(''); // 'read' | 'save' | ''
 
   // 保存/读取期间连键盘快捷键一起拦掉（遮罩只挡鼠标，键盘事件仍会进组件）
@@ -461,7 +467,8 @@ export default function NewProtoConfigurator() {
   // 拖动状态：禁用时（读取/保存中）不可拖
   const { dragIndex, overIndex, dragProps } = useKeyDragSwap({ onSwap: handleSwapKeys, disabled: loading });
 
-  const handleSaveToDevice = async () => {
+  const handleSaveToDevice = async (opts) => {
+    const skipMacroWarn = !!(opts && opts.skipMacroWarn);
     if (isSavingRef.current) {
       console.log('[NewProto] 保存已在进行中, 跳过重复调用');
       return;
@@ -473,6 +480,16 @@ export default function NewProtoConfigurator() {
       snapshot[currentLayer] = keyConfigs;
       if (allLayersEmpty(snapshot)) {
         toast.error(t('还没有设置任何按键，请先设置好再点「保存到键盘」'), { id: 'np-save-empty', duration: 7000 });
+        return;
+      }
+
+      // 宏体积检查：设备 Flash 有上限，宏太大时可能只写进内存（拔插后丢失）。
+      // 我们无法从协议侧读到真实容量，只能按经验阈值提示，让客户自己决定。
+      const usageList = snapshot.map((layer, li) => ({ li, usage: estimateMacroUsage(layer) }));
+      const totalBytes = usageList.reduce((s, x) => s + x.usage.totalBytes, 0);
+      const maxKeyBytes = Math.max(0, ...usageList.map((x) => x.usage.maxKeyBytes));
+      if (!skipMacroWarn && (totalBytes > MACRO_WARN_TOTAL || maxKeyBytes > MACRO_WARN_PER_KEY)) {
+        setMacroWarn({ totalBytes, maxKeyBytes, macroKeys: usageList.reduce((s, x) => s + x.usage.macroKeys, 0) });
         return;
       }
     }
@@ -578,17 +595,28 @@ export default function NewProtoConfigurator() {
         }), { id: 'save', duration: 12000 });
       } else {
         toast.success(t('配置已成功保存到键盘！'), { id: 'save' });
+        // 宏较大时提醒客户拔插验证一次（设备可能只把宏留在内存里）
+        try {
+          const usageNow = estimateMacroUsage(cached[currentLayer] || keyConfigs);
+          if (usageNow.totalBytes > 0 && (usageNow.totalBytes > MACRO_WARN_TOTAL || usageNow.maxKeyBytes > MACRO_WARN_PER_KEY)) {
+            toast(t('本层宏数据较大（约 {n} 字节）。建议拔掉键盘再插上，然后点「读取键盘配置」确认宏是否真的保存住了（没保存住请减少宏步骤）。', { n: usageNow.totalBytes }),
+              { id: 'np-macro-hint', duration: 12000 });
+          }
+        } catch { /* 忽略 */ }
       }
     } catch (e) {
       // 写入超时类错误：给出可操作的排查提示（客户看到"Response timeout"不知道怎么办）
       const hint = t('如果反复出现：换一个 USB 口 / 换数据线；关掉其它连接这个键盘的设备（蓝牙、其它浏览器页面）后重试。');
       const msg = String(e.message || '');
       const isTimeout = /timeout|没有响应|未响应/i.test(msg);
+      const isCapacity = /容量|空间不足|Flash|flash|写入失败/.test(msg);
       toast.error(
         isTimeout
           ? t('保存到键盘失败: {msg}', { msg }) + '\n' + hint
-          : t('保存到键盘失败: {msg}', { msg }),
-        { id: 'save', duration: isTimeout ? 14000 : 7000 },
+          : isCapacity
+            ? t('保存到键盘失败: {msg}', { msg }) + '\n' + t('这是设备存储空间不足：宏数据太大，没能写进 Flash（拔掉线后会丢失）。请减少宏步骤、或删掉部分宏后再保存。')
+            : t('保存到键盘失败: {msg}', { msg }),
+        { id: 'save', duration: (isTimeout || isCapacity) ? 16000 : 7000 },
       );
     } finally {
       clearTimeout(__saveWatchdog);
@@ -978,6 +1006,15 @@ export default function NewProtoConfigurator() {
   // ============================================================
   return (
     <div className="min-h-screen bg-gray-50 bg-gradient-to-br from-gray-50 to-indigo-50/30">
+      {/* 宏体积过大提示：设备 Flash 容量有限，宏太大可能只进内存、拔插后丢失 */}
+      <ConfirmDialog
+        open={!!macroWarn}
+        title={t('宏数据较大，可能存不进设备')}
+        message={macroWarn ? t('本层宏数据约 {total} 字节（{n} 个宏键，单个最大 {max} 字节）。设备 Flash 容量有限，宏太大时可能只写进内存，拔掉线后配置会丢失。\n\n建议先减少宏步骤，或删掉部分宏。仍要保存吗？', { total: macroWarn.totalBytes, n: macroWarn.macroKeys, max: macroWarn.maxKeyBytes }) : ''}
+        confirmText={t('仍然保存')}
+        onCancel={() => setMacroWarn(null)}
+        onConfirm={() => { setMacroWarn(null); handleSaveToDevice({ skipMacroWarn: true }); }}
+      />
       <ConfirmDialog
         open={copyAllOpen}
         title={t('把当前层复制到全部层？')}
